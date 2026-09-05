@@ -24,13 +24,14 @@ process.env.STRIPE_PRICE_ID = 'price_monthly';
 process.env.STRIPE_PRICE_ID_YEARLY = 'price_yearly';
 process.env.STRIPE_PRICE_ID_LIFETIME = 'price_lifetime';
 process.env.STRIPE_TRIAL_DAYS = '7';
+process.env.LIFETIME_CAP = '1';
 
 const { config } = await import('../src/config.js');
 for (const suffix of ['', '-wal', '-shm']) fs.rmSync(config.db.path + suffix, { force: true });
 fs.mkdirSync(path.dirname(config.db.path), { recursive: true });
 
 const { entitlements } = await import('../src/db/queries.js');
-const { availablePlans, planPrice, handleEvent, trialOffer } =
+const { availablePlans, planPrice, handleEvent, trialOffer, lifetimeAvailability, createCheckoutSession } =
   await import('../src/services/stripeService.js');
 const { resolveEntitlement, markBillingLapse, generateLicenseKey, redeemLicenseKey } =
   await import('../src/services/entitlementService.js');
@@ -113,6 +114,32 @@ const dated = generateLicenseKey({ durationDays: 30, maxGuilds: 1, note: 'sold' 
 const DATED = '800000000000000004';
 await redeemLicenseKey(DATED, dated, 'someone');
 check('a dated key is not perpetual', !!entitlements.get(DATED).perpetual, false);
+
+console.log('\n- the lifetime cap -');
+const avail = lifetimeAvailability();
+check('the cap is on', avail.capped, true);
+check('one has been sold', avail.sold, 1);
+check('none left', avail.remaining, 0);
+check('so it is sold out', avail.soldOut, true);
+check('and it stops being offered', availablePlans().includes('lifetime'), false);
+check('monthly and yearly are unaffected', availablePlans(), ['monthly', 'yearly']);
+// A stale page or a hand-made form must not get past a closed sale.
+const blocked = await createCheckoutSession({ guildId: '800000000000000009', plan: 'lifetime' });
+check('checkout refuses it server-side', blocked.reason, 'lifetime_sold_out');
+
+console.log('\n- a complimentary key does not consume a place -');
+check('the keyed server is perpetual', !!entitlements.get(KEYED).perpetual, true);
+check('but it was given, not sold', entitlements.get(KEYED).source, 'license_key');
+check('so the sold count still reads one', lifetimeAvailability().sold, 1);
+
+config.stripe.lifetimeCap = 3;
+check('raising the cap reopens the sale', lifetimeAvailability().soldOut, false);
+check('with two left', lifetimeAvailability().remaining, 2);
+check('and it is offered again', availablePlans().includes('lifetime'), true);
+config.stripe.lifetimeCap = 0;
+check('a cap of zero means no limit', lifetimeAvailability().capped, false);
+check('and never sold out', lifetimeAvailability().soldOut, false);
+config.stripe.lifetimeCap = 1;
 
 console.log('\n- trials belong to subscriptions only -');
 const FRESH = '800000000000000005';

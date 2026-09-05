@@ -13,6 +13,7 @@ import { blog } from '../db/queries.js';
 import { render as renderPost } from '../services/blogService.js';
 import {
   constructEvent, handleEvent, isEnabled as stripeEnabled, availablePlans,
+  lifetimeAvailability,
 } from '../services/stripeService.js';
 
 const log = createLogger('web');
@@ -143,6 +144,8 @@ export function createApp() {
       yearly: config.stripe.priceAmountYearly,
       lifetime: config.stripe.priceAmountLifetime,
     },
+    lifetime: lifetimeAvailability(),
+    contactEmail: config.legal.contactEmail,
   });
 
   app.get('/', (req, res) => {

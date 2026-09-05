@@ -407,6 +407,11 @@ export const entitlements = {
   markPerpetual: (guildId, on = true) =>
     q('UPDATE entitlements SET perpetual = ?, updated_at = ? WHERE guild_id = ?')
       .run(on ? 1 : 0, Date.now(), guildId),
+  // Paid lifetime purchases only. Complimentary perpetual keys are given away,
+  // not sold, so they do not consume a place.
+  countSoldPerpetual: () =>
+    q(`SELECT COUNT(*) AS n FROM entitlements
+       WHERE perpetual = 1 AND source = 'stripe' AND status = 'active'`).get().n,
   isPerpetual: (guildId) =>
     !!q('SELECT perpetual FROM entitlements WHERE guild_id = ?').get(guildId)?.perpetual,
   clearLapsed: (guildId) =>

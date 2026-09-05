@@ -56,7 +56,7 @@ import {
 } from '../../services/blogService.js';
 import {
   createCheckoutSession, createPortalSession, isEnabled as stripeEnabled, trialOffer,
-  availablePlans, PLANS,
+  availablePlans, PLANS, lifetimeAvailability,
 } from '../../services/stripeService.js';
 import {
   DOCUMENT as TERMS_DOCUMENT, VERSION as TERMS_VERSION,
@@ -162,6 +162,8 @@ router.get('/g/:guildId', requireGuildAccess('approve'), async (req, res) => {
       lifetime: config.stripe.priceAmountLifetime,
     },
     perpetual: !!entitlements.get(guildId)?.perpetual,
+    lifetime: lifetimeAvailability(),
+    contactEmail: config.legal.contactEmail,
     pendingLicence: req.session.pendingLicence?.guildId === guildId
       ? req.session.pendingLicence : null,
     terms: { title: TERMS_TITLE, intro: TERMS_INTRO, sections: TERMS_SECTIONS, version: TERMS_VERSION },
@@ -450,7 +452,9 @@ router.post('/g/:guildId/subscribe', requireGuildAccess('configure'), async (req
   });
 
   if (!result.ok) {
-    flash(req, 'error', `Could not start checkout: ${result.reason}`);
+    flash(req, 'error', result.reason === 'lifetime_sold_out'
+      ? `The lifetime licence is sold out. Email ${config.legal.contactEmail} if you need one.`
+      : `Could not start checkout: ${result.reason}`);
     return res.redirect(`/g/${guild.id}`);
   }
   return res.redirect(303, result.url);

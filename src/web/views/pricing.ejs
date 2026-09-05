@@ -34,7 +34,7 @@
         <% } %>
       </div>
 
-      <% if (plans.includes('yearly') || plans.includes('lifetime')) { %>
+      <% if (plans.includes('yearly') || plans.includes('lifetime') || lifetime.soldOut) { %>
         <ul class="price-options">
           <li>
             <span class="amount"><%= price.symbol %><%= price.amount %></span>
@@ -49,7 +49,19 @@
           <% if (plans.includes('lifetime')) { %>
             <li>
               <span class="amount"><%= price.symbol %><%= prices.lifetime %></span>
-              <span class="per">once, for as long as BotApprove operates</span>
+              <span class="per">
+                once, for as long as BotApprove operates<%
+                  if (lifetime.capped) { %>, <%= lifetime.remaining %> of
+                  <%= lifetime.cap %> left<% } %>
+              </span>
+            </li>
+          <% } else if (lifetime.soldOut) { %>
+            <li>
+              <span class="amount faint"><%= price.symbol %><%= prices.lifetime %></span>
+              <span class="per">
+                once, <strong>sold out</strong>. Email
+                <a href="mailto:<%= contactEmail %>"><%= contactEmail %></a> if you need one.
+              </span>
             </li>
           <% } %>
         </ul>

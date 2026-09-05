@@ -164,6 +164,16 @@
               </form>
             <% } %>
           </div>
+          <% if (lifetime.soldOut) { %>
+            <p class="hint">
+              The <%= price.symbol %><%= prices.lifetime %> lifetime licence is sold out. Email
+              <a href="mailto:<%= contactEmail %>"><%= contactEmail %></a> if you need one.
+            </p>
+          <% } else if (lifetime.capped) { %>
+            <p class="hint">
+              <%= lifetime.remaining %> of <%= lifetime.cap %> lifetime licences left.
+            </p>
+          <% } %>
           <p class="hint">
             <% if (trialOffer.eligible) { %>
               The monthly plan starts with <%= trialOffer.days %> days free. Cancel before day

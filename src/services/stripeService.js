@@ -45,10 +45,27 @@ export function planPrice(plan) {
   return price ? { ...spec, plan, price } : null;
 }
 
+/**
+ * How many lifetime licences are left.
+ *
+ * Every one sold is a promise to keep running the service for that server with
+ * no further payment, so the number of them is worth being deliberate about.
+ * Complimentary perpetual keys do not count: they are given away rather than
+ * sold, and counting them would close the sale on day one.
+ */
+export function lifetimeAvailability() {
+  const cap = config.stripe.lifetimeCap;
+  const sold = entitlements.countSoldPerpetual();
+  if (cap <= 0) return { capped: false, cap: 0, sold, remaining: null, soldOut: false };
+  return { capped: true, cap, sold, remaining: Math.max(0, cap - sold), soldOut: sold >= cap };
+}
+
 /** Which plans this instance can actually sell, so the UI offers no dead buttons. */
 export function availablePlans() {
   if (!isEnabled()) return [];
-  return Object.keys(PLANS).filter((plan) => planPrice(plan));
+  return Object.keys(PLANS)
+    .filter((plan) => planPrice(plan))
+    .filter((plan) => plan !== 'lifetime' || !lifetimeAvailability().soldOut);
 }
 
 export async function createCheckoutSession({ guildId, guildName, userId, plan = 'monthly' }) {
@@ -57,6 +74,12 @@ export async function createCheckoutSession({ guildId, guildName, userId, plan =
 
   const spec = planPrice(plan);
   if (!spec) return { ok: false, reason: 'unknown_plan' };
+
+  // Checked here, not only in the template, so a stale page or a hand-made form
+  // cannot buy one that is no longer for sale.
+  if (plan === 'lifetime' && lifetimeAvailability().soldOut) {
+    return { ok: false, reason: 'lifetime_sold_out' };
+  }
 
   const existing = entitlements.get(guildId);
   // A one-off purchase never gets a trial: a free period before a single
@@ -165,6 +188,24 @@ export async function handleEvent(event) {
       // no cancellation to end it. It is granted once, with no expiry, and
       // flagged so a later billing event cannot take it away.
       if (obj.mode === 'payment') {
+        // The cap is enforced when checkout opens, but two people can pay at
+        // once. The money has already moved, so the licence is granted either
+        // way and the overshoot is raised loudly instead: refusing here would
+        // mean taking payment and delivering nothing.
+        const before = lifetimeAvailability();
+        if (before.capped && before.soldOut) {
+          log.alert('lifetime purchase beyond the cap', {
+            guildId, cap: before.cap, sold: before.sold,
+          });
+          await record({
+            guildId,
+            action: 'lifetime_cap_exceeded',
+            severity: 'high',
+            detail: { cap: before.cap, sold: before.sold, customer: obj.customer },
+            mirror: false,
+          }).catch(() => {});
+        }
+
         await grantEntitlement(guildId, {
           tier: 'pro',
           expiresAt: null,

@@ -70,6 +70,10 @@ export const config = {
     priceIdLifetime: process.env.STRIPE_PRICE_ID_LIFETIME || '',
     priceAmountYearly: process.env.PRICE_AMOUNT_YEARLY || '50',
     priceAmountLifetime: process.env.PRICE_AMOUNT_LIFETIME || '150',
+    // How many lifetime licences may be sold in total. 0 means no limit. Only
+    // paid purchases count: complimentary perpetual keys are a separate
+    // programme and would otherwise mark this sold out on day one.
+    lifetimeCap: int(process.env.LIFETIME_CAP, 0),
     webhookSecret: process.env.STRIPE_WEBHOOK_SECRET || '',
     portalUrl: process.env.STRIPE_PORTAL_URL || '',
     trialDays: int(process.env.STRIPE_TRIAL_DAYS, 7),
@@ -85,6 +89,7 @@ export const config = {
   legal: {
     operator: process.env.LEGAL_OPERATOR || 'hs.ypp',
     contactUrl: process.env.LEGAL_CONTACT_URL || 'https://github.com/cfm-miku-en',
+    contactEmail: process.env.LEGAL_CONTACT_EMAIL || 'miku@mikuuu.xyz',
     updated: process.env.LEGAL_UPDATED || '5 September 2026',
   },
 
