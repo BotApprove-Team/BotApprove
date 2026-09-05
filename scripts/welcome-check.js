@@ -1,13 +1,14 @@
 #!/usr/bin/env node
 /**
- * The setup guide sent when BotApprove is added to a server.
+ * Can BotApprove actually remove the bots in this server?
  *
  *   DATABASE_PATH=./data/welcome.db node scripts/welcome-check.js
  *
- * Discord refuses to let a bot remove a member whose highest role outranks its
- * own, and a newly added bot's role starts at the bottom. Getting this wrong
- * leaves a gate that reports success and removes nothing, so the guide has to
- * say where the role actually sits rather than offer generic advice.
+ * Discord only lets a bot remove a member whose highest role is STRICTLY below
+ * its own. Level with it is not enough, which is how a server that has tidily
+ * put every bot in one "Bots" role ends up with a gate that holds bots for
+ * approval and then fails to kick them. That case looks correct from the role
+ * list, so it has to be caught by position, not by eye.
  */
 import fs from 'node:fs';
 import path from 'node:path';
@@ -31,104 +32,110 @@ const check = (label, actual, expected) => {
     (ok ? '' : `\n         expected ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`));
 };
 
-// A stand-in guild: roleStanding only reads positions, names and the managed
-// flag, and a real one needs a gateway connection.
-const makeGuild = ({ myPosition, roles, bots = [] }) => {
-  const mine = { id: 'r-me', name: 'BotApprove', position: myPosition, managed: true };
-  const all = [mine, ...roles];
-  const collection = {
-    get size() { return all.length; },
-    values: () => all.values(),
-    filter: (fn) => {
-      const kept = all.filter(fn);
-      return { size: kept.length, values: () => kept.values() };
-    },
-  };
-  const members = [
-    { id: 'me', user: { bot: true, tag: 'BotApprove#3260' }, roles: { highest: mine } },
-    ...bots,
-  ];
+// Enough of a guild for roleStanding, which reads role positions, the managed
+// flag, and each bot's highest role. A real one needs a gateway connection.
+const collection = (items) => ({
+  get size() { return items.length; },
+  values: () => items.values(),
+  filter: (fn) => collection(items.filter(fn)),
+  some: (fn) => items.some(fn),
+  map: (fn) => items.map(fn),
+});
+
+const makeGuild = ({ myRole, roles, bots = [] }) => {
+  const all = [myRole, ...roles];
   return {
     members: {
-      me: { id: 'me', roles: { highest: mine } },
-      cache: {
-        filter: (fn) => ({ map: (m) => members.filter(fn).map(m) }),
-      },
+      me: { id: 'me', roles: { highest: myRole } },
+      cache: collection([
+        { id: 'me', user: { bot: true, tag: 'BotApprove#3260' }, roles: { highest: myRole } },
+        ...bots,
+      ]),
     },
-    roles: { cache: collection },
+    roles: { cache: collection(all) },
   };
 };
 
-console.log('\n- a fresh join, role at the bottom -');
+const OWN = { id: 'r-me', name: 'BotApprove', position: 25, managed: true };
+const BOTS_ROLE = { id: 'r-bots', name: 'Bots', position: 68, managed: false };
+
+console.log('\n- a fresh join, at the bottom of the list -');
 const fresh = makeGuild({
-  myPosition: 1,
+  myRole: { ...OWN, position: 1 },
   roles: [
     { id: 'r1', name: 'Admin', position: 30, managed: false },
     { id: 'r2', name: 'Dyno', position: 20, managed: true },
-    { id: 'r3', name: 'MEE6', position: 18, managed: true },
   ],
-  bots: [
-    { id: 'b1', user: { bot: true, tag: 'Dyno#3861' }, roles: { highest: { position: 20 } } },
-    { id: 'b2', user: { bot: true, tag: 'MEE6#4876' }, roles: { highest: { position: 18 } } },
-  ],
+  bots: [{ id: 'b1', user: { bot: true, tag: 'Dyno#3861' }, roles: { highest: { id: 'r2', name: 'Dyno', position: 20 } } }],
 });
 const s1 = roleStanding(fresh);
-check('the role position is reported', s1.position, 1);
-check('bot roles above are found', s1.botRolesAbove, ['Dyno', 'MEE6']);
-check('and it is not ok', s1.ok, false);
-check('the bots it cannot remove are named', s1.ungateable, ['Dyno#3861', 'MEE6#4876']);
+check('the position is reported', s1.position, 1);
+check('the bot above is out of reach', s1.unreachable, ['Dyno#3861']);
+check('so it is not ok', s1.ok, false);
+check('and it is not a shared-role problem', s1.sharing, false);
 
-console.log('\n- after the role is dragged above the bots -');
-const fixed = makeGuild({
-  myPosition: 25,
-  roles: [
-    { id: 'r1', name: 'Admin', position: 30, managed: false },
-    { id: 'r2', name: 'Dyno', position: 20, managed: true },
-    { id: 'r3', name: 'MEE6', position: 18, managed: true },
-  ],
+console.log('\n- sharing one "Bots" role with the bots it gates -');
+// The Cube Bouncers shape: tidy role list, and nothing can be removed.
+const shared = makeGuild({
+  myRole: BOTS_ROLE,
+  roles: [{ id: 'r1', name: 'Admin', position: 90, managed: false }],
   bots: [
-    { id: 'b1', user: { bot: true, tag: 'Dyno#3861' }, roles: { highest: { position: 20 } } },
-    { id: 'b2', user: { bot: true, tag: 'MEE6#4876' }, roles: { highest: { position: 18 } } },
+    { id: 'b1', user: { bot: true, tag: 'Dyno#3861' }, roles: { highest: BOTS_ROLE } },
+    { id: 'b2', user: { bot: true, tag: 'Carl-bot#1536' }, roles: { highest: BOTS_ROLE } },
   ],
 });
-const s2 = roleStanding(fixed);
-check('no bot role outranks it', s2.botRolesAbove, []);
-check('nothing is out of reach', s2.ungateable, []);
-check('so the standing is ok', s2.ok, true);
+const s2 = roleStanding(shared);
+check('level is not above, so both are out of reach',
+  s2.unreachable, ['Dyno#3861', 'Carl-bot#1536']);
+check('it is flagged as sharing a role', s2.sharing, true);
+check('and the standing is not ok', s2.ok, false);
+check('no bot role sits above it, which is why > would have missed this',
+  s2.botRolesAtOrAbove, []);
 
-console.log('\n- a human role above is not a problem -');
-// Our own managed role means human roles above do not stop us removing bots.
-const humansAbove = makeGuild({
-  myPosition: 10,
+console.log('\n- given its own role above the bots role -');
+const fixed = makeGuild({
+  myRole: { ...OWN, position: 69 },
+  roles: [BOTS_ROLE, { id: 'r1', name: 'Admin', position: 90, managed: false }],
+  bots: [
+    { id: 'b1', user: { bot: true, tag: 'Dyno#3861' }, roles: { highest: BOTS_ROLE } },
+    { id: 'b2', user: { bot: true, tag: 'Carl-bot#1536' }, roles: { highest: BOTS_ROLE } },
+  ],
+});
+const s3 = roleStanding(fixed);
+check('every bot is now reachable', s3.unreachable, []);
+check('nothing is shared', s3.sharing, false);
+check('so the standing is ok', s3.ok, true);
+
+console.log('\n- a human role above changes nothing -');
+const humans = makeGuild({
+  myRole: { ...OWN, position: 10 },
   roles: [
     { id: 'r1', name: 'Admin', position: 30, managed: false },
     { id: 'r2', name: 'Moderator', position: 20, managed: false },
   ],
+  bots: [{ id: 'b1', user: { bot: true, tag: 'Dyno#3861' }, roles: { highest: { id: 'r3', name: 'Dyno', position: 5 } } }],
 });
-const s3 = roleStanding(humansAbove);
-check('human roles are not counted as bot roles', s3.botRolesAbove, []);
-check('and the standing is ok', s3.ok, true);
+const s4 = roleStanding(humans);
+check('the bot below is reachable', s4.unreachable, []);
+check('human roles above do not block removals', s4.ok, true);
 
-console.log('\n- one bot above is still a problem -');
-const onePartial = makeGuild({
-  myPosition: 10,
-  roles: [
-    { id: 'r2', name: 'Carl-bot', position: 12, managed: true },
-    { id: 'r3', name: 'Tickets', position: 5, managed: true },
-  ],
+console.log('\n- one bot out of reach is still a failure -');
+const partial = makeGuild({
+  myRole: { ...OWN, position: 10 },
+  roles: [{ id: 'r2', name: 'Carl-bot', position: 12, managed: true }],
   bots: [
-    { id: 'b1', user: { bot: true, tag: 'Carl-bot#1536' }, roles: { highest: { position: 12 } } },
-    { id: 'b2', user: { bot: true, tag: 'Tickets#5105' }, roles: { highest: { position: 5 } } },
+    { id: 'b1', user: { bot: true, tag: 'Carl-bot#1536' }, roles: { highest: { id: 'r2', name: 'Carl-bot', position: 12 } } },
+    { id: 'b2', user: { bot: true, tag: 'Tickets#5105' }, roles: { highest: { id: 'r3', name: 'Tickets', position: 5 } } },
   ],
 });
-const s4 = roleStanding(onePartial);
-check('only the one above is listed', s4.botRolesAbove, ['Carl-bot']);
-check('only that bot is out of reach', s4.ungateable, ['Carl-bot#1536']);
-check('and that is enough to not be ok', s4.ok, false);
+const s5 = roleStanding(partial);
+check('only the one out of reach is listed', s5.unreachable, ['Carl-bot#1536']);
+check('which is enough to fail', s5.ok, false);
+check('and the role above is named', s5.botRolesAtOrAbove, ['Carl-bot']);
 
 console.log('\n- BotApprove never counts itself -');
-check('its own managed role is excluded', s2.botRolesAbove.includes('BotApprove'), false);
-check('and it is not listed as out of reach', s1.ungateable.includes('BotApprove#3260'), false);
+check('not among the unreachable', s2.unreachable.includes('BotApprove#3260'), false);
+check('its own role is not listed above itself', s3.botRolesAtOrAbove.includes('BotApprove'), false);
 
 console.log(`\n${failures ? `${failures} check(s) failed` : 'all checks passed'}\n`);
 process.exit(failures ? 1 : 0);

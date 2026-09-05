@@ -48,19 +48,25 @@ export async function checkGuild(guild, { reason = 'periodic' } = {}) {
     );
   }
 
-  // A bot whose own role outranks ours cannot be removed by us at all, whatever
-  // permissions it holds. That is the gate failing for that bot, not a limit on
-  // an optional extra, so it belongs with the problems.
-  const botRolesAbove = guild.roles.cache.filter(
-    (r) => r.position > position && r.managed && r.id !== me.roles.highest.id,
+  // A bot we cannot remove is the gate failing for that bot, not a limit on an
+  // optional extra, so it belongs with the problems rather than the notes.
+  // Discord needs a strictly higher top role, so a bot level with us is just as
+  // far out of reach as one above us. Sharing a "Bots" role with the bots being
+  // gated is the usual cause, and it looks tidy while removing nothing.
+  const unreachable = guild.members.cache.filter(
+    (m) => m.user.bot && m.id !== me.id && m.roles.highest.position >= position,
   );
-  if (botRolesAbove.size) {
-    const names = [...botRolesAbove.values()].map((r) => r.name).slice(0, 6).join(', ');
-    const more = botRolesAbove.size > 6 ? ` and ${botRolesAbove.size - 6} more` : '';
+  if (unreachable.size) {
+    const sharing = unreachable.some((m) => m.roles.highest.id === me.roles.highest.id);
+    const names = [...unreachable.values()].map((m) => m.user.tag).slice(0, 6).join(', ');
+    const more = unreachable.size > 6 ? ` and ${unreachable.size - 6} more` : '';
     problems.push(
-      `${botRolesAbove.size} bot role(s) rank above BotApprove: ${names}${more}. ` +
-      'Those bots cannot be removed. Drag the BotApprove role above them in ' +
-      'Server Settings, Roles.',
+      `BotApprove cannot remove ${unreachable.size} bot(s) here: ${names}${more}. ` +
+      (sharing
+        ? `They share its own **${me.roles.highest.name}** role, and level is not above. ` +
+          'Give BotApprove a role of its own, positioned higher.'
+        : 'Their roles rank at or above BotApprove. Drag its role above them in ' +
+          'Server Settings, Roles.'),
     );
   }
 

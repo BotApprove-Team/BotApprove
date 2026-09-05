@@ -18,65 +18,92 @@ export function roleStanding(guild) {
   if (!me) return null;
 
   const mine = me.roles.highest;
-  const above = guild.roles.cache.filter((r) => r.position > mine.position);
 
-  const botRolesAbove = [...above.values()].filter((r) => r.managed);
-
-  // A bot is out of reach when its own highest role outranks ours. That is the
-  // set the gate cannot act on, whatever permissions those bots happen to hold.
-  const ungateable = guild.members.cache
+  // Discord requires a STRICTLY higher top role to remove someone, so equal
+  // counts as too low. Sharing a "Bots" role with the bots being gated is the
+  // common way this goes wrong: everything looks tidy and nothing can be
+  // removed. Hence >= rather than >.
+  const blocked = guild.members.cache
     .filter((m) => m.user.bot
       && m.id !== me.id
-      && m.roles.highest.position > mine.position)
-    .map((m) => m.user.tag);
+      && m.roles.highest.position >= mine.position);
+
+  const unreachable = [...blocked.values()].map((m) => ({
+    tag: m.user.tag,
+    role: m.roles.highest.name,
+    shared: m.roles.highest.id === mine.id,
+  }));
+
+  // True when the bots we cannot reach are sitting in our own role rather than
+  // above it, which needs a different fix: a role of its own, not a drag.
+  const sharing = unreachable.some((b) => b.shared);
+
+  const botRolesAtOrAbove = [...guild.roles.cache.values()]
+    .filter((r) => r.position >= mine.position && r.managed && r.id !== mine.id)
+    .map((r) => r.name);
 
   return {
     roleName: mine.name,
     position: mine.position,
-    highest: guild.roles.cache.size,
-    botRolesAbove: botRolesAbove.map((r) => r.name),
-    ungateable,
-    ok: botRolesAbove.length === 0,
+    ownRoleIsManaged: mine.managed,
+    botRolesAtOrAbove,
+    unreachable: unreachable.map((b) => b.tag),
+    unreachableDetail: unreachable,
+    sharing,
+    ok: unreachable.length === 0 && botRolesAtOrAbove.length === 0,
   };
 }
 
 function buildEmbed(guild, standing) {
   const embed = new EmbedBuilder()
     .setColor(standing?.ok ? 0x3ba55d : 0xd9a441)
-    .setTitle('BotApprove is in. One thing before it works.')
+    .setTitle(standing?.ok
+      ? 'BotApprove is set up and gating this server'
+      : 'BotApprove is in, but it cannot remove anything yet')
     .setDescription(
       `**${guild.name}**\n\n` +
-      'Discord will not let a bot remove anyone whose highest role sits above its own, and a ' +
-      "newly added bot's role starts at the bottom of the list. Until BotApprove's role is " +
-      'moved up, it cannot kick the bots it is meant to be gating.',
+      'Discord only lets a bot remove someone whose highest role is **below** its own. Level ' +
+      'with it is not enough. A bot arrives at the bottom of the role list, so until ' +
+      'BotApprove outranks the bots it is meant to be gating, it will hold them for approval ' +
+      'and then fail to kick them.',
     );
 
-  embed.addFields({
-    name: '1. Move the BotApprove role up',
-    value:
-      'Server Settings → Roles, and drag **BotApprove** above your bot roles. Above a dedicated ' +
-      '"Bots" role is ideal. It has to sit above wherever new bots land, or the gate cannot ' +
-      'remove them.',
-  });
+  if (standing?.sharing) {
+    // The fix here is not "drag it up": it is already as high as that role goes.
+    embed.addFields({
+      name: `1. Give BotApprove a role of its own, above ${standing.roleName}`,
+      value:
+        `BotApprove is sitting **inside** your **${standing.roleName}** role, the same one the ` +
+        'other bots use. Level with them means it cannot remove any of them.\n\n' +
+        'Server Settings → Roles → **Create Role**, call it BotApprove, drag it **above ' +
+        `${standing.roleName}**, then assign it to BotApprove. It does not need any extra ` +
+        'permissions; the position is the whole point.',
+    });
+  } else if (standing && !standing.ok) {
+    embed.addFields({
+      name: '1. Drag the BotApprove role above your bots',
+      value:
+        'Server Settings → Roles, and drag **BotApprove** so it sits above every bot role, ' +
+        'ideally above a dedicated **Bots** role if you use one. Anything level with it or ' +
+        'above it is out of reach.',
+    });
+  } else {
+    embed.addFields({
+      name: '1. Role position',
+      value: `**${standing?.roleName}** outranks every other bot here, so the gate can remove ` +
+        'them. If you add a bot with a higher role later, move BotApprove back above it.',
+    });
+  }
 
   if (standing && !standing.ok) {
-    const names = standing.botRolesAbove.slice(0, 8).join(', ');
-    const extra = standing.botRolesAbove.length > 8
-      ? ` and ${standing.botRolesAbove.length - 8} more` : '';
+    const shown = standing.unreachableDetail.slice(0, 8)
+      .map((b) => `\`${b.tag}\`${b.shared ? '' : ` (${b.role})`}`)
+      .join(', ');
+    const more = standing.unreachable.length > 8
+      ? ` and ${standing.unreachable.length - 8} more` : '';
     embed.addFields({
-      name: 'Right now',
-      value:
-        `**${standing.roleName}** is at position ${standing.position}, below ` +
-        `${standing.botRolesAbove.length} bot role(s): ${names}${extra}.` +
-        (standing.ungateable.length
-          ? `\nBotApprove cannot remove: ${standing.ungateable.slice(0, 6).join(', ')}.`
-          : ''),
-    });
-  } else if (standing) {
-    embed.addFields({
-      name: 'Right now',
-      value: `**${standing.roleName}** is at position ${standing.position}, above every bot role. ` +
-        'Nothing to change.',
+      name: `Cannot be removed right now: ${standing.unreachable.length}`,
+      value: `${shown}${more}\n\nThese are the bots the gate would fail on today.`,
     });
   }
 
@@ -130,6 +157,13 @@ async function deliver(guild, embed) {
 export async function sendSetupGuide(guild) {
   guildConfig.ensure(guild.id);
 
+  // A partial member cache would under-report which bots are out of reach, and
+  // "you are fine" is the one answer this must not get wrong.
+  await guild.members.fetch().catch((err) =>
+    log.warn('member fetch failed, standing may be incomplete', {
+      guildId: guild.id, err: err.message,
+    }));
+
   const standing = roleStanding(guild);
   const result = await deliver(guild, buildEmbed(guild, standing));
 
@@ -137,7 +171,8 @@ export async function sendSetupGuide(guild) {
     guildId: guild.id,
     via: result.via,
     roleOk: standing?.ok ?? null,
-    botRolesAbove: standing?.botRolesAbove.length ?? null,
+    unreachable: standing?.unreachable.length ?? null,
+    sharing: standing?.sharing ?? null,
   });
 
   await record({
@@ -147,8 +182,8 @@ export async function sendSetupGuide(guild) {
     detail: {
       via: result.via,
       position: standing?.position,
-      bot_roles_above: standing?.botRolesAbove.length,
-      ungateable: standing?.ungateable.length || undefined,
+      sharing_role: standing?.sharing || undefined,
+      unreachable: standing?.unreachable.length || undefined,
     },
     mirror: false,
   }).catch(() => {});
