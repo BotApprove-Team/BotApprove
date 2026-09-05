@@ -48,6 +48,22 @@ export async function checkGuild(guild, { reason = 'periodic' } = {}) {
     );
   }
 
+  // A bot whose own role outranks ours cannot be removed by us at all, whatever
+  // permissions it holds. That is the gate failing for that bot, not a limit on
+  // an optional extra, so it belongs with the problems.
+  const botRolesAbove = guild.roles.cache.filter(
+    (r) => r.position > position && r.managed && r.id !== me.roles.highest.id,
+  );
+  if (botRolesAbove.size) {
+    const names = [...botRolesAbove.values()].map((r) => r.name).slice(0, 6).join(', ');
+    const more = botRolesAbove.size > 6 ? ` and ${botRolesAbove.size - 6} more` : '';
+    problems.push(
+      `${botRolesAbove.size} bot role(s) rank above BotApprove: ${names}${more}. ` +
+      'Those bots cannot be removed. Drag the BotApprove role above them in ' +
+      'Server Settings, Roles.',
+    );
+  }
+
   const threats = guild.members.cache.filter((m) => {
     if (!m.user.bot || m.id === me.id) return false;
     const canRemove = m.permissions.has(PermissionsBitField.Flags.KickMembers)

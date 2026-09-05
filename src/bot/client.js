@@ -10,6 +10,7 @@ import { enforceEntitlements, startTrial, resolveEntitlement } from '../services
 import { reinviteTokens, guildConfig, selfCheckState, botPermissions } from '../db/queries.js';
 import { rememberGuild, rememberAll, onMemberRemoved, onGuildRemoved } from '../services/removalWatch.js';
 import { checkAll as checkDriftAll, checkBot as checkDriftBot } from '../services/driftWatch.js';
+import { sendSetupGuide } from '../services/welcome.js';
 import { handleInteraction } from './commands/index.js';
 
 const log = createLogger('bot');
@@ -108,6 +109,12 @@ export function createClient() {
     }
 
     await checkGuild(guild, { reason: 'guild_create' }).catch(() => {});
+
+    // Sent after the self-check so the guide can report where the role actually
+    // sits rather than guessing.
+    await sendSetupGuide(guild).catch((err) =>
+      log.warn('setup guide failed', { guildId: guild.id, err: err.message }));
+
     await record({
       guildId: guild.id,
       action: 'guild_join',
