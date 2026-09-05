@@ -1,0 +1,134 @@
+<%- include('partials/head') %>
+
+<div class="page-head">
+  <h1>Pricing</h1>
+  <div class="meta">
+    Screening is free forever. Premium is <%= price.symbol %><%= price.amount %> per month, per server<%
+      if (trial.offered) { %>, with the first <%= trial.days %> days free<% } %>.
+  </div>
+</div>
+
+<section class="block">
+  <div class="plans">
+    <div class="plan">
+      <div class="plan-head">
+        <h3>Free</h3>
+        <div class="price"><span class="amount"><%= price.symbol %>0</span></div>
+      </div>
+      <p class="plan-note">No card, no trial, no expiry. This is the whole approval gate.</p>
+      <ul class="plan-list">
+        <% freeFeatures.forEach((f) => { %><li><%= f.name %></li><% }) %>
+      </ul>
+    </div>
+
+    <div class="plan featured">
+      <div class="plan-head">
+        <h3>Premium</h3>
+        <div class="price">
+          <span class="amount"><%= price.symbol %><%= price.amount %></span>
+          <span class="per">per month, per server</span>
+        </div>
+      </div>
+      <% if (trial.offered) { %>
+        <p class="plan-note">
+          <strong><%= trial.days %> days free</strong> to start, then
+          <%= price.symbol %><%= price.amount %> a month. Cancel during the trial and you are
+          not charged. One trial per server.
+        </p>
+      <% } %>
+      <p class="plan-note">Everything in Free, plus:</p>
+      <ul class="plan-list">
+        <% premiumFeatures.forEach((f) => { %><li><%= f.name %></li><% }) %>
+      </ul>
+    </div>
+  </div>
+  <p class="hint">
+    Priced per server, not per member, so a large community costs the same as a small one.
+  </p>
+</section>
+
+<section class="block">
+  <div class="block-head"><h2>What premium actually adds</h2></div>
+  <dl class="modes">
+    <% premiumFeatures.forEach((f) => { %>
+      <div class="mode safe">
+        <span class="dot"></span>
+        <div>
+          <dt><%= f.name %></dt>
+          <dd><%= f.blurb %></dd>
+        </div>
+      </div>
+    <% }) %>
+  </dl>
+</section>
+
+<section class="block">
+  <div class="block-head"><h2>Questions worth answering upfront</h2></div>
+  <div class="cols two">
+    <div>
+      <h3 class="q">What happens if I stop paying?</h3>
+      <p class="a">
+        The premium rows switch off and you get a message naming exactly which ones. The approval
+        gate, your keyword blocklist, the audit trail and tamper detection keep running. BotApprove
+        does not leave your server and does not stop screening bots over money.
+      </p>
+
+      <h3 class="q">Do I lose my settings?</h3>
+      <p class="a">
+        No. Your whitelist, keywords, approver roles and configuration are kept. Paying again
+        restores everything with nothing to reconfigure.
+      </p>
+
+      <h3 class="q">Is there a refund?</h3>
+      <p class="a">
+        No. Payments are non-refundable, including partial months after a cancellation. Cancelling
+        stops future charges rather than refunding past ones. If you are a consumer somewhere with
+        a statutory right to cancel a digital purchase, that right still applies. See the
+        <a href="/terms">Terms</a>.
+      </p>
+    </div>
+    <div>
+      <h3 class="q">How do I cancel?</h3>
+      <p class="a">
+        From your server's dashboard, under Licence, choose Manage billing. If you cannot reach
+        the dashboard<% if (portalUrl) { %>, use the
+        <a href="<%= portalUrl %>" rel="noopener noreferrer" target="_blank">billing portal</a>
+        and enter the email you paid with<% } else { %>, contact the operator<% } %>.
+        Cancelling stops future charges and premium stays active until the period you already
+        paid for ends.
+      </p>
+
+      <h3 class="q">How do I activate it?</h3>
+      <p class="a">
+        Redeem a licence key with <code>/license redeem</code> in your server, or paste it into
+        the licence field on your server's dashboard page.
+      </p>
+
+      <h3 class="q">Does the free tier expire?</h3>
+      <p class="a">
+        No. There is no trial countdown on the core gate and no feature that quietly stops working.
+        Free means free.
+      </p>
+
+      <h3 class="q">Why is the nuke bot database paid?</h3>
+      <p class="a">
+        Because it is the part that takes real maintenance: every submission is reviewed by hand
+        before a bot is listed. The invite-and-approve gate is sound protection on its own, so it
+        stays free.
+      </p>
+    </div>
+  </div>
+</section>
+
+<section class="block">
+  <div class="block-head"><h2>Ready</h2></div>
+  <p class="lede">
+    Add BotApprove first and use it free. Upgrade later if you want the threat list and automation.
+  </p>
+  <div class="cta">
+    <a class="btn primary" href="<%= inviteUrl %>">Add to Discord</a>
+    <a class="btn" href="/login">Sign in to the dashboard</a>
+  </div>
+</section>
+
+<%- include('partials/foot') %>

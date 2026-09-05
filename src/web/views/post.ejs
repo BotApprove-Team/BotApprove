@@ -1,0 +1,23 @@
+<%- include('partials/head') %>
+<%
+  const d = (ms) => (ms
+    ? new Date(ms).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
+    : '');
+  const edited = post.updated_at && post.published_at
+    && post.updated_at - post.published_at > 60000;
+%>
+
+<div class="page-head">
+  <h1><%= post.title %></h1>
+  <div class="meta">
+    <%= d(post.published_at) %>
+    <% if (edited) { %> &middot; updated <%= d(post.updated_at) %><% } %>
+    &middot; <a href="/blog">all posts</a>
+  </div>
+</div>
+
+<article class="prose post-body">
+  <%- html %>
+</article>
+
+<%- include('partials/foot') %>

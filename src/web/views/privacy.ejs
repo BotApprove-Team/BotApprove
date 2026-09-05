@@ -1,0 +1,148 @@
+<%- include('partials/head') %>
+
+<div class="page-head">
+  <h1>Privacy Policy</h1>
+  <div class="meta">What BotApprove stores, why, and for how long</div>
+</div>
+
+<div class="prose">
+  <p class="updated">Last updated <%= updated %>. Operated by <%= operator %>.</p>
+
+  <p>
+    BotApprove is a security tool, so it deliberately keeps a record of what it did and why. This
+    page lists exactly what is stored. It is written against the actual database schema rather
+    than in general terms.
+  </p>
+
+  <h2>What is stored</h2>
+
+  <h3>About servers</h3>
+  <ul>
+    <li>Server ID and name.</li>
+    <li>Your settings: approval channel, log channel, nickname, low-resolution threshold, keyword
+      blocklist, approver role IDs, and the nuke inviter action.</li>
+    <li>Approved bot IDs, and who approved each one.</li>
+    <li>Subscription state, and the SHA-256 hash of any licence key redeemed. Plaintext keys are
+      never stored.</li>
+  </ul>
+
+  <h3>About people</h3>
+  <ul>
+    <li><strong>Discord user IDs</strong> of people who approve or deny a bot, change settings,
+      submit to the threat list, or invite a bot that gets screened.</li>
+    <li>The username of a person named in a nuke bot incident, so the server owner knows who to
+      look at.</li>
+    <li>Your Discord ID, username and avatar hash when you sign in to the dashboard, held in a
+      server-side session.</li>
+  </ul>
+  <div class="callout">
+    <p>
+      Some of this is about people who never used the dashboard themselves. If someone invites a
+      bot to a server running BotApprove, their user ID is recorded in that server's audit trail.
+      That is the point of the tool: a server owner needs to know who let a bot in.
+    </p>
+  </div>
+
+  <h3>About bots</h3>
+  <ul>
+    <li>Bot user IDs, tags, account creation dates, and the permissions their role held on join.</li>
+    <li>Avatar and banner dimensions when the image check runs. The images themselves are used to
+      build the approval message and are not kept afterwards.</li>
+    <li>Threat list entries and the reason given for each.</li>
+  </ul>
+
+  <h3>Security log</h3>
+  <p>
+    Every kick, approval, denial, ban, token issue, settings change and permission alert is
+    written to a durable log with a timestamp, the server, the bot, and the acting user ID. This
+    is the audit trail, and it is the part of the system that a server owner relies on after an
+    incident.
+  </p>
+
+  <h2>What is not stored</h2>
+  <ul>
+    <li><strong>Message content.</strong> BotApprove does not request the Message Content intent
+      and cannot read your messages.</li>
+    <li><strong>Member lists</strong>, beyond the specific users named above.</li>
+    <li><strong>Voice data</strong>, presence, or activity.</li>
+    <li><strong>Your Discord OAuth token.</strong> It is used once at sign-in to read your identity
+      and server list, then discarded. It is never written to disk.</li>
+    <li>Payment card details. Any payment is handled by a payment provider, not by this service.</li>
+  </ul>
+
+  <h2>Why it is stored</h2>
+  <p>
+    To operate the approval gate you asked for, to give server owners an audit trail of security
+    decisions, to enforce subscriptions, and to review threat list submissions. Where a lawful
+    basis is required, it is legitimate interest in securing a Discord server, and contract
+    performance for paid features.
+  </p>
+
+  <h2>Who it is shared with</h2>
+  <p>
+    Nobody. Data is not sold, rented, or given to advertisers or analytics services. There are no
+    third-party trackers on this site. The only outbound requests the dashboard makes are to
+    Discord's CDN for server icons, GitHub for the maintainer's avatar, and Google Fonts for the
+    typeface.
+  </p>
+  <p>
+    One deliberate exception: if the operator approves a threat list submission, the bot ID and the
+    reason given become visible to every server running BotApprove. The submitting server and user
+    are not published.
+  </p>
+
+  <h2>Where it lives</h2>
+  <p>
+    In a SQLite database on a private server, reachable only over an encrypted connection. Sessions
+    are stored server-side so signing out actually invalidates them.
+  </p>
+
+  <h2>How long it is kept</h2>
+  <ul>
+    <li><strong>Settings, whitelist and keywords:</strong> until you change them, or you ask for
+      the server's data to be deleted. They are kept when the bot is removed, so re-adding it
+      restores your configuration.</li>
+    <li><strong>Security log and incidents:</strong> kept as the audit trail. Deleted on request.</li>
+    <li><strong>Re-invite tokens:</strong> minutes. Deleted the moment they are used or expire.</li>
+    <li><strong>Sessions:</strong> up to 7 days, or until you sign out.</li>
+  </ul>
+
+  <h2>Your rights</h2>
+  <p>
+    You can ask what is held about you, ask for it to be corrected, or ask for it to be deleted.
+    Depending on where you live you may also have the right to object to processing, or to
+    complain to a data protection authority. Requests go through the contact link below.
+  </p>
+  <p>
+    A server owner can have their whole server's record erased. Where deleting a specific entry
+    would break the audit trail another server depends on, that will be explained rather than
+    silently refused.
+  </p>
+
+  <h3>Automated decisions</h3>
+  <p>
+    If a server enables it, BotApprove can automatically kick or ban the account that invited a
+    bot on the threat list. That decision is made by software, and the server owner is sent a
+    notification with buttons to reverse it. If you were affected and want it reviewed, contact the
+    owner of that server first, since they control the setting and the ban.
+  </p>
+
+  <h2>Children</h2>
+  <p>
+    The service is not directed at anyone below Discord's minimum age for their country. If you
+    believe a child's data is held here, get in touch and it will be removed.
+  </p>
+
+  <h2>Changes</h2>
+  <p>
+    This policy may change. Material changes will be noted by the date at the top of this page.
+  </p>
+
+  <h2>Contact</h2>
+  <p>
+    Privacy requests go through
+    <a href="<%= contactUrl %>" rel="noopener noreferrer" target="_blank">GitHub</a>.
+  </p>
+</div>
+
+<%- include('partials/foot') %>

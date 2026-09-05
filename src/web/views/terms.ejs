@@ -1,0 +1,140 @@
+<%- include('partials/head') %>
+
+<div class="page-head">
+  <h1>Terms of Service</h1>
+  <div class="meta">The rules for using BotApprove</div>
+</div>
+
+<div class="prose">
+  <p class="updated">Last updated <%= updated %>. Operated by <%= operator %>.</p>
+
+  <p>
+    BotApprove is a Discord bot and web dashboard that screens bots joining your server. By adding
+    it to a server, signing in to the dashboard, or paying for a subscription, you agree to these
+    terms. If you do not agree, remove the bot and stop using the dashboard.
+  </p>
+
+  <h2>Who can use it</h2>
+  <p>
+    You must meet Discord's own minimum age requirement for your country and follow the
+    <a href="https://discord.com/terms" rel="noopener noreferrer" target="_blank">Discord Terms of
+    Service</a>. To add BotApprove to a server you must have the Manage Server permission there,
+    which means you are authorised to make that decision for that community.
+  </p>
+  <p>BotApprove is an independent project. It is not affiliated with, endorsed by, or operated by Discord.</p>
+
+  <h2>What the service does, and what it does not promise</h2>
+  <p>
+    BotApprove removes bots that join your server and holds them for human approval. It is a
+    safety tool, not a guarantee. It is provided <strong>as is</strong>, without warranty of any
+    kind. In particular:
+  </p>
+  <ul>
+    <li>It cannot stop a bot it lacks the permission or role position to remove.</li>
+    <li>It depends on Discord's API and gateway, which can be slow, rate limited, or unavailable.</li>
+    <li>Detection heuristics, including keyword matching and image analysis, produce false
+      positives and false negatives.</li>
+    <li>It does not protect against attacks carried out by human accounts, only by bots.</li>
+  </ul>
+  <p>
+    You remain responsible for your server's security. Do not treat BotApprove as your only
+    safeguard.
+  </p>
+
+  <h2>Acceptable use</h2>
+  <p>Do not:</p>
+  <ul>
+    <li>Submit a bot to the shared threat list knowing the report is false, or to harm a competitor
+      or someone you have a dispute with.</li>
+    <li>Use the auto-ban feature to target individuals for reasons unrelated to genuine nuke bot
+      activity.</li>
+    <li>Attempt to break, overload, reverse engineer, or gain unauthorised access to the service or
+      its infrastructure.</li>
+    <li>Resell or rebrand the service without written permission.</li>
+    <li>Use the service to break Discord's terms, or any law that applies to you.</li>
+  </ul>
+
+  <h3>Actions taken against people</h3>
+  <p>
+    BotApprove can kick or ban the account that invited a bot on the shared threat list. That
+    setting is <strong>off by default</strong> and you turn it on yourself. When you do, you are
+    the one deciding to remove those people from your server, and you are responsible for that
+    decision and for handling any appeals from your members. The operator is not a party to
+    moderation disputes inside your community.
+  </p>
+
+  <h2>The shared threat list</h2>
+  <p>
+    Anyone running the bot can nominate a bot for the instance wide threat list. Submissions are
+    reviewed manually and are <strong>never listed automatically</strong>. The operator decides
+    what goes on the list, may remove entries at any time, and is under no obligation to accept,
+    explain, or keep any submission. A listing is an operational judgement about software
+    behaviour, not an accusation against any person.
+  </p>
+
+  <h2>Paid features</h2>
+  <p>
+    Core screening is free. Some features require a paid subscription or licence key. Which
+    features sit behind payment can change, and prices can change, with reasonable notice for
+    existing subscribers.
+  </p>
+
+  <h3>Refunds</h3>
+  <p>
+    <strong>Payments are non-refundable.</strong> That includes partial periods after a
+    cancellation, downtime, and cases where you stop using the service or lose access because of a
+    breach of these terms. Cancelling stops future charges; it does not refund past ones.
+  </p>
+  <div class="callout">
+    <p>
+      If you are a consumer in the UK, EU, or another place with a statutory right to cancel a
+      digital purchase, that right overrides this section and you keep it. By starting a
+      subscription and using premium features immediately, you ask for the service to begin at
+      once and accept that once it has been fully supplied within the cancellation window that
+      right may no longer apply.
+    </p>
+  </div>
+
+  <h3>If a payment lapses</h3>
+  <p>
+    Premium features switch off and the server owner is notified. Core screening keeps running,
+    free, and BotApprove does not leave your server over money. Your settings, whitelist, and
+    keyword list are kept, so paying again restores everything.
+  </p>
+
+  <h2>Suspension and termination</h2>
+  <p>
+    <strong>Access can be suspended or terminated at any time, with or without notice</strong>,
+    including for breaking these terms, abusing the threat list, non-payment, or putting the
+    service or other users at risk. The operator may also discontinue the service entirely, or
+    any part of it, at any time.
+  </p>
+  <p>
+    You can stop at any point by removing the bot from your server. Doing so ends these terms for
+    that server, other than the sections that by their nature survive, such as liability and
+    refunds.
+  </p>
+
+  <h2>Liability</h2>
+  <p>
+    To the maximum extent the law allows, the operator is not liable for indirect or consequential
+    loss, lost profit, lost data, or damage caused by a bot that BotApprove failed to stop, by a
+    legitimate bot it removed, or by a person it kicked or banned on your instruction. Where
+    liability cannot be excluded, it is limited to the greater of the amount you paid in the
+    twelve months before the claim, or ten US dollars.
+  </p>
+  <p>Nothing here excludes liability that cannot legally be excluded, such as for fraud.</p>
+
+  <h2>Changes</h2>
+  <p>
+    These terms may change. Material changes will be noted by the date at the top of this page.
+    Continuing to use the service after a change means you accept it.
+  </p>
+
+  <h2>Contact</h2>
+  <p>
+    Reach the operator through <a href="<%= contactUrl %>" rel="noopener noreferrer" target="_blank">GitHub</a>.
+  </p>
+</div>
+
+<%- include('partials/foot') %>

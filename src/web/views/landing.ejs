@@ -1,0 +1,155 @@
+<%- include('partials/head') %>
+
+<div class="hero">
+  <h1>No bot gets in without a human saying yes.</h1>
+  <p>
+    BotApprove removes every bot that joins your server and holds it for review. It does not
+    matter who invited it. The owner gets no exception, because a compromised owner account is
+    exactly how servers get wiped.
+  </p>
+  <div class="cta">
+    <a class="btn primary" href="<%= inviteUrl %>">Add to Discord</a>
+    <a class="btn" href="/login">Sign in to the dashboard</a>
+  </div>
+  <p class="hint">
+    Free to add, with no trial countdown. Signing in asks for your identity and server list,
+    nothing else.
+  </p>
+</div>
+
+<section class="block">
+  <div class="block-head"><h2>What happens when a bot joins</h2></div>
+  <ol class="steps">
+    <li>
+      <div>
+        <strong>It is kicked first</strong>
+        <span>Removal happens before any audit log lookup or image download, so nothing sits
+          inside your server while BotApprove thinks about it.</span>
+      </div>
+    </li>
+    <li>
+      <div>
+        <strong>Approvers get the facts</strong>
+        <span>Account age, who invited it from the audit log, the permissions its role actually
+          held after joining, and whether its avatar looks reused.</span>
+      </div>
+    </li>
+    <li>
+      <div>
+        <strong>Nothing returns without a decision</strong>
+        <span>Approving adds it to the whitelist. It is never re-invited automatically. Someone
+          has to do that by hand.</span>
+      </div>
+    </li>
+  </ol>
+</section>
+
+<section class="block">
+  <div class="block-head"><h2>How it fails</h2></div>
+  <p class="lede">
+    Every failure mode resolves the same way: toward not trusting the bot. The marker shows
+    whether the outcome is safe on its own or needs a human.
+  </p>
+  <dl class="modes">
+    <div class="mode safe">
+      <span class="dot"></span>
+      <div>
+        <dt>Something errors</dt>
+        <dd>The bot is kicked. A failed check is never mistaken for a passed one.</dd>
+      </div>
+    </div>
+    <div class="mode safe">
+      <span class="dot"></span>
+      <div>
+        <dt>Name matches your blocklist</dt>
+        <dd>Stopped before the whitelist is read, so a stolen approval cannot be reused.</dd>
+      </div>
+    </div>
+    <div class="mode safe">
+      <span class="dot"></span>
+      <div>
+        <dt>Bot carries a verified badge</dt>
+        <dd>Shown to the approver, never trusted. Verified apps get compromised too.</dd>
+      </div>
+    </div>
+    <div class="mode safe">
+      <span class="dot"></span>
+      <div>
+        <dt>Subscription lapses</dt>
+        <dd>The gate keeps running. Screening is free forever and the bot never leaves.</dd>
+      </div>
+    </div>
+    <div class="mode alert">
+      <span class="dot"></span>
+      <div>
+        <dt>Someone weakens BotApprove</dt>
+        <dd>Losing a permission it had, or being moved down the role list, is reported as a
+          probable attack rather than a settings change.</dd>
+      </div>
+    </div>
+    <div class="mode crit">
+      <span class="dot"></span>
+      <div>
+        <dt>A kick fails</dt>
+        <dd>Treated as critical and escalated. It means an unapproved bot is in your server
+          right now.</dd>
+      </div>
+    </div>
+  </dl>
+</section>
+
+<section class="block">
+  <div class="block-head"><h2>Pricing</h2></div>
+  <p class="lede">
+    The approval gate is free forever, with no trial countdown. Premium adds threat intelligence
+    and automation for <%= price.symbol %><%= price.amount %> per month, per server.
+  </p>
+  <a class="btn" href="/pricing">See what premium adds</a>
+</section>
+
+<section class="block">
+  <div class="block-head"><h2>Add it</h2></div>
+  <p class="lede">
+    BotApprove asks for the permissions it actually uses and nothing more. It never requests the
+    Message Content intent, so it cannot read your messages.
+  </p>
+  <dl class="modes">
+    <div class="mode safe">
+      <span class="dot"></span>
+      <div>
+        <dt>Kick Members, Ban Members</dt>
+        <dd>Removing an unapproved bot, and banning one on the shared threat list.</dd>
+      </div>
+    </div>
+    <div class="mode safe">
+      <span class="dot"></span>
+      <div>
+        <dt>View Audit Log</dt>
+        <dd>Reading who invited a bot. This is the only way to know after the fact.</dd>
+      </div>
+    </div>
+    <div class="mode safe">
+      <span class="dot"></span>
+      <div>
+        <dt>View Messages, Send Messages, Embed Links, Attach Files</dt>
+        <dd>Posting the approval card in your chosen channel, with the bot's avatar attached.</dd>
+      </div>
+    </div>
+    <div class="mode safe">
+      <span class="dot"></span>
+      <div>
+        <dt>Read Message History, Change Nickname</dt>
+        <dd>Editing its own approval message after a restart, and wearing the name you pick.</dd>
+      </div>
+    </div>
+  </dl>
+  <div class="actions">
+    <a class="btn primary" href="<%= inviteUrl %>">Add to Discord</a>
+  </div>
+  <p class="hint">
+    After adding it, drag the BotApprove role above where new bots land, then run
+    <code>/config notify-channel</code> to pick where approvals appear.
+  </p>
+</section>
+
+<%- include('partials/foot') %>

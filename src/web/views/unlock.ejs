@@ -1,0 +1,66 @@
+<%- include('partials/head') %>
+
+<div class="page-head">
+  <h1>Operator unlock</h1>
+  <div class="meta">Second factor for cross-server access and the admin panel</div>
+</div>
+
+<% if (flash) { %>
+  <div class="notice <%= flash.type === 'error' ? 'danger' : 'ok' %>"><%= flash.message %></div>
+<% } %>
+
+<section class="block">
+  <% if (!configured) { %>
+    <div class="notice danger">
+      <strong>Not configured</strong>
+      <p>
+        Elevation needs both <code>ADMIN_PASSWORD_HASH</code> and
+        <code>ADMIN_PASSWORD_HASH_2</code>. At least one is missing, so operator elevation is
+        unavailable rather than falling back to a single password. Until both are set you can
+        only manage servers where you hold Manage Server yourself, which is the safe default.
+      </p>
+    </div>
+  <% } else if (unlocked) { %>
+    <div class="notice ok">
+      <strong>Unlocked</strong>
+      <p>
+        Operator access is active for another <%= remaining %> minute(s). You can open any server
+        BotApprove is in, and reach the admin panel.
+      </p>
+    </div>
+    <form method="post" action="/admin/unlock">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <input type="hidden" name="action" value="lock">
+      <div class="actions">
+        <button type="submit">Lock again</button>
+        <a class="btn primary" href="/admin">Open admin panel</a>
+      </div>
+    </form>
+  <% } else { %>
+    <p class="lede">
+      Being the instance operator is not enough on its own. Without this step you are treated as
+      an ordinary member, so a stolen Discord session cannot reach other people's servers.
+    </p>
+    <form method="post" action="/admin/unlock">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <div class="field" style="max-width:340px">
+        <label for="password">
+          <%= stage === 2 ? 'Second password' : 'First password' %>
+          <span class="faint">step <%= stage %> of 2</span>
+        </label>
+        <input type="password" id="password" name="password" required
+               autocomplete="one-time-code" autofocus>
+      </div>
+      <div class="actions">
+        <button class="primary" type="submit"><%= stage === 2 ? 'Unlock' : 'Continue' %></button>
+      </div>
+    </form>
+    <p class="hint">
+      Two different passwords, asked one after the other. Getting the second one wrong sends you
+      back to the first, and five wrong attempts across either step locks this session out for
+      15 minutes. Every attempt, successful or not, is written to the security log.
+    </p>
+  <% } %>
+</section>
+
+<%- include('partials/foot') %>

@@ -1,0 +1,33 @@
+[Unit]
+Description=BotApprove — Discord bot approval gate
+Documentation=https://botapprove.mikuuu.xyz
+After=network-online.target
+Wants=network-online.target
+# Rate limiting lives in [Unit]; systemd ignores these under [Service].
+# A security bot that cannot start should stay down loudly rather than flap.
+StartLimitIntervalSec=120
+StartLimitBurst=5
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/botapprove
+ExecStart=/usr/bin/node src/index.js
+EnvironmentFile=/opt/botapprove/.env
+Restart=always
+RestartSec=5
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=botapprove
+
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+# Must already exist: the mount namespace is set up before any Exec* runs, so
+# a missing directory fails the unit with 226/NAMESPACE rather than creating it.
+#   mkdir -p /opt/botapprove/data
+ReadWritePaths=/opt/botapprove/data
+
+[Install]
+WantedBy=multi-user.target

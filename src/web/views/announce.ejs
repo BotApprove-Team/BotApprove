@@ -1,0 +1,155 @@
+<%- include('partials/head') %>
+<% const ts = (ms) => ms ? new Date(ms).toISOString().replace('T', ' ').slice(0, 16) + 'Z' : ''; %>
+
+<div class="page-head">
+  <h1>Announcements</h1>
+  <div class="meta">
+    <%= targets.filter((t) => t.optedIn).length %> of <%= targets.length %> servers opted in
+    &middot; <%= targets.filter((t) => t.optedIn && t.allowsEveryone).length %> allow @everyone
+    &middot; <a href="/admin">admin</a>
+  </div>
+</div>
+
+<% if (flash) { %>
+  <div class="notice <%= flash.type === 'error' ? 'danger' : 'ok' %>"><%= flash.message %></div>
+<% } %>
+
+<% if (!botReady) { %>
+  <div class="notice danger">
+    <strong>The bot is not connected</strong>
+    <p>Nothing can be sent right now, and the server list below is empty for the same reason.</p>
+  </div>
+<% } %>
+
+<% if (pending) {
+     const willReach = targets.filter((t) => t.optedIn);
+     const willPing = pending.everyone
+       ? willReach.filter((t) => t.allowsEveryone) : []; %>
+<section class="block">
+  <div class="block-head"><h2>Confirm before sending</h2></div>
+  <div class="notice <%= willPing.length ? 'danger' : 'ok' %>">
+    <strong>
+      This posts to <%= willReach.length %> server<%= willReach.length === 1 ? '' : 's' %><%
+        if (willPing.length) { %>, pinging @everyone in <%= willPing.length %> of them<% } %>.
+    </strong>
+    <p>
+      <% if (pending.everyone && !willPing.length) { %>
+        You asked for @everyone, but no opted-in server allows it, so this will arrive quietly
+        everywhere.
+      <% } else if (!pending.everyone) { %>
+        No ping was requested, so this arrives quietly.
+      <% } else { %>
+        A ping cannot be taken back once it is sent. Check the list below before confirming.
+      <% } %>
+    </p>
+  </div>
+
+  <div class="field" style="max-width:560px">
+    <label>Title</label>
+    <p class="mono"><%= pending.title || '(none)' %></p>
+  </div>
+  <div class="field" style="max-width:560px">
+    <label>Message</label>
+    <article class="prose" style="white-space:pre-wrap"><p><%= pending.body %></p></article>
+  </div>
+
+  <% if (willPing.length) { %>
+    <p class="hint">Will ping: <%= willPing.map((t) => t.name).join(', ') %></p>
+  <% } %>
+
+  <div class="actions">
+    <form method="post" action="/admin/announce">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <input type="hidden" name="action" value="confirm">
+      <button class="primary" type="submit" <%= botReady ? '' : 'disabled' %>>Send it</button>
+    </form>
+    <form method="post" action="/admin/announce">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <input type="hidden" name="action" value="cancel">
+      <button type="submit">Discard</button>
+    </form>
+  </div>
+</section>
+<% } %>
+
+<section class="block">
+  <div class="block-head"><h2><%= pending ? 'Compose something else' : 'Compose' %></h2></div>
+  <form method="post" action="/admin/announce">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <div class="field" style="max-width:560px">
+      <label for="title">Title, optional</label>
+      <input type="text" id="title" name="title" maxlength="200" placeholder="Scheduled maintenance">
+    </div>
+    <div class="field" style="max-width:560px">
+      <label for="body">Message</label>
+      <textarea id="body" name="body" rows="6" maxlength="3500" required
+                placeholder="What server owners need to know."></textarea>
+    </div>
+    <div class="check">
+      <input type="checkbox" id="everyone" name="everyone" value="1">
+      <div>
+        <label for="everyone">Request an @everyone ping</label>
+        <p class="hint">
+          Only servers that have separately allowed it will actually be pinged. Everywhere else
+          the message still arrives, quietly.
+        </p>
+      </div>
+    </div>
+    <div class="actions">
+      <button class="primary" type="submit" <%= botReady ? '' : 'disabled' %>>Review before sending</button>
+    </div>
+  </form>
+</section>
+
+<section class="block">
+  <div class="block-head">
+    <h2>Where it will go</h2>
+    <span class="count"><%= targets.filter((t) => t.optedIn).length %></span>
+  </div>
+  <table>
+    <tr><th>Server</th><th>Channel</th><th>@everyone</th></tr>
+    <% targets.forEach((t) => { %>
+      <tr>
+        <td><%= t.name %><div class="sub"><%= t.id %></div></td>
+        <td>
+          <% if (t.optedIn) { %>
+            <span class="st ok">configured</span>
+          <% } else { %>
+            <span class="st off">not opted in</span>
+          <% } %>
+        </td>
+        <td>
+          <span class="st <%= t.optedIn && t.allowsEveryone ? 'warn' : 'off' %>">
+            <%= t.optedIn ? (t.allowsEveryone ? 'allowed' : 'silent only') : '-' %>
+          </span>
+        </td>
+      </tr>
+    <% }) %>
+  </table>
+  <p class="hint">
+    A server appears here once its manager picks an announcement channel on their dashboard.
+    You cannot add one on their behalf.
+  </p>
+</section>
+
+<% if (history.length) { %>
+<section class="block">
+  <div class="block-head"><h2>Sent</h2></div>
+  <table>
+    <tr><th>ID</th><th>Title</th><th>Delivered</th><th>Skipped</th><th>Failed</th><th>@everyone</th><th>When</th></tr>
+    <% history.forEach((h) => { %>
+      <tr>
+        <td class="mono"><%= h.id %></td>
+        <td><%= h.title || '(no title)' %><div class="sub"><%= String(h.body).slice(0, 60) %></div></td>
+        <td class="mono num"><%= h.delivered %></td>
+        <td class="mono num faint"><%= h.skipped %></td>
+        <td class="mono num <%= h.failed ? 'sev-high' : 'faint' %>"><%= h.failed %></td>
+        <td><%= h.requested_everyone ? 'requested' : 'no' %></td>
+        <td class="mono faint"><%= ts(h.sent_at) %></td>
+      </tr>
+    <% }) %>
+  </table>
+</section>
+<% } %>
+
+<%- include('partials/foot') %>

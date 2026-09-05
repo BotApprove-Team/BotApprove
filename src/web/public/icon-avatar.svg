@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512"
+     role="img" aria-label="BotApprove">
+  <!-- Full-bleed background: Discord crops avatars to a circle, so rounded
+       corners would be discarded anyway and only shift the artwork off-centre.
+       The shield sits inside the circle's safe area rather than the square's. -->
+  <rect width="512" height="512" fill="#0b62d6"/>
+  <g transform="translate(256 262) scale(11.6) translate(-16 -16)">
+    <path d="M16 5.5l8.5 3.2v7.1c0 5.3-3.6 9.1-8.5 10.7-4.9-1.6-8.5-5.4-8.5-10.7V8.7L16 5.5z"
+          fill="#ffffff"/>
+    <path d="M11.8 16.1l3 3 5.4-5.7"
+          fill="none" stroke="#0b62d6" stroke-width="2.6"
+          stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+</svg>

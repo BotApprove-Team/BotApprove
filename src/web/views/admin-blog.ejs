@@ -1,0 +1,108 @@
+<%- include('partials/head') %>
+<% const d = (ms) => (ms ? new Date(ms).toISOString().slice(0, 10) : ''); %>
+
+<div class="page-head">
+  <h1><%= editing ? 'Edit post' : 'Blog' %></h1>
+  <div class="meta">
+    <%= posts.filter((p) => p.published).length %> published,
+    <%= posts.filter((p) => !p.published).length %> draft
+    &middot; <a href="/admin">admin</a>
+    &middot; <a href="/blog" target="_blank" rel="noopener">view public blog</a>
+    <% if (editing) { %> &middot; <a href="/admin/blog">new post</a><% } %>
+  </div>
+</div>
+
+<% if (flash) { %>
+  <div class="notice <%= flash.type === 'error' ? 'danger' : 'ok' %>"><%= flash.message %></div>
+<% } %>
+
+<section class="block">
+  <div class="block-head"><h2><%= editing ? 'Editing' : 'Write a post' %></h2></div>
+  <form method="post" action="/admin/blog">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <% if (editing) { %><input type="hidden" name="id" value="<%= editing.id %>"><% } %>
+
+    <div class="field" style="max-width:620px">
+      <label for="title">Title</label>
+      <input type="text" id="title" name="title" maxlength="140" required
+             placeholder="V1.1, new features"
+             value="<%= editing ? editing.title : '' %>">
+    </div>
+
+    <div class="field" style="max-width:620px">
+      <label for="summary">Summary, optional</label>
+      <input type="text" id="summary" name="summary" maxlength="300"
+             placeholder="Left blank, the first line is used"
+             value="<%= editing && editing.summary ? editing.summary : '' %>">
+    </div>
+
+    <div class="field" style="max-width:620px">
+      <label for="body">Body</label>
+      <textarea id="body" name="body" rows="16" required><%= editing ? editing.body : '' %></textarea>
+      <p class="hint">
+        Supports <code>## headings</code>, <code>- lists</code>, <code>1. numbered lists</code>,
+        <code>**bold**</code>, <code>*italic*</code>, backtick code,
+        <code>[links](https://...)</code> and <code>---</code> rules. Anything else is plain
+        text, and HTML is escaped rather than rendered.
+      </p>
+    </div>
+
+    <div class="check">
+      <input type="checkbox" id="published" name="published" value="1"
+             <%= editing && editing.published ? 'checked' : '' %>>
+      <div>
+        <label for="published">Published</label>
+        <p class="hint">A draft is invisible to the public and its slug returns a 404.</p>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button class="primary" type="submit"><%= editing ? 'Save' : 'Create post' %></button>
+      <% if (editing && editing.published) { %>
+        <a class="btn" href="/blog/<%= editing.slug %>" target="_blank" rel="noopener">View live</a>
+      <% } %>
+    </div>
+  </form>
+
+  <% if (editing) { %>
+    <form method="post" action="/admin/blog" style="margin-top:14px">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <input type="hidden" name="id" value="<%= editing.id %>">
+      <input type="hidden" name="action" value="delete">
+      <button class="danger sm" type="submit">Delete post</button>
+    </form>
+  <% } %>
+</section>
+
+<% if (editing && preview) { %>
+<section class="block">
+  <div class="block-head"><h2>Rendered</h2></div>
+  <article class="prose post-body"><%- preview %></article>
+</section>
+<% } %>
+
+<section class="block">
+  <div class="block-head">
+    <h2>All posts</h2>
+    <span class="count"><%= posts.length %></span>
+  </div>
+  <table>
+    <tr><th>Title</th><th>Slug</th><th>Status</th><th>Updated</th><th></th></tr>
+    <% posts.forEach((p) => { %>
+      <tr>
+        <td><%= p.title %></td>
+        <td class="mono faint"><%= p.slug %></td>
+        <td>
+          <span class="st <%= p.published ? 'ok' : 'off' %>">
+            <%= p.published ? 'published' : 'draft' %>
+          </span>
+        </td>
+        <td class="mono faint"><%= d(p.updated_at) %></td>
+        <td><div class="row-actions"><a class="btn sm" href="/admin/blog/<%= p.id %>">Edit</a></div></td>
+      </tr>
+    <% }) %>
+    <% if (!posts.length) { %><tr><td colspan="5" class="empty">No posts yet.</td></tr><% } %>
+  </table>
+</section>
+
+<%- include('partials/foot') %>

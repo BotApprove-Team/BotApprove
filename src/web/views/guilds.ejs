@@ -1,0 +1,53 @@
+<%- include('partials/head') %>
+
+<div class="page-head">
+  <h1>Servers</h1>
+  <div class="meta"><%= guilds.length %> visible to you</div>
+</div>
+
+<% if (flash) { %>
+  <div class="notice <%= flash.type === 'error' ? 'danger' : 'ok' %>"><%= flash.message %></div>
+<% } %>
+
+<% if (guilds.length) { %>
+  <div class="servers">
+    <% guilds.forEach((g) => { %>
+      <div class="server">
+        <div class="icon">
+          <% if (g.icon) { %>
+            <img src="https://cdn.discordapp.com/icons/<%= g.id %>/<%= g.icon %>.png?size=64" alt="">
+          <% } else { %><%= g.name.slice(0, 1).toUpperCase() %><% } %>
+        </div>
+        <div>
+          <div class="name"><%= g.name %></div>
+          <div class="id"><%= g.id %></div>
+        </div>
+        <div class="right">
+          <% if (!g.botPresent) { %>
+            <span class="st off">not installed</span>
+            <% if (g.manageable) { %>
+              <a class="btn sm" href="<%= inviteUrl %>&guild_id=<%= g.id %>">Add</a>
+            <% } %>
+          <% } else { %>
+            <span class="st ok"><%= g.manageable ? 'manageable' : 'approver' %></span>
+            <a class="btn sm" href="/g/<%= g.id %>">Open</a>
+          <% } %>
+        </div>
+      </div>
+    <% }) %>
+  </div>
+<% } else { %>
+  <p class="empty">No servers found. Add BotApprove to a server you manage first.</p>
+<% } %>
+
+<section class="block" style="margin-top:32px">
+  <div class="block-head"><h2>Adding it to a server</h2></div>
+  <p class="lede">
+    BotApprove needs <code>Kick Members</code>, <code>Ban Members</code>,
+    <code>View Audit Log</code> and <code>Change Nickname</code>. Its role must sit above where
+    new bots land, and it needs <code>View Channel</code> in whichever channel you point it at.
+  </p>
+  <a class="btn primary" href="<%= inviteUrl %>">Invite BotApprove</a>
+</section>
+
+<%- include('partials/foot') %>

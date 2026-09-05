@@ -1,0 +1,11 @@
+# Append this block to /etc/caddy/Caddyfile — do not modify any existing block.
+# Caddy already owns :80/:443 on this host; nginx is installed but not listening.
+#
+#   cp /etc/caddy/Caddyfile /etc/caddy/Caddyfile.bak.$(date +%s)
+#   cat deploy/Caddyfile.snippet >> /etc/caddy/Caddyfile
+#   caddy validate --config /etc/caddy/Caddyfile
+#   systemctl reload caddy
+
+botapprove.mikuuu.xyz {
+	reverse_proxy 127.0.0.1:8420
+}

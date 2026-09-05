@@ -1,0 +1,223 @@
+<%- include('partials/head') %>
+<% const ts = (ms) => ms ? new Date(ms).toISOString().replace('T', ' ').slice(0, 16) + 'Z' : 'never'; %>
+
+<div class="page-head">
+  <h1>Instance admin</h1>
+  <div class="meta">
+    <%= stats.guilds %> servers &middot; <%= stats.knownNukes %> listed bots &middot;
+    <%= stats.pendingRequests %> submissions awaiting review &middot;
+    paywall <%= paywall.enabled ? 'on' : 'off' %><% if (paywall.enabled) { %>,
+      <%= paywall.trialDays > 0 ? `${paywall.trialDays} day trial` : 'no trial, new servers start free' %><% } %>
+    &middot; <a href="/admin/announce">announcements</a>
+    &middot; <a href="/admin/blog">blog</a>
+    &middot; <a href="/admin/unlock">lock</a>
+  </div>
+</div>
+
+<% if (flash && flash.type === 'key') { %>
+  <div class="notice info">
+    <strong>New licence key. Copy it now, it cannot be shown again.</strong>
+    <p class="mono" style="font-size:14px;color:var(--text)"><%= flash.message %></p>
+  </div>
+<% } else if (flash) { %>
+  <div class="notice <%= flash.type === 'error' ? 'danger' : 'ok' %>"><%= flash.message %></div>
+<% } %>
+
+<section class="block">
+  <div class="block-head">
+    <h2>Submissions awaiting review</h2>
+    <span class="count <%= pendingRequests.length ? 'live' : '' %>"><%= pendingRequests.length %></span>
+  </div>
+  <p class="hint" style="margin-top:0">
+    Server owners nominate bots here. Nothing reaches the shared list until you approve it,
+    because one server's word must not get a bot banned everywhere else.
+  </p>
+  <% if (!pendingRequests.length) { %>
+    <p class="empty">Queue is clear.</p>
+  <% } else { %>
+    <table>
+      <tr><th>ID</th><th>Bot</th><th>From</th><th>Reason given</th><th></th></tr>
+      <% pendingRequests.forEach((r) => { %>
+        <tr>
+          <td class="mono"><%= r.id %></td>
+          <td class="mono"><%= r.bot_id %><% if (r.bot_tag) { %><div class="sub"><%= r.bot_tag %></div><% } %></td>
+          <td>
+            <div><%= r.guild_name || r.guild_id %></div>
+            <div class="sub"><%= r.requested_by_tag || r.requested_by %> &middot; <%= ts(r.created_at) %></div>
+          </td>
+          <td class="dim"><%= r.reason %></td>
+          <td>
+            <div class="row-actions">
+              <form method="post" action="/admin/requests" class="inline">
+                <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                <input type="hidden" name="id" value="<%= r.id %>">
+                <input type="hidden" name="decision" value="approve">
+                <button class="ok sm" type="submit">List it</button>
+              </form>
+              <form method="post" action="/admin/requests" class="inline">
+                <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                <input type="hidden" name="id" value="<%= r.id %>">
+                <input type="hidden" name="decision" value="reject">
+                <button class="sm" type="submit">Reject</button>
+              </form>
+            </div>
+          </td>
+        </tr>
+      <% }) %>
+    </table>
+  <% } %>
+</section>
+
+<section class="block">
+  <div class="block-head">
+    <h2>Known nuke bot database</h2>
+    <span class="count"><%= knownNukes.length %></span>
+  </div>
+  <p class="hint" style="margin-top:0">
+    Instance wide. A bot listed here is banned on sight in every server with an active licence,
+    and the inviter is handled per that server's setting.
+  </p>
+  <table>
+    <tr><th>Bot id</th><th>Tag</th><th>Reason</th><th>Source</th><th>Added</th><th></th></tr>
+    <% knownNukes.forEach((n) => { %>
+      <tr>
+        <td class="mono"><%= n.bot_id %></td>
+        <td class="mono faint"><%= n.bot_tag || '' %></td>
+        <td class="dim"><%= (n.reason || '').slice(0, 90) %></td>
+        <td class="mono faint"><%= n.source || '' %></td>
+        <td class="mono faint"><%= ts(n.added_at) %></td>
+        <td>
+          <div class="row-actions">
+            <form method="post" action="/admin/nukedb" class="inline">
+              <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+              <input type="hidden" name="action" value="remove">
+              <input type="hidden" name="bot_id" value="<%= n.bot_id %>">
+              <button class="sm" type="submit">Remove</button>
+            </form>
+          </div>
+        </td>
+      </tr>
+    <% }) %>
+    <% if (!knownNukes.length) { %><tr><td colspan="6" class="empty">The list is empty.</td></tr><% } %>
+  </table>
+  <form method="post" action="/admin/nukedb" class="inline-form" style="margin-top:14px">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <input type="hidden" name="action" value="add">
+    <div class="field" style="flex:1 1 210px">
+      <label for="nbid">Bot id</label>
+      <input class="mono" type="text" id="nbid" name="bot_id" pattern="\d{15,25}"
+             placeholder="123456789012345678" required>
+    </div>
+    <div class="field" style="flex:2 1 260px">
+      <label for="nbreason">Reason</label>
+      <input type="text" id="nbreason" name="reason" placeholder="mass-ban nuker">
+    </div>
+    <button class="danger" type="submit">Add to threat list</button>
+  </form>
+</section>
+
+<section class="block">
+  <div class="block-head">
+    <h2>Servers</h2>
+    <span class="count"><%= guilds.length %></span>
+  </div>
+  <table>
+    <tr><th>Server</th><th>Members</th><th>Tier</th><th>State</th><th></th></tr>
+    <% guilds.forEach((g) => { %>
+      <tr>
+        <td><%= g.name %><div class="sub"><%= g.id %></div></td>
+        <td class="mono num"><%= g.memberCount %></td>
+        <td>
+          <span class="st <%= g.entitlement.licensed ? 'ok' : 'off' %>"><%= g.entitlement.tier %></span>
+        </td>
+        <td class="mono faint"><%= g.entitlement.state %></td>
+        <td>
+          <div class="row-actions">
+            <form method="post" action="/admin/entitlements" class="inline">
+              <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+              <input type="hidden" name="guild_id" value="<%= g.id %>">
+              <input type="hidden" name="tier" value="pro">
+              <input type="hidden" name="days" value="365">
+              <button class="ok sm" type="submit">Grant 1y pro</button>
+            </form>
+            <form method="post" action="/admin/entitlements" class="inline">
+              <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+              <input type="hidden" name="guild_id" value="<%= g.id %>">
+              <input type="hidden" name="action" value="revoke">
+              <button class="danger sm" type="submit">Revoke</button>
+            </form>
+          </div>
+        </td>
+      </tr>
+    <% }) %>
+  </table>
+</section>
+
+<div class="cols two">
+  <section class="block">
+    <div class="block-head"><h2>Mint a licence key</h2></div>
+    <form method="post" action="/admin/keys">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <div class="field">
+        <label for="days">Days, blank for perpetual</label>
+        <input type="number" id="days" name="days" min="1" placeholder="365">
+      </div>
+      <div class="field">
+        <label for="seats">Seats</label>
+        <input type="number" id="seats" name="seats" min="1" value="1">
+      </div>
+      <div class="field">
+        <label for="note">Note</label>
+        <input type="text" id="note" name="note" placeholder="who it is for">
+      </div>
+      <div class="actions"><button class="primary" type="submit">Generate</button></div>
+    </form>
+    <p class="hint">Only the SHA-256 of a key is stored, so a database leak yields nothing usable.</p>
+  </section>
+
+  <section class="block">
+    <div class="block-head">
+      <h2>Licence keys</h2>
+      <span class="count"><%= keys.length %></span>
+    </div>
+    <table>
+      <tr><th>Hash</th><th>Tier</th><th>Term</th><th>Used</th><th>Note</th></tr>
+      <% keys.forEach((k) => { %>
+        <tr>
+          <td class="mono"><%= k.key_hash.slice(0, 10) %></td>
+          <td>
+            <%= k.tier %>
+            <% if (k.revoked) { %><span class="tag danger">revoked</span><% } %>
+          </td>
+          <td class="mono faint"><%= k.duration_days ? k.duration_days + 'd' : 'perpetual' %></td>
+          <td class="mono num"><%= k.redeemed_count %>/<%= k.max_guilds %></td>
+          <td class="faint"><%= k.note || '' %></td>
+        </tr>
+      <% }) %>
+      <% if (!keys.length) { %><tr><td colspan="5" class="empty">No keys minted.</td></tr><% } %>
+    </table>
+  </section>
+</div>
+
+<% if (reviewedRequests.length) { %>
+<section class="block">
+  <div class="block-head"><h2>Recently reviewed submissions</h2></div>
+  <table>
+    <tr><th>ID</th><th>Bot</th><th>From</th><th>Outcome</th><th>When</th></tr>
+    <% reviewedRequests.forEach((r) => { %>
+      <tr>
+        <td class="mono"><%= r.id %></td>
+        <td class="mono"><%= r.bot_id %></td>
+        <td class="faint"><%= r.guild_name || r.guild_id %></td>
+        <td>
+          <span class="st <%= r.status === 'approved' ? 'ok' : 'off' %>"><%= r.status %></span>
+          <% if (r.review_note) { %><span class="faint"><%= r.review_note %></span><% } %>
+        </td>
+        <td class="mono faint"><%= ts(r.reviewed_at) %></td>
+      </tr>
+    <% }) %>
+  </table>
+</section>
+<% } %>
+
+<%- include('partials/foot') %>

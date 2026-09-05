@@ -1,0 +1,27 @@
+<%- include('partials/head') %>
+<%
+  const d = (ms) => ms ? new Date(ms).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) : '';
+%>
+
+<div class="page-head">
+  <h1>Blog</h1>
+  <div class="meta">Release notes and changes to BotApprove</div>
+</div>
+
+<% if (!posts.length) { %>
+  <p class="empty">Nothing published yet.</p>
+<% } else { %>
+  <div class="posts">
+    <% posts.forEach((p) => { %>
+      <a class="post-row" href="/blog/<%= p.slug %>">
+        <div class="post-date"><%= d(p.published_at) %></div>
+        <div>
+          <div class="post-title"><%= p.title %></div>
+          <% if (p.summary) { %><div class="post-summary"><%= p.summary %></div><% } %>
+        </div>
+      </a>
+    <% }) %>
+  </div>
+<% } %>
+
+<%- include('partials/foot') %>

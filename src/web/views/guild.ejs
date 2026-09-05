@@ -1,0 +1,645 @@
+<%- include('partials/head') %>
+<%
+  const ts = (ms) => ms ? new Date(ms).toISOString().replace('T', ' ').slice(0, 16) + 'Z' : '';
+  const roleName = (id) => (roles.find((r) => r.id === id) || {}).name || id;
+  const ro = canConfigure ? '' : 'disabled';
+  const featOn = (k) => features.some((f) => f.key === k && f.enabled);
+%>
+
+<div class="page-head">
+  <h1><%= guild.name %></h1>
+  <div class="meta">
+    <%= guild.id %> &middot; <%= guild.memberCount %> members &middot;
+    <a href="/guilds">all servers</a>
+    <% if (!canConfigure) { %> &middot; read only, you are an approver not a manager<% } %>
+  </div>
+</div>
+
+<% if (flash) { %>
+  <div class="notice <%= flash.type === 'error' ? 'danger' : 'ok' %>"><%= flash.message %></div>
+<% } %>
+
+<% if (typeof viaOperator !== 'undefined' && viaOperator) { %>
+  <div class="notice info">
+    <strong>Viewing as instance operator</strong>
+    <p>You do not hold Manage Server here. This access came from the operator unlock and is
+      logged. <a href="/admin/unlock">Lock it</a> when you are done.</p>
+  </div>
+<% } %>
+
+<% if (selfCheck && !selfCheck.ok) { %>
+  <div class="notice danger">
+    <strong><%= selfCheck.tampering ? 'BotApprove has been weakened' : 'Protection is impaired' %></strong>
+    <ul>
+      <% (selfCheck.problems || []).forEach((p) => { %><li><%= p %></li><% }) %>
+    </ul>
+    <% if (selfCheck.tampering) { %>
+      <p>Someone reduced BotApprove's power after it was working. Check the audit log for who
+        changed roles or permissions.</p>
+    <% } %>
+  </div>
+<% } else { %>
+  <div class="notice ok"><strong>Screening is active.</strong>
+    <p>Permissions and role position are correct, and the approval channel is reachable.</p>
+  </div>
+<% } %>
+
+<% if (selfCheck && selfCheck.notes && selfCheck.notes.length) { %>
+  <div class="notice info">
+    <strong>Worth knowing</strong>
+    <ul><% selfCheck.notes.forEach((n) => { %><li><%= n %></li><% }) %></ul>
+  </div>
+<% } %>
+
+<section class="block">
+  <div class="block-head">
+    <h2>Pending approvals</h2>
+    <span class="count <%= pending.length ? 'live' : '' %>"><%= pending.length %></span>
+  </div>
+  <% if (!pending.length) { %>
+    <p class="empty">Nothing waiting.</p>
+  <% } else { %>
+    <table>
+      <tr><th>ID</th><th>Bot</th><th>Flags</th><th>Invited by</th><th>Held</th><th></th></tr>
+      <% pending.forEach((p) => { %>
+        <tr>
+          <td class="mono"><%= p.id %></td>
+          <td>
+            <div><%= p.bot_tag || 'unknown' %></div>
+            <div class="sub"><%= p.bot_id %></div>
+          </td>
+          <td>
+            <% if (p.keyword_matched) { %>
+              <span class="tag danger">keyword: <%= p.keyword_matched %></span>
+            <% } else { %>
+              <span class="tag">not whitelisted</span>
+            <% } %>
+            <% if (p.token_consumed) { %><span class="tag warn">token spent</span><% } %>
+          </td>
+          <td class="mono"><%= p.added_by || 'unknown' %></td>
+          <td class="mono faint"><%= ts(p.created_at) %></td>
+          <td>
+            <div class="row-actions">
+              <form method="post" action="/g/<%= guild.id %>/approvals/<%= p.id %>" class="inline">
+                <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                <input type="hidden" name="decision" value="approve">
+                <button class="ok sm" type="submit">Approve</button>
+              </form>
+              <form method="post" action="/g/<%= guild.id %>/approvals/<%= p.id %>" class="inline">
+                <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                <input type="hidden" name="decision" value="deny">
+                <button class="danger sm" type="submit">Deny</button>
+              </form>
+              <form method="post" action="/g/<%= guild.id %>/approvals/<%= p.id %>" class="inline">
+                <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                <input type="hidden" name="decision" value="nuke">
+                <button class="crit sm" type="submit"
+                        title="Deny, blacklist this bot id here permanently, and act on the inviter">Nuke</button>
+              </form>
+            </div>
+          </td>
+        </tr>
+      <% }) %>
+    </table>
+    <p class="hint">
+      Approving whitelists the bot but never re-adds it. Someone has to invite it again by hand.
+      A keyword-flagged bot also gets a single-use token that expires in minutes.
+    </p>
+  <% } %>
+</section>
+
+<% if (paywallEnabled) { %>
+<section class="block">
+  <div class="block-head">
+    <h2>Licence</h2>
+    <span class="count"><%= entitlement.tier %> / <%= entitlement.state %></span>
+  </div>
+  <% if (!entitlement.licensed) { %>
+    <p class="lede">
+      Your server is still guarded. The approval gate, your keyword blocklist, the audit trail
+      and tamper detection are free forever. Only the premium rows below are switched off.
+    </p>
+  <% } %>
+  <% if (canConfigure) { %>
+    <% if (stripeReady) { %>
+      <div class="cta" style="margin-bottom:18px">
+        <% if (hasStripeCustomer) { %>
+          <form method="post" action="/g/<%= guild.id %>/billing" class="inline">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+            <button type="submit">Manage billing</button>
+          </form>
+          <span class="hint" style="margin:0;align-self:center">
+            Update your card or cancel. Cancelling stops future charges and keeps premium
+            until the period ends.<% if (portalUrl) { %>
+            Locked out of this dashboard?
+            <a href="<%= portalUrl %>" rel="noopener noreferrer" target="_blank">Sign in by email</a>.<% } %>
+          </span>
+        <% } else { %>
+          <form method="post" action="/g/<%= guild.id %>/subscribe" class="inline">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+            <button class="primary" type="submit">
+              <% if (trialOffer.eligible) { %>
+                Start <%= trialOffer.days %> days free
+              <% } else { %>
+                Subscribe, <%= price.symbol %><%= price.amount %>/month
+              <% } %>
+            </button>
+          </form>
+          <span class="hint" style="margin:0;align-self:center">
+            <% if (trialOffer.eligible) { %>
+              Then <%= price.symbol %><%= price.amount %> a month. Cancel before day
+              <%= trialOffer.days %> and you are not charged.
+            <% } else if (trialOffer.reason === 'already_used') { %>
+              This server has already used its free trial.
+            <% } %>
+            Card handled by Stripe. Payment details never reach this server.
+          </span>
+        <% } %>
+      </div>
+    <% } %>
+    <form method="post" action="/g/<%= guild.id %>/license" class="inline-form">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <div class="field" style="flex:2 1 260px">
+        <label for="key">Or redeem a licence key</label>
+        <input class="mono" type="text" id="key" name="key" placeholder="BA-XXXXX-XXXXX-XXXXX-XXXXX" required>
+      </div>
+      <button type="submit">Activate</button>
+    </form>
+  <% } %>
+</section>
+<% } %>
+
+<section class="block">
+  <div class="block-head"><h2>Features</h2></div>
+  <div class="cols two">
+    <div>
+      <% features.filter((f) => f.tier === 'free').forEach((f) => { %>
+        <div class="feat">
+          <span class="st ok">free</span>
+          <div><div class="name"><%= f.name %></div><div class="blurb"><%= f.blurb %></div></div>
+        </div>
+      <% }) %>
+    </div>
+    <div>
+      <% features.filter((f) => f.tier === 'premium').forEach((f) => { %>
+        <div class="feat">
+          <span class="st <%= f.enabled ? 'ok' : 'off' %>"><%= f.enabled ? 'active' : 'off' %></span>
+          <div><div class="name"><%= f.name %></div><div class="blurb"><%= f.blurb %></div></div>
+        </div>
+      <% }) %>
+    </div>
+  </div>
+</section>
+
+<div class="cols two">
+  <section class="block">
+    <div class="block-head"><h2>Settings</h2></div>
+    <form method="post" action="/g/<%= guild.id %>/config">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+
+      <div class="field">
+        <label for="nickname">Nickname in this server</label>
+        <input type="text" id="nickname" name="nickname" maxlength="32"
+               value="<%= cfg.nickname || '' %>" placeholder="leave empty for the default name" <%= ro %>>
+      </div>
+
+      <div class="field">
+        <label for="notify">Approval channel</label>
+        <select id="notify" name="notify_channel_id" <%= ro %>>
+          <option value="">not set</option>
+          <% textChannels.forEach((c) => { %>
+            <option value="<%= c.id %>" <%= cfg.notify_channel_id === c.id ? 'selected' : '' %>>#<%= c.name %></option>
+          <% }) %>
+        </select>
+      </div>
+
+      <div class="field">
+        <label for="logch">Audit log channel</label>
+        <select id="logch" name="log_channel_id" <%= ro %>>
+          <option value="">not set</option>
+          <% textChannels.forEach((c) => { %>
+            <option value="<%= c.id %>" <%= cfg.log_channel_id === c.id ? 'selected' : '' %>>#<%= c.name %></option>
+          <% }) %>
+        </select>
+      </div>
+
+      <div class="field">
+        <label for="lowres">Low-resolution threshold, pixels wide</label>
+        <input type="number" id="lowres" name="low_res_threshold_px" min="16" max="4096"
+               value="<%= cfg.low_res_threshold_px %>" <%= ro %>>
+      </div>
+
+      <div class="field">
+        <label for="inviteract">If someone invites a known nuke bot</label>
+        <select id="inviteract" name="nuke_inviter_action" <%= ro %>>
+          <% inviterActions.forEach((a) => { %>
+            <option value="<%= a %>" <%= (cfg.nuke_inviter_action || 'kick') === a ? 'selected' : '' %>>
+              <%= { kick: 'Kick them (default, reversible)', ban: 'Ban them', none: 'Nothing, just tell me' }[a] %>
+            </option>
+          <% }) %>
+        </select>
+        <p class="hint">The bot itself is always banned. You get a DM naming who invited it,
+          with buttons to escalate or undo. Only the server owner can use them.</p>
+      </div>
+
+      <div class="field">
+        <label for="announce">Announcement channel</label>
+        <select id="announce" name="announce_channel_id" <%= ro %>>
+          <option value="">not receiving announcements</option>
+          <% textChannels.forEach((c) => { %>
+            <option value="<%= c.id %>" <%= cfg.announce_channel_id === c.id ? 'selected' : '' %>>#<%= c.name %></option>
+          <% }) %>
+        </select>
+        <p class="hint">Occasional notices from the BotApprove operator. Leave unset to receive none.</p>
+      </div>
+
+      <div class="check">
+        <input type="checkbox" id="announceping" name="announce_allow_everyone" value="1"
+               <%= cfg.announce_allow_everyone ? 'checked' : '' %> <%= ro %>>
+        <div>
+          <label for="announceping">Allow announcements to @everyone</label>
+          <p class="hint">Off by default. Even when on, only announcements explicitly marked
+            urgent by the operator will ping.</p>
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="minage">Minimum bot account age, days</label>
+        <input type="number" id="minage" name="min_account_age_days" min="0" max="3650"
+               value="<%= cfg.min_account_age_days %>" <%= ro %>>
+        <p class="hint">0 is off. A bot younger than this is still reviewed, not auto-denied,
+          the age is flagged on the approval card.
+          <% if (!featOn('account_age_floor')) { %><span class="faint">Premium to switch on.</span><% } %>
+        </p>
+      </div>
+
+      <div class="field">
+        <label for="quorum">Approvals needed to let a bot in</label>
+        <select id="quorum" name="quorum_required" <%= ro %>>
+          <% [1, 2, 3, 4, 5].forEach((n) => { %>
+            <option value="<%= n %>" <%= (cfg.quorum_required || 1) === n ? 'selected' : '' %>>
+              <%= n === 1 ? '1 — any one approver' : `${n} different approvers` %>
+            </option>
+          <% }) %>
+        </select>
+        <p class="hint">Denials always take one person: refusing is the safe direction, so it
+          never waits for a second opinion.
+          <% if (!featOn('approval_quorum')) { %><span class="faint">Premium to require more than one.</span><% } %>
+        </p>
+      </div>
+
+      <div class="field">
+        <label for="expiry">Approvals lapse after, days</label>
+        <input type="number" id="expiry" name="whitelist_expiry_days" min="0" max="3650"
+               value="<%= cfg.whitelist_expiry_days %>" <%= ro %>>
+        <p class="hint">0 keeps approvals forever. Otherwise an older approval sends the bot
+          back for a fresh review rather than being deleted, so who approved it first stays on record.
+          <% if (!featOn('whitelist_expiry')) { %><span class="faint">Premium to switch on.</span><% } %>
+        </p>
+      </div>
+
+      <div class="check">
+        <input type="checkbox" id="impersonation" name="impersonation_check" value="1"
+               <%= cfg.impersonation_check ? 'checked' : '' %> <%= ro %>>
+        <div>
+          <label for="impersonation">Flag names that copy an approved bot</label>
+          <p class="hint">Catches <span class="mono">Dyn0</span> next to <span class="mono">Dyno</span>,
+            including Cyrillic lookalikes. A warning on the card, never an automatic decision.
+            <% if (!featOn('impersonation_check')) { %><span class="faint">Premium.</span><% } %>
+          </p>
+        </div>
+      </div>
+
+      <div class="check">
+        <input type="checkbox" id="dm" name="notify_via_dm" value="1"
+               <%= cfg.notify_via_dm ? 'checked' : '' %> <%= ro %>>
+        <div><label for="dm">Also DM approvers</label></div>
+      </div>
+
+      <div class="check">
+        <input type="checkbox" id="autoban" name="auto_ban_nuke_inviters" value="1"
+               <%= cfg.auto_ban_nuke_inviters ? 'checked' : '' %> <%= ro %>>
+        <div>
+          <label for="autoban">Ban whoever invites a bot you confirmed here</label>
+          <p class="hint">Only fires for bot ids you explicitly confirmed. The server owner is
+            never banned and message history is never purged.</p>
+        </div>
+      </div>
+
+      <% if (canConfigure) { %>
+        <div class="actions"><button class="primary" type="submit">Save settings</button></div>
+      <% } %>
+    </form>
+  </section>
+
+  <section class="block">
+    <div class="block-head">
+      <h2>Keywords</h2>
+      <span class="count"><%= keywordList.length %></span>
+    </div>
+    <p class="hint" style="margin-top:0">
+      Checked before the whitelist, case-insensitive substring match on the bot username.
+      A verified badge does not exempt a match.
+    </p>
+    <table>
+      <% keywordList.forEach((k) => { %>
+        <tr>
+          <td class="mono"><%= k.keyword %></td>
+          <td class="faint"><%= k.added_by === 'system' ? 'built in' : 'custom' %></td>
+          <td>
+            <% if (canConfigure) { %>
+              <div class="row-actions">
+                <form method="post" action="/g/<%= guild.id %>/keywords" class="inline">
+                  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                  <input type="hidden" name="action" value="remove">
+                  <input type="hidden" name="keyword" value="<%= k.keyword %>">
+                  <button class="sm" type="submit">Remove</button>
+                </form>
+              </div>
+            <% } %>
+          </td>
+        </tr>
+      <% }) %>
+      <% if (!keywordList.length) { %>
+        <tr><td colspan="3" class="empty">Empty. No names are treated as high risk.</td></tr>
+      <% } %>
+    </table>
+    <% if (canConfigure) { %>
+      <form method="post" action="/g/<%= guild.id %>/keywords" class="inline-form" style="margin-top:14px">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <input type="hidden" name="action" value="add">
+        <div class="field">
+          <label for="kw">Add keyword</label>
+          <input class="mono" type="text" id="kw" name="keyword" placeholder="giveaway" required minlength="2">
+        </div>
+        <button type="submit">Add</button>
+      </form>
+    <% } %>
+  </section>
+</div>
+
+<div class="cols two">
+  <section class="block">
+    <div class="block-head">
+      <h2>Approver roles</h2>
+      <span class="count"><%= approverRoleIds.length %></span>
+    </div>
+    <table>
+      <% approverRoleIds.forEach((id) => { %>
+        <tr>
+          <td><%= roleName(id) %><div class="sub"><%= id %></div></td>
+          <td>
+            <% if (canConfigure) { %>
+              <div class="row-actions">
+                <form method="post" action="/g/<%= guild.id %>/approvers" class="inline">
+                  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                  <input type="hidden" name="action" value="remove">
+                  <input type="hidden" name="role_id" value="<%= id %>">
+                  <button class="sm" type="submit">Remove</button>
+                </form>
+              </div>
+            <% } %>
+          </td>
+        </tr>
+      <% }) %>
+      <% if (!approverRoleIds.length) { %>
+        <tr><td colspan="2" class="empty">None set. Only Manage Server can approve.</td></tr>
+      <% } %>
+    </table>
+    <% if (canConfigure) { %>
+      <form method="post" action="/g/<%= guild.id %>/approvers" class="inline-form" style="margin-top:14px">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <input type="hidden" name="action" value="add">
+        <div class="field">
+          <label for="role">Add role</label>
+          <select id="role" name="role_id" required>
+            <% roles.forEach((r) => { %><option value="<%= r.id %>"><%= r.name %></option><% }) %>
+          </select>
+        </div>
+        <button type="submit">Add</button>
+      </form>
+    <% } %>
+  </section>
+
+  <section class="block">
+    <div class="block-head">
+      <h2>Live re-invite tokens</h2>
+      <span class="count <%= tokens.length ? 'live' : '' %>"><%= tokens.length %></span>
+    </div>
+    <p class="hint" style="margin-top:0">
+      Single-use passes for keyword-flagged bots. Each works once, for one bot id, and dies on
+      use or on expiry.
+    </p>
+    <table>
+      <% tokens.forEach((t) => { %>
+        <tr>
+          <td class="mono"><%= t.bot_id %></td>
+          <td class="mono faint">expires <%= ts(t.expires_at) %></td>
+          <td>
+            <% if (canConfigure) { %>
+              <div class="row-actions">
+                <form method="post" action="/g/<%= guild.id %>/tokens/revoke" class="inline">
+                  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                  <input type="hidden" name="bot_id" value="<%= t.bot_id %>">
+                  <button class="danger sm" type="submit">Revoke</button>
+                </form>
+              </div>
+            <% } %>
+          </td>
+        </tr>
+      <% }) %>
+      <% if (!tokens.length) { %><tr><td colspan="3" class="empty">None outstanding.</td></tr><% } %>
+    </table>
+  </section>
+</div>
+
+<% if (incidents.length) { %>
+<section class="block">
+  <div class="block-head">
+    <h2>Nuke bot incidents</h2>
+    <span class="count <%= incidents.filter((i) => i.resolution === 'pending').length ? 'live' : '' %>"><%= incidents.length %></span>
+  </div>
+  <p class="hint" style="margin-top:0">
+    A bot from the shared threat list was invited here. Decisions are made by the server owner
+    from the DM they received.
+  </p>
+  <table>
+    <tr><th>ID</th><th>Bot</th><th>Invited by</th><th>Automatic</th><th>Outcome</th><th>When</th></tr>
+    <% incidents.forEach((i) => { %>
+      <tr>
+        <td class="mono"><%= i.id %></td>
+        <td class="mono"><%= i.bot_tag || i.bot_id %><div class="sub"><%= i.bot_action || 'unknown' %></div></td>
+        <td class="mono"><%= i.inviter_tag || i.inviter_id || 'unknown' %></td>
+        <td class="mono faint"><%= i.inviter_action || 'none' %></td>
+        <td>
+          <span class="st <%= i.resolution === 'pending' ? 'warn' : (['dismiss','unban'].includes(i.resolution) ? 'off' : 'danger') %>">
+            <%= i.resolution %>
+          </span>
+        </td>
+        <td class="mono faint"><%= ts(i.created_at) %></td>
+      </tr>
+    <% }) %>
+  </table>
+</section>
+<% } %>
+
+<section class="block">
+  <div class="block-head">
+    <h2>Nuke bots confirmed here</h2>
+    <span class="count"><%= nukes.length %></span>
+  </div>
+  <p class="hint" style="margin-top:0">
+    Kicked on sight in this server. No re-invite token and no whitelist entry overrides this,
+    because the check runs before everything else. This list is local to your server.
+  </p>
+  <table>
+    <% nukes.forEach((n) => { %>
+      <tr>
+        <td class="mono"><%= n.bot_id %><% if (n.bot_tag) { %><div class="sub"><%= n.bot_tag %></div><% } %></td>
+        <td class="dim"><%= n.reason || '' %></td>
+        <td class="mono faint"><%= ts(n.confirmed_at) %></td>
+        <td>
+          <div class="row-actions">
+            <form method="post" action="/g/<%= guild.id %>/nuke" class="inline">
+              <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+              <input type="hidden" name="action" value="unconfirm">
+              <input type="hidden" name="bot_id" value="<%= n.bot_id %>">
+              <button class="sm" type="submit">Withdraw</button>
+            </form>
+          </div>
+        </td>
+      </tr>
+    <% }) %>
+    <% if (!nukes.length) { %><tr><td colspan="4" class="empty">None confirmed.</td></tr><% } %>
+  </table>
+  <form method="post" action="/g/<%= guild.id %>/nuke" class="inline-form" style="margin-top:14px">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <input type="hidden" name="action" value="confirm">
+    <div class="field" style="flex:1 1 210px">
+      <label for="nukeid">Confirm a bot id</label>
+      <input class="mono" type="text" id="nukeid" name="bot_id" pattern="\d{15,25}"
+             placeholder="123456789012345678" required>
+    </div>
+    <div class="field" style="flex:2 1 240px">
+      <label for="nukereason">Reason</label>
+      <input type="text" id="nukereason" name="reason" placeholder="what it did">
+    </div>
+    <button class="danger" type="submit">Confirm</button>
+  </form>
+</section>
+
+<section class="block">
+  <div class="block-head">
+    <h2>Shared threat list submissions</h2>
+    <span class="count"><%= requests.length %></span>
+  </div>
+  <p class="hint" style="margin-top:0">
+    Nominate a bot for the instance-wide list that every server benefits from. Submissions are
+    reviewed by the operator and are never listed automatically. To block a bot in your own
+    server right now, use the form above instead.
+  </p>
+  <table>
+    <% requests.forEach((r) => { %>
+      <tr>
+        <td class="mono"><%= r.id %></td>
+        <td class="mono"><%= r.bot_id %><% if (r.bot_tag) { %><div class="sub"><%= r.bot_tag %></div><% } %></td>
+        <td class="dim"><%= String(r.reason).slice(0, 120) %></td>
+        <td>
+          <span class="st <%= r.status === 'pending' ? 'warn' : (r.status === 'approved' ? 'ok' : 'off') %>">
+            <%= r.status %>
+          </span>
+        </td>
+        <td class="mono faint"><%= ts(r.created_at) %></td>
+      </tr>
+    <% }) %>
+    <% if (!requests.length) { %>
+      <tr><td colspan="5" class="empty">Nothing submitted from this server.</td></tr>
+    <% } %>
+  </table>
+  <form method="post" action="/g/<%= guild.id %>/nuke-request" class="inline-form" style="margin-top:14px">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <div class="field" style="flex:1 1 210px">
+      <label for="reqid">Bot id</label>
+      <input class="mono" type="text" id="reqid" name="bot_id" pattern="\d{15,25}"
+             placeholder="123456789012345678" required>
+    </div>
+    <div class="field" style="flex:2 1 280px">
+      <label for="reqreason">What it did, and how you know</label>
+      <input type="text" id="reqreason" name="reason" minlength="10" required
+             placeholder="mass-banned 200 members within a minute of joining">
+    </div>
+    <button type="submit">Submit for review</button>
+  </form>
+</section>
+
+<section class="block">
+  <div class="block-head">
+    <h2>Approved bots</h2>
+    <span class="count"><%= whitelisted.length %></span>
+  </div>
+  <table>
+    <tr><th>Bot</th><th>Approved by</th><th>When</th><th></th></tr>
+    <% whitelisted.forEach((w) => { %>
+      <tr>
+        <td class="mono"><%= w.bot_id %></td>
+        <td class="mono"><%= w.approved_by %></td>
+        <td class="mono faint"><%= ts(w.approved_at) %></td>
+        <td>
+          <% if (canConfigure) { %>
+            <div class="row-actions">
+              <form method="post" action="/g/<%= guild.id %>/whitelist/remove" class="inline">
+                <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                <input type="hidden" name="bot_id" value="<%= w.bot_id %>">
+                <button class="danger sm" type="submit">Revoke</button>
+              </form>
+            </div>
+          <% } %>
+        </td>
+      </tr>
+    <% }) %>
+    <% if (!whitelisted.length) { %><tr><td colspan="4" class="empty">No bots approved yet.</td></tr><% } %>
+  </table>
+</section>
+
+<% if (recent.length) { %>
+<section class="block">
+  <div class="block-head"><h2>Recent decisions</h2></div>
+  <table>
+    <% recent.forEach((r) => { %>
+      <tr>
+        <td class="mono"><%= r.id %></td>
+        <td class="mono"><%= r.bot_tag || r.bot_id %></td>
+        <td>
+          <span class="st <%= r.status === 'approved' ? 'ok' : 'danger' %>"><%= r.status %></span>
+          <% if (r.keyword_matched) { %><span class="tag danger"><%= r.keyword_matched %></span><% } %>
+        </td>
+        <td class="mono"><%= r.resolved_by || '' %></td>
+        <td class="mono faint"><%= ts(r.resolved_at) %></td>
+      </tr>
+    <% }) %>
+  </table>
+</section>
+<% } %>
+
+<section class="block">
+  <div class="block-head">
+    <h2>Security log</h2>
+    <span class="count">last <%= logs.length %></span>
+  </div>
+  <div class="log">
+    <table>
+      <tr><th>Time</th><th>Action</th><th>Bot</th><th>Detail</th></tr>
+      <% logs.forEach((l) => { %>
+        <tr>
+          <td class="faint" style="white-space:nowrap"><%= ts(l.created_at) %></td>
+          <td class="sev-<%= l.severity %>"><%= l.action %></td>
+          <td class="faint"><%= l.bot_id || '' %></td>
+          <td class="faint"><%= l.detail ? String(l.detail).slice(0, 140) : '' %></td>
+        </tr>
+      <% }) %>
+      <% if (!logs.length) { %><tr><td colspan="4" class="empty">Nothing logged yet.</td></tr><% } %>
+    </table>
+  </div>
+</section>
+
+<%- include('partials/foot') %>
