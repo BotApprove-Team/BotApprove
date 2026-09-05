@@ -7,7 +7,7 @@ import { checkGuild, checkAllGuilds } from '../services/selfCheck.js';
 import { seedDefaultKeywords, record } from '../services/securityService.js';
 import { applyNickname } from '../services/nicknameService.js';
 import { enforceEntitlements, startTrial, resolveEntitlement } from '../services/entitlementService.js';
-import { reinviteTokens, guildConfig } from '../db/queries.js';
+import { reinviteTokens, guildConfig, selfCheckState, botPermissions } from '../db/queries.js';
 import { rememberGuild, rememberAll, onMemberRemoved, onGuildRemoved } from '../services/removalWatch.js';
 import { checkAll as checkDriftAll, checkBot as checkDriftBot } from '../services/driftWatch.js';
 import { handleInteraction } from './commands/index.js';
@@ -93,6 +93,14 @@ export function createClient() {
     guildConfig.ensure(guild.id);
     rememberGuild(guild);
     seedDefaultKeywords(guild.id);
+
+    // Baselines from a previous stint in this server are meaningless now.
+    // Discord puts a re-added bot's managed role back at the bottom, so a role
+    // position recorded before we left reads as a demotion and the self-check
+    // reports an active compromise the moment someone re-invites us. Settings
+    // and the whitelist are deliberately kept; only the baselines go.
+    selfCheckState.clear(guild.id);
+    botPermissions.clearGuild(guild.id);
 
     if (config.paywall.enabled && config.paywall.trialDays > 0) {
       const state = resolveEntitlement(guild.id);

@@ -166,6 +166,7 @@ export const securityLog = {
 
 export const selfCheckState = {
   get: (guildId) => q('SELECT * FROM self_check_state WHERE guild_id = ?').get(guildId),
+  clear: (guildId) => q('DELETE FROM self_check_state WHERE guild_id = ?').run(guildId),
   save: (guildId, { rolePosition, permissions, lastOkAt, lastAlertAt }) =>
     q(`INSERT INTO self_check_state (guild_id, role_position, permissions, last_ok_at, last_alert_at)
        VALUES (?, ?, ?, ?, ?)
@@ -283,6 +284,8 @@ export const botPermissions = {
     q('DELETE FROM bot_permission_state WHERE guild_id = ? AND bot_id = ?').run(guildId, botId),
   list: (guildId) =>
     q('SELECT * FROM bot_permission_state WHERE guild_id = ?').all(guildId),
+  clearGuild: (guildId) =>
+    q('DELETE FROM bot_permission_state WHERE guild_id = ?').run(guildId),
 };
 
 export const approvalVotes = {
