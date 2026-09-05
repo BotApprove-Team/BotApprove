@@ -260,10 +260,14 @@ export function isApprover(member) {
  * premium log channel. Whether a server hears about the operator inspecting it
  * should not depend on whether they are paying.
  */
-async function announceOperatorCheck(guild, user, { what }) {
+async function announceOperatorCheck(guild, user, { what, ranIn }) {
   const cfg = guildConfig.get(guild.id);
   const channelId = cfg.log_channel_id ?? cfg.notify_channel_id;
   if (!channelId) return { delivered: false, reason: 'no_channel' };
+
+  // The reply is public, so running it in the log channel already shows the
+  // server what happened. A second message would just say it twice.
+  if (ranIn && ranIn === channelId) return { delivered: false, reason: 'same_channel' };
 
   const channel = await guild.channels.fetch(channelId).catch(() => null);
   if (!channel?.isTextBased?.()) return { delivered: false, reason: 'unreachable' };
@@ -1106,6 +1110,7 @@ async function handleCommand(interaction) {
 
       const notice = await announceOperatorCheck(interaction.guild, interaction.user, {
         what: 'Entitlement check',
+        ranIn: interaction.channelId,
       }).catch(() => ({ delivered: false, reason: 'error' }));
 
       await record({
@@ -1129,8 +1134,7 @@ async function handleCommand(interaction) {
       const hours = Math.floor(uptime / 3600);
       const minutes = Math.floor((uptime % 3600) / 60);
 
-      return interaction.reply({
-        embeds: [new EmbedBuilder()
+      const embeds = [new EmbedBuilder()
           .setColor(perpetual ? 0x57f287 : 0x5865f2)
           .setTitle(headline)
           .setDescription(
@@ -1157,15 +1161,37 @@ async function handleCommand(interaction) {
               name: 'Disclosed to this server',
               value: notice.delivered
                 ? `Posted in <#${notice.channelId}>.`
-                : (notice.reason === 'no_channel'
-                  ? 'No log or approval channel is set here, so there was nowhere to post it.'
-                  : 'Could not post the notice; the channel is unreachable.'),
+                : (notice.reason === 'same_channel'
+                  ? 'This message is the notice.'
+                  : notice.reason === 'no_channel'
+                    ? 'No log or approval channel is set here, so there was nowhere to post it.'
+                    : 'Could not post the notice; the channel is unreachable.'),
             },
           )
           .setFooter({ text: 'Operator check' })
-          .setTimestamp(new Date())],
-        ...ephemeral,
-      });
+          .setTimestamp(new Date())];
+
+      // Deliberately public. An ephemeral reply proves nothing about where the
+      // bot is installed: a user-installed app produces exactly the same
+      // "only you can see this" message without being in the server at all.
+      // A message everyone can see can only come from an app that is really
+      // here, which is the entire point of this command.
+      try {
+        return await interaction.reply({ embeds });
+      } catch (err) {
+        // Some channels will not take a visible message from the bot. Say so
+        // rather than failing silently, because a missing answer is exactly
+        // what this command exists to rule out.
+        log.warn('public operator check reply failed', {
+          guildId, channelId: interaction.channelId, err: err.message,
+        });
+        return interaction.reply({
+          embeds,
+          content: 'Posted privately: BotApprove cannot send a visible message in this channel, '
+            + 'so this reply is not proof of anything. Run it somewhere it can post.',
+          ...ephemeral,
+        }).catch(() => undefined);
+      }
     }
 
     default:
