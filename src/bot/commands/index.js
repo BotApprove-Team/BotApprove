@@ -21,6 +21,7 @@ import {
   knownNukeBots,
   nukeIncidents,
   nukeDbRequests,
+  entitlements,
 } from '../../db/queries.js';
 import {
   confirmNukeBot,
@@ -160,6 +161,12 @@ export const commandDefinitions = [
   new SlashCommandBuilder()
     .setName('features')
     .setDescription('What is active in this server, free and premium')
+    .setDMPermission(false),
+
+  new SlashCommandBuilder()
+    .setName('perpetual')
+    .setDescription('Operator check: confirm this instance is alive and report the licence here')
+    .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
     .setDMPermission(false),
 
   new SlashCommandBuilder()
@@ -1022,6 +1029,66 @@ async function handleCommand(interaction) {
         components: linkButtons(guildId, {
           includeBuy: config.paywall.enabled && !resolveEntitlement(guildId).licensed,
         }),
+        ...ephemeral,
+      });
+    }
+
+    /**
+     * Proof of life from inside Discord.
+     *
+     * The dashboard reads a cached guild list and the REST API is a different
+     * path again, so both can look healthy while the bot is deaf on the
+     * gateway. A reply to this can only happen if the interaction arrived and
+     * was answered, which is the thing actually worth confirming.
+     */
+    case 'perpetual': {
+      if (!config.ownerIds.includes(interaction.user.id)) {
+        return fail(interaction, 'This check is for the BotApprove operator.');
+      }
+
+      const row = entitlements.get(guildId);
+      const ent = resolveEntitlement(guildId);
+      const perpetual = !!row?.perpetual;
+      const gifted = perpetual && row?.source === 'license_key';
+
+      const headline = gifted
+        ? 'I am on a perpetual gifted licence.'
+        : perpetual
+          ? 'I am on a purchased lifetime licence.'
+          : `I am not on a perpetual licence here. This server is ${ent.tier} / ${ent.state}.`;
+
+      const client = interaction.client;
+      const uptime = Math.floor(client.uptime / 1000);
+      const hours = Math.floor(uptime / 3600);
+      const minutes = Math.floor((uptime % 3600) / 60);
+
+      return interaction.reply({
+        embeds: [new EmbedBuilder()
+          .setColor(perpetual ? 0x57f287 : 0x5865f2)
+          .setTitle(headline)
+          .setDescription(
+            `Answered live in **${interaction.guild.name}**, so the gateway is connected and ` +
+            'this instance is serving this server.',
+          )
+          .addFields(
+            { name: 'Server', value: `${interaction.guild.name}\n\`${guildId}\``, inline: true },
+            {
+              name: 'Licence',
+              value: row
+                ? `${row.tier} / ${row.status}\nvia ${row.source ?? 'unknown'}` +
+                  `${row.expires_at ? `\nuntil <t:${Math.floor(row.expires_at / 1000)}:D>` : '\nno expiry'}`
+                : 'no entitlement row',
+              inline: true,
+            },
+            {
+              name: 'This instance',
+              value: `up ${hours}h ${minutes}m\n${client.guilds.cache.size} servers\n` +
+                `${client.ws.ping}ms to Discord`,
+              inline: true,
+            },
+          )
+          .setFooter({ text: 'Operator check' })
+          .setTimestamp(new Date())],
         ...ephemeral,
       });
     }
