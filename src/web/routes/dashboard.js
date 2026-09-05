@@ -153,6 +153,7 @@ router.get('/g/:guildId', requireGuildAccess('approve'), async (req, res) => {
     inviterActions: INVITER_ACTIONS,
     purchaseUrl: config.paywall.purchaseUrl,
     viaOperator: req.guildAccess.via === 'instance_owner',
+    configureViaOperator: !!req.guildAccess.configureViaOperator,
     stripeReady: stripeEnabled(),
     trialOffer: trialOffer(guildId),
     plans: availablePlans(),

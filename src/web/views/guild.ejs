@@ -22,8 +22,15 @@
 <% if (typeof viaOperator !== 'undefined' && viaOperator) { %>
   <div class="notice info">
     <strong>Viewing as instance operator</strong>
-    <p>You do not hold Manage Server here. This access came from the operator unlock and is
+    <p>You are not an approver here. This access came from the operator unlock and is
       logged. <a href="/admin/unlock">Lock it</a> when you are done.</p>
+  </div>
+<% } else if (typeof configureViaOperator !== 'undefined' && configureViaOperator) { %>
+  <div class="notice info">
+    <strong>Settings unlocked by the operator</strong>
+    <p>You can approve here as an approver. Changing settings normally needs Manage Server, and
+      is available because the operator unlock is active and logged.
+      <a href="/admin/unlock">Lock it</a> when you are done.</p>
   </div>
 <% } %>
 

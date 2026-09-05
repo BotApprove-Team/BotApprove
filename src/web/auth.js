@@ -107,27 +107,48 @@ export function requireLogin(req, res, next) {
 export const isInstanceOwner = (userId) => config.ownerIds.includes(userId);
 
 export async function resolveGuildAccess(userId, guildId, { elevated = false } = {}) {
-  if (isInstanceOwner(userId) && elevated) {
-    const client = getClient();
-    const guild = client?.guilds.cache.get(guildId);
-    if (!guild) return { allowed: false, reason: 'bot_not_in_guild' };
-    return { allowed: true, guild, via: 'instance_owner', canApprove: true, canConfigure: true };
-  }
-
   const client = getClient();
   const guild = client?.guilds.cache.get(guildId);
   if (!guild) return { allowed: false, reason: 'bot_not_in_guild' };
 
   const member = await guild.members.fetch(userId).catch(() => null);
-  if (!member) return { allowed: false, reason: 'not_a_member' };
+  const operator = isInstanceOwner(userId) && elevated;
 
-  const canConfigure = member.permissions.has(PermissionsBitField.Flags.ManageGuild);
+  const manages = !!member?.permissions.has(PermissionsBitField.Flags.ManageGuild);
   const roleIds = approverRoles.list(guildId);
-  const isApprover = canConfigure || roleIds.some((id) => member.roles.cache.has(id));
+  const isApprover = manages || !!member?.roles.cache.some((r) => roleIds.includes(r.id));
 
-  if (!isApprover) return { allowed: false, reason: 'not_an_approver' };
+  // Real permissions are checked before the operator override. Deciding the
+  // other way round labels every server as borrowed access, including ones the
+  // operator genuinely runs, and tells them they lack a permission nobody
+  // looked for.
+  if (isApprover) {
+    return {
+      allowed: true,
+      guild,
+      member,
+      canApprove: true,
+      // An operator who is an approver here but not a manager still gets to
+      // configure; the elevation adds to real access rather than replacing it.
+      canConfigure: manages || operator,
+      configureViaOperator: !manages && operator,
+      via: 'guild_permissions',
+    };
+  }
 
-  return { allowed: true, guild, member, canApprove: true, canConfigure, via: 'guild_permissions' };
+  if (operator) {
+    return {
+      allowed: true,
+      guild,
+      member,
+      canApprove: true,
+      canConfigure: true,
+      via: 'instance_owner',
+    };
+  }
+
+  if (!member) return { allowed: false, reason: 'not_a_member' };
+  return { allowed: false, reason: 'not_an_approver' };
 }
 
 export function requireGuildAccess(level = 'approve') {
