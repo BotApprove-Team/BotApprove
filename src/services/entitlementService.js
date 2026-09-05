@@ -71,6 +71,7 @@ export async function redeemLicenseKey(guildId, rawKey, actorId) {
     note: result.key.note,
   });
   entitlements.clearDowngradeNotice(guildId);
+  entitlements.markPerpetual(guildId, expiresAt === null);
 
   await record({
     guildId, actorId, action: 'license_redeemed', severity: 'medium',
@@ -122,6 +123,23 @@ export async function markBillingLapse(guildId, reason, { externalId = null } = 
     throw new Error(`unsupported billing lapse reason: ${reason}`);
   }
   const row = entitlements.get(guildId);
+
+  // A perpetual licence outlives any subscription. Someone who buys lifetime
+  // and then cancels the monthly plan they used to be on produces a
+  // cancellation event that resolves to this guild, and acting on it would
+  // revoke what they just paid for.
+  if (row?.perpetual) {
+    log.info('billing lapse ignored, entitlement is perpetual', { guildId, reason });
+    await record({
+      guildId,
+      action: 'billing_lapse_ignored',
+      severity: 'info',
+      detail: { reason, why: 'perpetual entitlement' },
+      mirror: false,
+    });
+    return { ok: false, reason: 'perpetual' };
+  }
+
   entitlements.upsert(guildId, {
     tier: row?.tier ?? 'pro',
     status: 'expired',

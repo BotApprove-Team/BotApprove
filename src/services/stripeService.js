@@ -32,25 +32,60 @@ export function trialOffer(guildId) {
   return { eligible: true, days };
 }
 
-export async function createCheckoutSession({ guildId, guildName, userId }) {
+export const PLANS = {
+  monthly: { recurring: true, priceKey: 'priceId' },
+  yearly: { recurring: true, priceKey: 'priceIdYearly' },
+  lifetime: { recurring: false, priceKey: 'priceIdLifetime' },
+};
+
+export function planPrice(plan) {
+  const spec = PLANS[plan];
+  if (!spec) return null;
+  const price = config.stripe[spec.priceKey];
+  return price ? { ...spec, plan, price } : null;
+}
+
+/** Which plans this instance can actually sell, so the UI offers no dead buttons. */
+export function availablePlans() {
+  if (!isEnabled()) return [];
+  return Object.keys(PLANS).filter((plan) => planPrice(plan));
+}
+
+export async function createCheckoutSession({ guildId, guildName, userId, plan = 'monthly' }) {
   const s = stripe();
   if (!s) return { ok: false, reason: 'stripe_not_configured' };
 
+  const spec = planPrice(plan);
+  if (!spec) return { ok: false, reason: 'unknown_plan' };
+
   const existing = entitlements.get(guildId);
-  const offer = trialOffer(guildId);
+  // A one-off purchase never gets a trial: a free period before a single
+  // payment means nothing, and Stripe rejects trial data in payment mode.
+  const offer = spec.recurring ? trialOffer(guildId) : { eligible: false, days: 0 };
+  const meta = { guild_id: guildId, guild_name: guildName ?? '', bought_by: userId };
 
   try {
     const session = await s.checkout.sessions.create({
-      mode: 'subscription',
-      line_items: [{ price: config.stripe.priceId, quantity: 1 }],
+      mode: spec.recurring ? 'subscription' : 'payment',
+      line_items: [{ price: spec.price, quantity: 1 }],
       success_url: `${config.web.baseUrl}/g/${guildId}?billing=started`,
       cancel_url: `${config.web.baseUrl}/pricing`,
       client_reference_id: guildId,
-      subscription_data: {
-        metadata: { guild_id: guildId, guild_name: guildName ?? '', bought_by: userId },
-        ...(offer.eligible ? { trial_period_days: offer.days } : {}),
+      ...(spec.recurring
+        ? {
+          subscription_data: {
+            metadata: meta,
+            ...(offer.eligible ? { trial_period_days: offer.days } : {}),
+          },
+        }
+        // No subscription to hang metadata on, so the guild link lives on the
+        // payment intent as well as the session.
+        : { payment_intent_data: { metadata: meta } }),
+      metadata: {
+        guild_id: guildId,
+        plan: spec.plan,
+        trial_days: offer.eligible ? String(offer.days) : '0',
       },
-      metadata: { guild_id: guildId, trial_days: offer.eligible ? String(offer.days) : '0' },
       allow_promotion_codes: true,
       ...(existing?.external_id?.startsWith('cus_') ? { customer: existing.external_id } : {}),
     });
@@ -60,7 +95,7 @@ export async function createCheckoutSession({ guildId, guildName, userId }) {
       actorId: userId,
       action: 'checkout_started',
       severity: 'info',
-      detail: { session: session.id, trial_days: offer.eligible ? offer.days : 0 },
+      detail: { session: session.id, plan: spec.plan, trial_days: offer.eligible ? offer.days : 0 },
       mirror: false,
     });
 
@@ -125,6 +160,32 @@ export async function handleEvent(event) {
 
   switch (event.type) {
     case 'checkout.session.completed': {
+      // A one-off purchase. This event is the only one it will ever produce:
+      // there is no subscription behind it, so no invoice.paid to extend it and
+      // no cancellation to end it. It is granted once, with no expiry, and
+      // flagged so a later billing event cannot take it away.
+      if (obj.mode === 'payment') {
+        await grantEntitlement(guildId, {
+          tier: 'pro',
+          expiresAt: null,
+          source: 'stripe',
+          note: 'stripe lifetime',
+          actorId: 'stripe',
+        });
+        entitlements.upsert(guildId, {
+          tier: 'pro',
+          status: 'active',
+          expiresAt: null,
+          source: 'stripe',
+          externalId: typeof obj.customer === 'string' ? obj.customer : null,
+          note: 'stripe lifetime',
+        });
+        entitlements.markPerpetual(guildId);
+
+        log.info('lifetime purchase activated', { guildId, customer: obj.customer });
+        return { handled: true, action: 'lifetime_activated' };
+      }
+
       const trialDays = Number.parseInt(obj.metadata?.trial_days ?? '0', 10);
       const onTrial = Number.isFinite(trialDays) && trialDays > 0;
       const tier = onTrial ? 'trial' : 'pro';

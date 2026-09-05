@@ -11,7 +11,9 @@ import { router as dashboardRouter } from './routes/dashboard.js';
 import { FEATURES } from '../services/featureService.js';
 import { blog } from '../db/queries.js';
 import { render as renderPost } from '../services/blogService.js';
-import { constructEvent, handleEvent, isEnabled as stripeEnabled } from '../services/stripeService.js';
+import {
+  constructEvent, handleEvent, isEnabled as stripeEnabled, availablePlans,
+} from '../services/stripeService.js';
 
 const log = createLogger('web');
 
@@ -134,6 +136,12 @@ export function createApp() {
     trial: {
       offered: stripeEnabled() && config.stripe.trialDays > 0,
       days: config.stripe.trialDays,
+    },
+    plans: availablePlans(),
+    prices: {
+      monthly: config.paywall.priceAmount,
+      yearly: config.stripe.priceAmountYearly,
+      lifetime: config.stripe.priceAmountLifetime,
     },
   });
 

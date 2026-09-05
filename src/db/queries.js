@@ -404,6 +404,11 @@ export const entitlements = {
   setLapseReason: (guildId, reason) =>
     q('UPDATE entitlements SET lapse_reason = ?, updated_at = ? WHERE guild_id = ?')
       .run(reason, Date.now(), guildId),
+  markPerpetual: (guildId, on = true) =>
+    q('UPDATE entitlements SET perpetual = ?, updated_at = ? WHERE guild_id = ?')
+      .run(on ? 1 : 0, Date.now(), guildId),
+  isPerpetual: (guildId) =>
+    !!q('SELECT perpetual FROM entitlements WHERE guild_id = ?').get(guildId)?.perpetual,
   clearLapsed: (guildId) =>
     q('UPDATE entitlements SET lapsed_at = NULL, updated_at = ? WHERE guild_id = ?')
       .run(Date.now(), guildId),

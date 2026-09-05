@@ -135,25 +135,50 @@
             <a href="<%= portalUrl %>" rel="noopener noreferrer" target="_blank">Sign in by email</a>.<% } %>
           </span>
         <% } else { %>
-          <form method="post" action="/g/<%= guild.id %>/subscribe" class="inline">
-            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-            <button class="primary" type="submit">
-              <% if (trialOffer.eligible) { %>
-                Start <%= trialOffer.days %> days free
-              <% } else { %>
-                Subscribe, <%= price.symbol %><%= price.amount %>/month
-              <% } %>
-            </button>
-          </form>
-          <span class="hint" style="margin:0;align-self:center">
+          <div class="actions" style="margin-top:0">
+            <% if (plans.includes('monthly')) { %>
+              <form method="post" action="/g/<%= guild.id %>/subscribe">
+                <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                <input type="hidden" name="plan" value="monthly">
+                <button class="primary" type="submit">
+                  <% if (trialOffer.eligible) { %>
+                    Start <%= trialOffer.days %> days free
+                  <% } else { %>
+                    <%= price.symbol %><%= price.amount %> a month
+                  <% } %>
+                </button>
+              </form>
+            <% } %>
+            <% if (plans.includes('yearly')) { %>
+              <form method="post" action="/g/<%= guild.id %>/subscribe">
+                <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                <input type="hidden" name="plan" value="yearly">
+                <button type="submit"><%= price.symbol %><%= prices.yearly %> a year</button>
+              </form>
+            <% } %>
+            <% if (plans.includes('lifetime')) { %>
+              <form method="post" action="/g/<%= guild.id %>/subscribe">
+                <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                <input type="hidden" name="plan" value="lifetime">
+                <button type="submit"><%= price.symbol %><%= prices.lifetime %> once</button>
+              </form>
+            <% } %>
+          </div>
+          <p class="hint">
             <% if (trialOffer.eligible) { %>
-              Then <%= price.symbol %><%= price.amount %> a month. Cancel before day
+              The monthly plan starts with <%= trialOffer.days %> days free. Cancel before day
               <%= trialOffer.days %> and you are not charged.
             <% } else if (trialOffer.reason === 'already_used') { %>
               This server has already used its free trial.
             <% } %>
+            <% if (plans.includes('yearly')) { %>
+              Yearly works out at two months free.
+            <% } %>
+            <% if (plans.includes('lifetime')) { %>
+              The one-off price covers this server for as long as BotApprove operates.
+            <% } %>
             Card handled by Stripe. Payment details never reach this server.
-          </span>
+          </p>
         <% } %>
       </div>
     <% } %>

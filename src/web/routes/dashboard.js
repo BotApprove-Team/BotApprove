@@ -56,6 +56,7 @@ import {
 } from '../../services/blogService.js';
 import {
   createCheckoutSession, createPortalSession, isEnabled as stripeEnabled, trialOffer,
+  availablePlans, PLANS,
 } from '../../services/stripeService.js';
 import {
   DOCUMENT as TERMS_DOCUMENT, VERSION as TERMS_VERSION,
@@ -154,6 +155,13 @@ router.get('/g/:guildId', requireGuildAccess('approve'), async (req, res) => {
     viaOperator: req.guildAccess.via === 'instance_owner',
     stripeReady: stripeEnabled(),
     trialOffer: trialOffer(guildId),
+    plans: availablePlans(),
+    prices: {
+      monthly: config.paywall.priceAmount,
+      yearly: config.stripe.priceAmountYearly,
+      lifetime: config.stripe.priceAmountLifetime,
+    },
+    perpetual: !!entitlements.get(guildId)?.perpetual,
     pendingLicence: req.session.pendingLicence?.guildId === guildId
       ? req.session.pendingLicence : null,
     terms: { title: TERMS_TITLE, intro: TERMS_INTRO, sections: TERMS_SECTIONS, version: TERMS_VERSION },
@@ -428,10 +436,17 @@ router.post('/g/:guildId/subscribe', requireGuildAccess('configure'), async (req
     return res.redirect(`/g/${guild.id}`);
   }
 
+  const plan = String(req.body.plan ?? 'monthly');
+  if (!Object.prototype.hasOwnProperty.call(PLANS, plan)) {
+    flash(req, 'error', 'Unknown plan.');
+    return res.redirect(`/g/${guild.id}`);
+  }
+
   const result = await createCheckoutSession({
     guildId: guild.id,
     guildName: guild.name,
     userId: req.session.user.id,
+    plan,
   });
 
   if (!result.ok) {

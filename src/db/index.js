@@ -391,6 +391,31 @@ const MIGRATIONS = [
       CREATE INDEX idx_terms_acceptances_guild ON terms_acceptances (guild_id, accepted_at DESC);
     `,
   },
+  {
+    id: 12,
+    name: 'perpetual_entitlement',
+    sql: `
+      ALTER TABLE entitlements ADD COLUMN perpetual INTEGER NOT NULL DEFAULT 0;
+    `,
+  },
+  {
+    id: 13,
+    name: 'backfill_perpetual',
+    sql: `
+      -- Servers that redeemed a perpetual key before the flag existed. A
+      -- licence key with no expiry is unambiguously permanent, so it can be
+      -- inferred safely.
+      --
+      -- Stripe rows deliberately are not touched: a trialling subscription also
+      -- has no expiry, and flagging one perpetual would make it impossible to
+      -- ever lapse. Stripe lifetime purchases set the flag explicitly instead.
+      UPDATE entitlements
+         SET perpetual = 1
+       WHERE perpetual = 0
+         AND expires_at IS NULL
+         AND source = 'license_key';
+    `,
+  },
 ];
 
 function migrate() {
