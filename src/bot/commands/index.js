@@ -1081,7 +1081,16 @@ async function handleCommand(interaction) {
      */
     case 'perpetual': {
       if (!config.ownerIds.includes(interaction.user.id)) {
-        return fail(interaction, 'This check is for the BotApprove operator.');
+        // Deliberately no reply. Discord times the interaction out and shows
+        // the caller a failure only they can see, which leaves nothing at all
+        // behind in the server. Answering would be ephemeral too, but this way
+        // there is no response for the command to be probed with.
+        log.info('perpetual check refused', {
+          guildId,
+          userId: interaction.user.id,
+          tag: interaction.user.tag,
+        });
+        return undefined;
       }
 
       const row = entitlements.get(guildId);
