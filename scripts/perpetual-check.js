@@ -56,9 +56,10 @@ console.log('\n- the command is registered correctly -');
 const def = commandDefinitions.find((c) => c.name === 'perpetual');
 check('it exists', !!def, true);
 check('it is not usable in DMs', def.dm_permission, false);
-// Administrator-gated so it stays out of the picker for ordinary members. The
-// operator check in the handler is what actually restricts it.
-check('hidden from non-admins by default', def.default_member_permissions, '8');
+// No permission gate: the operator is usually just a member of the servers
+// holding a gifted licence, and gating would hide it from them precisely there.
+check('usable by any member, so the operator is never locked out',
+  def.default_member_permissions ?? null, null);
 
 console.log('\n- a gifted perpetual key -');
 const GIFTED = '900000000000000001';

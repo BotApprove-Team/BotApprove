@@ -163,10 +163,14 @@ export const commandDefinitions = [
     .setDescription('What is active in this server, free and premium')
     .setDMPermission(false),
 
+  // Deliberately no default member permissions. The operator is often only an
+  // ordinary member of the servers holding a gifted licence, and a permission
+  // gate would hide the command from them in exactly those servers. Access is
+  // enforced in the handler against OWNER_IDS instead, which is the only check
+  // that could restrict it to one person anyway.
   new SlashCommandBuilder()
     .setName('perpetual')
-    .setDescription('Operator check: confirm this instance is alive and report the licence here')
-    .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
+    .setDescription('BotApprove operator only: confirm this instance is live in this server')
     .setDMPermission(false),
 
   new SlashCommandBuilder()
