@@ -249,6 +249,40 @@ export function isApprover(member) {
   return roleIds.some((id) => member.roles.cache.has(id));
 }
 
+/**
+ * Tell the server that someone from outside it just looked.
+ *
+ * Deliberately not routed through record()'s mirror, which is gated behind the
+ * premium log channel. Whether a server hears about the operator inspecting it
+ * should not depend on whether they are paying.
+ */
+async function announceOperatorCheck(guild, user, { what }) {
+  const cfg = guildConfig.get(guild.id);
+  const channelId = cfg.log_channel_id ?? cfg.notify_channel_id;
+  if (!channelId) return { delivered: false, reason: 'no_channel' };
+
+  const channel = await guild.channels.fetch(channelId).catch(() => null);
+  if (!channel?.isTextBased?.()) return { delivered: false, reason: 'unreachable' };
+
+  const embed = new EmbedBuilder()
+    .setColor(0x5865f2)
+    .setTitle('Operator check')
+    .setDescription(
+      `The operator of BotApprove ran a check on this server: **${what}**, confirming the bot ` +
+      'is present here and reporting this server\'s licence state.\n\n' +
+      'Nothing was changed. No messages, members or channels were read: BotApprove does not ' +
+      'hold the Message Content intent. This notice is posted every time it happens.',
+    )
+    .addFields(
+      { name: 'Ran by', value: `<@${user.id}>`, inline: true },
+      { name: 'When', value: `<t:${Math.floor(Date.now() / 1000)}:f>`, inline: true },
+    )
+    .setTimestamp(new Date());
+
+  const sent = await channel.send({ embeds: [embed] }).then(() => true).catch(() => false);
+  return { delivered: sent, channelId };
+}
+
 const fail = (interaction, msg) =>
   interaction.reply({ content: `❌ ${msg}`, ...ephemeral });
 const done = (interaction, msg) =>
@@ -1057,6 +1091,26 @@ async function handleCommand(interaction) {
           ? 'I am on a purchased lifetime licence.'
           : `I am not on a perpetual licence here. This server is ${ent.tier} / ${ent.state}.`;
 
+      const notice = await announceOperatorCheck(interaction.guild, interaction.user, {
+        what: 'Entitlement check',
+      }).catch(() => ({ delivered: false, reason: 'error' }));
+
+      await record({
+        guildId,
+        actorId: interaction.user.id,
+        action: 'operator_check',
+        severity: 'info',
+        detail: {
+          kind: 'perpetual',
+          perpetual,
+          gifted,
+          announced: notice.delivered,
+          announce_reason: notice.reason,
+        },
+        // Announced directly above, ungated, so mirroring here would duplicate it.
+        mirror: false,
+      }).catch(() => {});
+
       const client = interaction.client;
       const uptime = Math.floor(client.uptime / 1000);
       const hours = Math.floor(uptime / 3600);
@@ -1085,6 +1139,14 @@ async function handleCommand(interaction) {
               value: `up ${hours}h ${minutes}m\n${client.guilds.cache.size} servers\n` +
                 `${client.ws.ping}ms to Discord`,
               inline: true,
+            },
+            {
+              name: 'Disclosed to this server',
+              value: notice.delivered
+                ? `Posted in <#${notice.channelId}>.`
+                : (notice.reason === 'no_channel'
+                  ? 'No log or approval channel is set here, so there was nowhere to post it.'
+                  : 'Could not post the notice; the channel is unreachable.'),
             },
           )
           .setFooter({ text: 'Operator check' })

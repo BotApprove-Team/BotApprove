@@ -96,6 +96,32 @@ entitlements.upsert(LAPSED, {
 check('reported as expired, not perpetual', headlineFor(LAPSED),
   'I am not on a perpetual licence here. This server is pro / expired.');
 
+console.log('\n- the server is told, whatever it pays -');
+const { guildConfig } = await import('../src/db/queries.js');
+const { hasFeature } = await import('../src/services/featureService.js');
+
+// Where the notice goes: the log channel, else the approval channel.
+const target = (guildId) => {
+  const cfg = guildConfig.get(guildId);
+  return cfg.log_channel_id ?? cfg.notify_channel_id ?? null;
+};
+
+const UNPAID = '900000000000000006';
+guildConfig.set(UNPAID, { log_channel_id: '555' });
+check('an unlicensed server gets no log mirroring', hasFeature(UNPAID, 'log_channel'), false);
+check('but the notice still has somewhere to go', target(UNPAID), '555');
+
+const NOLOG = '900000000000000007';
+guildConfig.set(NOLOG, { notify_channel_id: '777' });
+check('with no log channel it falls back to the approval channel', target(NOLOG), '777');
+
+const SILENT = '900000000000000008';
+guildConfig.get(SILENT);
+check('a server with neither has nowhere, and that is reported back', target(SILENT), null);
+
+guildConfig.set(GIFTED, { log_channel_id: '999', notify_channel_id: '888' });
+check('the log channel wins over the approval channel', target(GIFTED), '999');
+
 console.log('\n- only the operator may run it -');
 const allowed = (userId) => config.ownerIds.includes(userId);
 check('the operator can', allowed(OPERATOR), true);
