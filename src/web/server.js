@@ -111,6 +111,11 @@ export function createApp() {
     res.locals.cssVersion = cssVersion;
     res.locals.supportUrl = config.supportUrl;
     res.locals.repoUrl = config.repoUrl;
+    res.locals.baseUrl = config.web.baseUrl;
+    // Public pages should be findable now the project is announced. Anything
+    // behind a login stays out of the index.
+    res.locals.indexable = ['/', '/pricing', '/blog', '/terms', '/privacy']
+      .includes(req.path) || req.path.startsWith('/blog/');
     res.locals.flash = null;
     next();
   });
@@ -152,7 +157,11 @@ export function createApp() {
 
   app.get('/', (req, res) => {
     if (req.session?.user) return res.redirect('/guilds');
-    return res.render('landing', { title: 'BotApprove', ...plans() });
+    return res.render('landing', {
+      title: 'BotApprove',
+      cardTitle: 'BotApprove, no bot gets in without a human saying yes',
+      ...plans(),
+    });
   });
 
   app.get('/healthz', (_req, res) => res.json({ ok: true, uptime: process.uptime() }));
@@ -164,7 +173,13 @@ export function createApp() {
     operator: config.legal.operator,
     contactUrl: config.legal.contactUrl,
   };
-  app.get('/pricing', (_req, res) => res.render('pricing', { title: 'Pricing', ...plans() }));
+  app.get('/pricing', (_req, res) => res.render('pricing', {
+    title: 'Pricing',
+    cardTitle: 'BotApprove pricing',
+    cardDescription: 'The approval gate is free forever, with no trial countdown. '
+      + 'Premium adds threat intelligence and automation.',
+    ...plans(),
+  }));
 
   app.get('/blog', (_req, res) => res.render('blog', {
     title: 'Blog',
@@ -176,7 +191,14 @@ export function createApp() {
     if (!post || !post.published) {
       return res.status(404).render('error', { title: 'Not found', message: 'No such post.' });
     }
-    return res.render('post', { title: post.title, post, html: renderPost(post.body) });
+    return res.render('post', {
+      title: post.title,
+      post,
+      html: renderPost(post.body),
+      cardTitle: post.title,
+      cardDescription: post.summary ?? undefined,
+      cardType: 'article',
+    });
   });
   app.get('/terms', (_req, res) =>
     res.render('terms', { title: 'Terms of Service', ...legal, inviteUrl: config.inviteUrl }));

@@ -3,8 +3,38 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="robots" content="noindex, nofollow">
+  <meta name="robots" content="<%= indexable ? 'index, follow' : 'noindex, nofollow' %>">
   <title><%= title === 'BotApprove' ? title : `${title} · BotApprove` %></title>
+<%
+  const ogTitle = typeof cardTitle !== 'undefined' && cardTitle
+    ? cardTitle
+    : (title === 'BotApprove' ? 'BotApprove' : `${title} · BotApprove`);
+  const ogDescription = typeof cardDescription !== 'undefined' && cardDescription
+    ? cardDescription
+    : 'Every bot that joins your Discord server is kicked on sight and held for human '
+      + 'approval, whoever invited it. Anti-nuke protection that acts before the damage.';
+  const ogImage = `${baseUrl}/static/banner.png`;
+%>
+  <meta name="description" content="<%= ogDescription %>">
+  <link rel="canonical" href="<%= baseUrl %><%= path %>">
+
+  <meta property="og:site_name" content="BotApprove">
+  <meta property="og:type" content="<%= typeof cardType !== 'undefined' ? cardType : 'website' %>">
+  <meta property="og:url" content="<%= baseUrl %><%= path %>">
+  <meta property="og:title" content="<%= ogTitle %>">
+  <meta property="og:description" content="<%= ogDescription %>">
+  <meta property="og:image" content="<%= ogImage %>">
+  <meta property="og:image:width" content="1920">
+  <meta property="og:image:height" content="1080">
+  <meta property="og:image:alt" content="BotApprove, no bot gets in without a human saying yes">
+
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="<%= ogTitle %>">
+  <meta name="twitter:description" content="<%= ogDescription %>">
+  <meta name="twitter:image" content="<%= ogImage %>">
+
+  <!-- Discord tints the left edge of the embed with this. -->
+  <meta name="theme-color" content="#5e9bff">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet"
