@@ -110,6 +110,7 @@ export function createApp() {
     res.locals.path = req.path;
     res.locals.cssVersion = cssVersion;
     res.locals.supportUrl = config.supportUrl;
+    res.locals.repoUrl = config.repoUrl;
     res.locals.flash = null;
     next();
   });

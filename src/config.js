@@ -60,6 +60,7 @@ export const config = {
   reinviteTokenTtlMs: int(process.env.REINVITE_TOKEN_TTL_MINUTES, 12) * 60_000,
 
   supportUrl: process.env.SUPPORT_URL || 'https://discord.gg/p884kxJFkZ',
+  repoUrl: process.env.REPO_URL || 'https://github.com/BotApprove-Team/BotApprove',
 
   inviteUrl: `https://discord.com/oauth2/authorize?client_id=${process.env.DISCORD_CLIENT_ID ?? ''}` +
     '&permissions=67226758&scope=bot%20applications.commands',

@@ -789,3 +789,7 @@ footer.site .right {
   min-width: 62px;
 }
 .price-options .per { color: var(--text-dim); font-size: 12.5px; }
+
+.with-icon { display: inline-flex; align-items: center; gap: 6px; }
+.with-icon svg { flex: none; opacity: .85; }
+.with-icon:hover svg { opacity: 1; }
