@@ -1,0 +1,42 @@
+name: Feature request
+description: Suggest something BotApprove should do.
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What are you trying to do
+      description: >
+        The situation, not the solution. What happens in your server today that
+        you want to stop happening.
+    validations:
+      required: true
+
+  - type: textarea
+    id: idea
+    attributes:
+      label: What you have in mind
+    validations:
+      required: true
+
+  - type: dropdown
+    id: tier
+    attributes:
+      label: Where does this belong
+      description: >
+        The core gate is free forever and stays that way. Extras can sit behind
+        premium.
+      options:
+        - Part of the free core gate
+        - A premium feature
+        - Not sure
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before filing
+      options:
+        - label: This does not weaken deny-by-default, and does not let a bot in without a human
+          required: true

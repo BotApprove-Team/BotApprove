@@ -34,6 +34,36 @@ git rebase --signoff main
 A pull request with unsigned commits fails its check. Nothing else about the
 contribution is affected, and there is no separate agreement to sign.
 
+## AI-assisted contributions
+
+Using an AI to write code here is allowed. Four conditions come with it, and
+they are not negotiable.
+
+**It has to actually run.** Every suite in `scripts/` passes, and you have
+exercised the change against a real Discord server or covered it with a check.
+A patch that looks right is not a patch that works, and this is a security tool:
+a plausible-looking change that quietly weakens the gate is worse than no change
+at all.
+
+**Say that it was AI-assisted.** Put it in the pull request description. Not as
+a confession, as a review instruction: it tells a reviewer to read for confident
+nonsense rather than for typos, which is a different kind of reading.
+
+**You have to understand it.** If you cannot explain what a line does, why it is
+there, and what breaks without it, the change is not ready. Expect questions in
+review and expect to answer them yourself. You are the author; the model was a
+tool you used.
+
+**Maintainers may change or revert it.** If a merged AI-assisted change turns
+out to introduce a security flaw, it gets fixed or removed immediately, without
+waiting for you. That is true of any contribution here, and it is stated plainly
+because generated code fails in a particular way: confidently, and in the
+security-relevant details.
+
+Read the invariants below before you prompt anything. They are the parts a model
+is most likely to "tidy up", and every one of them exists because removing it
+gets a server wiped.
+
 ## Before you open a pull request
 
 Run the suites. None of them need a Discord connection, and each one uses a

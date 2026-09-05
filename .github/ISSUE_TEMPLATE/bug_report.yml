@@ -1,0 +1,58 @@
+name: Bug report
+description: Something behaves differently from how it is documented.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **Found a security flaw? Do not file it here.** Anything that gets a bot
+        past the gate, or a person past a permission check, goes to
+        miku@mikuuu.xyz instead. See [SECURITY.md](../blob/main/SECURITY.md).
+
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you expected, and what happened instead.
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Invite a bot named ...
+        2. Approve it from the dashboard
+        3. The bot rejoins and ...
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Version or commit
+      description: The commit you are running, or "hosted" for botapprove.mikuuu.xyz.
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant log lines
+      description: >
+        From the security log or the process output. Remove your bot token and
+        any Stripe keys before pasting.
+      render: text
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before filing
+      options:
+        - label: This is not a security vulnerability
+          required: true
+        - label: BotApprove's role sits above the bots it is meant to gate
+          required: true
+        - label: I ran `/selfcheck` and it did not already explain this
+          required: true
