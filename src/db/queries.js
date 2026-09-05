@@ -453,4 +453,21 @@ export const licenseKeys = {
     q('SELECT * FROM license_redemptions WHERE key_hash = ? ORDER BY redeemed_at DESC').all(keyHash),
 };
 
+export const termsAcceptances = {
+  record: ({ guildId, userId, document, version, keyHash = null }) =>
+    q(`INSERT INTO terms_acceptances
+         (guild_id, user_id, document, version, key_hash, accepted_at)
+       VALUES (?, ?, ?, ?, ?, ?)`)
+      .run(guildId, userId, document, version, keyHash, Date.now()),
+  latestFor: (guildId, document) =>
+    q(`SELECT * FROM terms_acceptances
+       WHERE guild_id = ? AND document = ?
+       ORDER BY accepted_at DESC LIMIT 1`).get(guildId, document),
+  forGuild: (guildId, limit = 20) =>
+    q('SELECT * FROM terms_acceptances WHERE guild_id = ? ORDER BY accepted_at DESC LIMIT ?')
+      .all(guildId, limit),
+  recent: (limit = 50) =>
+    q('SELECT * FROM terms_acceptances ORDER BY accepted_at DESC LIMIT ?').all(limit),
+};
+
 export { db };

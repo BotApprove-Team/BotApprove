@@ -157,14 +157,70 @@
         <% } %>
       </div>
     <% } %>
-    <form method="post" action="/g/<%= guild.id %>/license" class="inline-form">
-      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-      <div class="field" style="flex:2 1 260px">
-        <label for="key">Or redeem a licence key</label>
-        <input class="mono" type="text" id="key" name="key" placeholder="BA-XXXXX-XXXXX-XXXXX-XXXXX" required>
+    <% if (pendingLicence) { %>
+      <div class="notice info">
+        <strong>One thing before this key activates</strong>
+        <p>
+          This is a complimentary perpetual key. Accepting the terms below redeems it and turns
+          premium on for this server.
+        </p>
       </div>
-      <button type="submit">Activate</button>
-    </form>
+
+      <article class="prose" style="margin-bottom:18px">
+        <h3 style="margin-top:0"><%= terms.title %></h3>
+        <p><%= terms.intro %></p>
+        <% terms.sections.forEach((s) => { %>
+          <h3><%= s.heading %></h3>
+          <p><%= s.body %></p>
+          <% if (s.list) { %>
+            <ul><% s.list.forEach((item) => { %><li><%= item %></li><% }) %></ul>
+          <% } %>
+          <% if (s.after) { %><p><%= s.after %></p><% } %>
+        <% }) %>
+        <p class="hint">
+          Version <%= terms.version %>. Read the full
+          <a href="/terms">Terms of Service</a> too.
+        </p>
+      </article>
+
+      <form method="post" action="/g/<%= guild.id %>/license">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <input type="hidden" name="action" value="accept">
+        <div class="check">
+          <input type="checkbox" id="accept" name="accept" value="1" required>
+          <div>
+            <label for="accept">
+              I have read and accept these terms, and I understand this licence can be revoked.
+            </label>
+          </div>
+        </div>
+        <div class="actions">
+          <button class="primary" type="submit">Accept and activate</button>
+          <button type="submit" form="decline-licence">Cancel</button>
+        </div>
+      </form>
+      <form method="post" action="/g/<%= guild.id %>/license" id="decline-licence" hidden>
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <input type="hidden" name="action" value="cancel">
+      </form>
+    <% } else { %>
+      <form method="post" action="/g/<%= guild.id %>/license" class="inline-form">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <div class="field" style="flex:2 1 260px">
+          <label for="key">Or redeem a licence key</label>
+          <input class="mono" type="text" id="key" name="key" placeholder="BA-XXXXX-XXXXX-XXXXX-XXXXX" required>
+        </div>
+        <button type="submit">Activate</button>
+      </form>
+      <% if (termsAccepted) { %>
+        <p class="hint">
+          Complimentary licence terms accepted
+          <%= new Date(termsAccepted.accepted_at).toISOString().slice(0, 10) %>
+          by <span class="mono"><%= termsAccepted.user_id %></span>
+          (version <%= termsAccepted.version %>).
+        </p>
+      <% } %>
+    <% } %>
   <% } %>
 </section>
 <% } %>

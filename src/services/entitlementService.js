@@ -33,6 +33,20 @@ export function generateLicenseKey({ tier = 'pro', durationDays = null, maxGuild
   return key;
 }
 
+export function inspectLicenseKey(rawKey) {
+  const keyHash = hashKey(rawKey);
+  const key = licenseKeys.byHash(keyHash);
+  if (!key) return { ok: false, reason: 'unknown_key' };
+  if (key.revoked) return { ok: false, reason: 'revoked' };
+  return {
+    ok: true,
+    keyHash,
+    tier: key.tier,
+    perpetual: key.duration_days === null,
+    durationDays: key.duration_days,
+  };
+}
+
 export async function redeemLicenseKey(guildId, rawKey, actorId) {
   const keyHash = hashKey(rawKey);
   const result = licenseKeys.redeem(keyHash, guildId, actorId);

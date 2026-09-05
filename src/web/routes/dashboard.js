@@ -16,6 +16,7 @@ import {
   nukeDbRequests,
   announcements,
   blog,
+  termsAcceptances,
 } from '../../db/queries.js';
 import {
   confirmNukeBot,
@@ -37,6 +38,7 @@ import { setNickname } from '../../services/nicknameService.js';
 import {
   resolveEntitlement,
   redeemLicenseKey,
+  inspectLicenseKey,
   generateLicenseKey,
   grantEntitlement,
   revokeEntitlement,
@@ -55,6 +57,10 @@ import {
 import {
   createCheckoutSession, createPortalSession, isEnabled as stripeEnabled, trialOffer,
 } from '../../services/stripeService.js';
+import {
+  DOCUMENT as TERMS_DOCUMENT, VERSION as TERMS_VERSION,
+  TITLE as TERMS_TITLE, INTRO as TERMS_INTRO, SECTIONS as TERMS_SECTIONS,
+} from '../../services/promoTerms.js';
 import { getClient } from '../../bot/clientRef.js';
 import { config } from '../../config.js';
 import { createLogger } from '../../logger.js';
@@ -148,6 +154,10 @@ router.get('/g/:guildId', requireGuildAccess('approve'), async (req, res) => {
     viaOperator: req.guildAccess.via === 'instance_owner',
     stripeReady: stripeEnabled(),
     trialOffer: trialOffer(guildId),
+    pendingLicence: req.session.pendingLicence?.guildId === guildId
+      ? req.session.pendingLicence : null,
+    terms: { title: TERMS_TITLE, intro: TERMS_INTRO, sections: TERMS_SECTIONS, version: TERMS_VERSION },
+    termsAccepted: termsAcceptances.latestFor(guildId, TERMS_DOCUMENT),
     hasStripeCustomer: !!entitlements.get(guildId)?.external_id?.startsWith('cus_'),
     price: { amount: config.paywall.priceAmount, symbol: config.paywall.priceSymbol },
     portalUrl: config.stripe.portalUrl,
@@ -443,16 +453,82 @@ router.post('/g/:guildId/billing', requireGuildAccess('configure'), async (req, 
   return res.redirect(303, result.url);
 });
 
-router.post('/g/:guildId/license', requireGuildAccess('configure'), async (req, res) => {
-  const guildId = req.params.guildId;
-  const key = String(req.body.key ?? '').trim();
-  const result = await redeemLicenseKey(guildId, key, req.session.user.id);
+const KEY_REJECTED = {
+  unknown_key: 'That key does not exist.',
+  revoked: 'That key has been revoked.',
+  seats_exhausted: 'That key has already been used on as many servers as it allows.',
+};
 
+async function activateKey(req, res, guildId, key, keyHash) {
+  const result = await redeemLicenseKey(guildId, key, req.session.user.id);
   flash(req, result.ok ? 'ok' : 'error', result.ok
     ? `Licence active: ${result.tier}${result.expiresAt ? ` until ${new Date(result.expiresAt).toDateString()}` : ' (perpetual)'}.`
-    : `Key rejected: ${result.reason}.`);
+    : (KEY_REJECTED[result.reason] ?? `Key rejected: ${result.reason}.`));
+  return result;
+}
 
-  res.redirect(`/g/${guildId}`);
+router.post('/g/:guildId/license', requireGuildAccess('configure'), async (req, res) => {
+  const guildId = req.params.guildId;
+  const done = () => res.redirect(`/g/${guildId}`);
+
+  if (req.body.action === 'cancel') {
+    delete req.session.pendingLicence;
+    flash(req, 'ok', 'Cancelled. The key was not redeemed.');
+    return done();
+  }
+
+  if (req.body.action === 'accept') {
+    const pending = req.session.pendingLicence;
+    if (!pending || pending.guildId !== guildId) {
+      flash(req, 'error', 'That key is no longer waiting. Paste it again.');
+      return done();
+    }
+    if (!req.body.accept) {
+      flash(req, 'error', 'The terms have to be accepted before the key can be redeemed.');
+      return done();
+    }
+
+    // Cleared before redeeming, so a refreshed confirmation cannot run twice.
+    delete req.session.pendingLicence;
+
+    const result = await activateKey(req, res, guildId, pending.key, pending.keyHash);
+    if (result.ok) {
+      termsAcceptances.record({
+        guildId,
+        userId: req.session.user.id,
+        document: TERMS_DOCUMENT,
+        version: TERMS_VERSION,
+        keyHash: pending.keyHash,
+      });
+      await record({
+        guildId,
+        actorId: req.session.user.id,
+        action: 'terms_accepted',
+        severity: 'info',
+        detail: { document: TERMS_DOCUMENT, version: TERMS_VERSION },
+        mirror: false,
+      }).catch(() => {});
+    }
+    return done();
+  }
+
+  const key = String(req.body.key ?? '').trim();
+  const found = inspectLicenseKey(key);
+  if (!found.ok) {
+    flash(req, 'error', KEY_REJECTED[found.reason] ?? `Key rejected: ${found.reason}.`);
+    return done();
+  }
+
+  // Perpetual keys are only ever handed out free, so they are the ones carrying
+  // the complimentary terms. A key with a duration was sold, and a future
+  // keyless perpetual bought through Stripe never reaches this route at all.
+  if (found.perpetual) {
+    req.session.pendingLicence = { guildId, key, keyHash: found.keyHash, tier: found.tier };
+    return done();
+  }
+
+  await activateKey(req, res, guildId, key, found.keyHash);
+  return done();
 });
 
 function requireOwner(req, res, next) {

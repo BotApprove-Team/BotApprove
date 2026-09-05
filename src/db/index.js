@@ -375,6 +375,22 @@ const MIGRATIONS = [
       ALTER TABLE entitlements ADD COLUMN stripe_trial_used_at INTEGER;
     `,
   },
+  {
+    id: 11,
+    name: 'terms_acceptance',
+    sql: `
+      CREATE TABLE terms_acceptances (
+        id           INTEGER PRIMARY KEY AUTOINCREMENT,
+        guild_id     TEXT    NOT NULL,
+        user_id      TEXT    NOT NULL,
+        document     TEXT    NOT NULL,
+        version      TEXT    NOT NULL,
+        key_hash     TEXT,
+        accepted_at  INTEGER NOT NULL
+      );
+      CREATE INDEX idx_terms_acceptances_guild ON terms_acceptances (guild_id, accepted_at DESC);
+    `,
+  },
 ];
 
 function migrate() {
