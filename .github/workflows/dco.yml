@@ -1,0 +1,49 @@
+name: DCO
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+
+jobs:
+  signed-off:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Every commit is signed off
+        env:
+          BASE: ${{ github.event.pull_request.base.sha }}
+          HEAD: ${{ github.event.pull_request.head.sha }}
+        run: |
+          failed=0
+          commits=$(git rev-list --no-merges "$BASE".."$HEAD")
+
+          if [ -z "$commits" ]; then
+            echo "No commits to check."
+            exit 0
+          fi
+
+          for sha in $commits; do
+            author=$(git show -s --format='%an <%ae>' "$sha")
+            subject=$(git show -s --format='%h %s' "$sha")
+
+            if git show -s --format='%B' "$sha" | grep -qiF "Signed-off-by: $author"; then
+              echo "ok    $subject"
+            else
+              echo "FAIL  $subject"
+              echo "      missing: Signed-off-by: $author"
+              failed=1
+            fi
+          done
+
+          if [ "$failed" -ne 0 ]; then
+            echo ""
+            echo "Sign your commits with 'git commit -s', or fix the last one with"
+            echo "'git commit --amend -s --no-edit'. See CONTRIBUTING.md."
+            exit 1
+          fi
