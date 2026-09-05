@@ -17,7 +17,10 @@
         <h3>Free</h3>
         <div class="price"><span class="amount"><%= price.symbol %>0</span></div>
       </div>
-      <p class="plan-note">No card, no trial, no expiry. This is the whole approval gate.</p>
+      <p class="plan-note">
+        No card, no trial, no expiry. This is the whole approval gate, and it is
+        <a href="<%= repoUrl %>" rel="noopener noreferrer" target="_blank">open source</a>.
+      </p>
       <ul class="plan-list">
         <% freeFeatures.forEach((f) => { %><li><%= f.name %></li><% }) %>
       </ul>

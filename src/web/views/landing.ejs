@@ -12,7 +12,7 @@
     <a class="btn" href="/login">Sign in to the dashboard</a>
   </div>
   <p class="hint">
-    Free to add, with no trial countdown. Signing in asks for your identity and server list,
+    Free to add, open source, with no trial countdown. Signing in asks for your identity and server list,
     nothing else.
   </p>
 </div>
@@ -96,6 +96,68 @@
       </div>
     </div>
   </dl>
+</section>
+
+<section class="block">
+  <div class="block-head"><h2>Open source</h2></div>
+  <p class="lede">
+    BotApprove asks for permission to kick and ban people in your server. You should not have to
+    take anyone's word for what it does with that. Everything above is on GitHub under AGPL-3.0:
+    the join pipeline, the permission checks, the database schema, and the tests holding them in
+    place.
+  </p>
+  <dl class="modes">
+    <div class="mode safe">
+      <span class="dot"></span>
+      <div>
+        <dt>Read the part that decides</dt>
+        <dd>
+          <code>src/services/botJoinPipeline.js</code> is the whole gate, in the order it runs.
+          Every claim on this page is a few hundred lines you can check.
+        </dd>
+      </div>
+    </div>
+    <div class="mode safe">
+      <span class="dot"></span>
+      <div>
+        <dt>Run it yourself</dt>
+        <dd>
+          Node and a SQLite file, no external services. If you would rather not trust a hosted
+          bot with your server, host your own.
+        </dd>
+      </div>
+    </div>
+    <div class="mode safe">
+      <span class="dot"></span>
+      <div>
+        <dt>Changes have to be published</dt>
+        <dd>
+          AGPL means anyone running a modified BotApprove as a service has to publish what they
+          changed. A quietly weakened fork cannot stay quiet.
+        </dd>
+      </div>
+    </div>
+    <div class="mode safe">
+      <span class="dot"></span>
+      <div>
+        <dt>Report a flaw privately</dt>
+        <dd>
+          Security reports go to the operator directly, not into a public issue where they would
+          be a working exploit against every server until a fix ships.
+        </dd>
+      </div>
+    </div>
+  </dl>
+  <% if (repoUrl) { %>
+    <div class="actions">
+      <a class="btn with-icon" href="<%= repoUrl %>" rel="noopener noreferrer" target="_blank">
+        <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true" fill="currentColor">
+          <path d="M6.766 11.328c-2.063-.25-3.516-1.734-3.516-3.656 0-.781.281-1.625.75-2.188-.203-.515-.172-1.609.063-2.062.625-.078 1.468.25 1.968.703.594-.187 1.219-.281 1.985-.281.765 0 1.39.094 1.953.265.484-.437 1.344-.765 1.969-.687.218.422.25 1.515.046 2.047.5.593.766 1.39.766 2.203 0 1.922-1.453 3.375-3.547 3.64.531.344.89 1.094.89 1.954v1.625c0 .468.391.734.86.547C13.781 14.359 16 11.53 16 8.03 16 3.61 12.406 0 7.984 0 3.563 0 0 3.61 0 8.031a7.88 7.88 0 0 0 5.172 7.422c.422.156.828-.125.828-.547v-1.25c-.219.094-.5.156-.75.156-1.031 0-1.64-.562-2.078-1.609-.172-.422-.36-.672-.719-.719-.187-.015-.25-.093-.25-.187 0-.188.313-.328.625-.328.453 0 .844.281 1.25.86.313.452.64.655 1.031.655s.641-.14 1-.5c.266-.265.47-.5.657-.656"/>
+        </svg>
+        Read the source
+      </a>
+    </div>
+  <% } %>
 </section>
 
 <section class="block">
