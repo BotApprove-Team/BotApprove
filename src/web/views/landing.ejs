@@ -145,10 +145,15 @@
   </dl>
   <div class="actions">
     <a class="btn primary" href="<%= inviteUrl %>">Add to Discord</a>
+    <% if (supportUrl) { %>
+      <a class="btn" href="<%= supportUrl %>" rel="noopener noreferrer" target="_blank">Support server</a>
+    <% } %>
   </div>
   <p class="hint">
     After adding it, drag the BotApprove role above where new bots land, then run
-    <code>/config notify-channel</code> to pick where approvals appear.
+    <code>/config notify-channel</code> to pick where approvals appear.<% if (supportUrl) { %>
+    Stuck on any of that, or want a bot added to the shared threat list? Ask in the support
+    server.<% } %>
   </p>
 </section>
 

@@ -10,6 +10,9 @@
       </span>
     </div>
     <div class="links">
+      <% if (supportUrl) { %>
+        <a href="<%= supportUrl %>" rel="noopener noreferrer" target="_blank">Support</a>
+      <% } %>
       <a href="/blog">Blog</a>
       <a href="/pricing">Pricing</a>
       <a href="/terms">Terms</a>
