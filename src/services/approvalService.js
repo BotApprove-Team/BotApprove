@@ -122,7 +122,15 @@ export function buildApprovalMessage({
   }
 
   embed.addFields(
-    { name: 'Bot', value: `<@${botUser.id}>\n\`${botUser.id}\``, inline: true },
+    // The tag rather than a mention: by the time this card is posted the bot has
+    // already been kicked, so Discord cannot resolve <@id> and renders it as
+    // raw text. A mention to something no longer in the server is useless even
+    // when it does resolve.
+    {
+      name: 'Bot',
+      value: `**${botUser.tag ?? botUser.username ?? 'unknown'}**\n\`${botUser.id}\``,
+      inline: true,
+    },
     { name: 'Account created', value: fmtTimestamp(botUser.createdTimestamp), inline: true },
     {
       name: 'Discord verified',
