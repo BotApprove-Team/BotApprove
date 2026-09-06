@@ -1,5 +1,5 @@
-import { EmbedBuilder } from 'discord.js';
-import { instanceState, approverRoles, guildConfig } from '../db/queries.js';
+import { EmbedBuilder, PermissionsBitField } from 'discord.js';
+import { instanceState, guildConfig } from '../db/queries.js';
 import { config } from '../config.js';
 import { isEnabled as stripeEnabled, availablePlans } from './stripeService.js';
 import { record } from './securityService.js';
@@ -61,31 +61,37 @@ function buildEmbed() {
     .setTimestamp(new Date());
 }
 
-async function recipients(guild) {
-  const targets = new Map();
+/**
+ * Somewhere in the server the owner will see, preferring channels they chose.
+ *
+ * The announcement channel is opted into explicitly for exactly this sort of
+ * message, so it comes first; the others are at least channels the server
+ * nominated for BotApprove to post in.
+ */
+async function findChannel(guild) {
+  const cfg = guildConfig.get(guild.id);
+  const me = guild.members.me;
 
-  const owner = await guild.fetchOwner().catch(() => null);
-  if (owner) targets.set(owner.id, owner);
-
-  const roleIds = approverRoles.list(guild.id);
-  if (roleIds.length) {
-    const members = await guild.members.fetch().catch(() => null);
-    if (members) {
-      for (const [, m] of members) {
-        if (m.user.bot) continue;
-        if (m.roles.cache.some((r) => roleIds.includes(r.id))) targets.set(m.id, m);
-      }
+  for (const id of [cfg.announce_channel_id, cfg.notify_channel_id, cfg.log_channel_id]) {
+    if (!id) continue;
+    const channel = await guild.channels.fetch(id).catch(() => null);
+    if (!channel?.isTextBased?.()) continue;
+    const perms = channel.permissionsFor(me);
+    if (perms?.has(PermissionsBitField.Flags.SendMessages)
+      && perms?.has(PermissionsBitField.Flags.ViewChannel)) {
+      return channel;
     }
   }
-  return [...targets.values()];
+  return null;
 }
 
 /**
- * Announce once, to the people who actually run the servers BotApprove is in.
+ * Announce once, to the person who runs each server BotApprove is in.
  *
- * Deliberately not every member of every server: that is bulk unsolicited DM,
- * which is against Discord's developer policy and would put verification at
- * risk. Owners and approvers already have a relationship with the bot.
+ * A mention in a channel the server nominated, falling back to a DM only where
+ * there is no usable channel. Bulk unsolicited DM is against Discord's
+ * developer policy and is what gets a bot reported, so it is the exception here
+ * rather than the mechanism.
  */
 export async function announceIfOpened(client) {
   const state = transition();
@@ -97,42 +103,52 @@ export async function announceIfOpened(client) {
   }
 
   const embed = buildEmbed();
-  let delivered = 0;
+  let inChannel = 0;
+  let byDm = 0;
   let failed = 0;
   let guilds = 0;
 
   for (const [, guild] of client.guilds.cache) {
     guilds += 1;
-    const people = await recipients(guild).catch(() => []);
-    for (const member of people) {
-      const ok = await member.send({ embeds: [embed] }).then(() => true).catch(() => false);
-      if (ok) delivered += 1; else failed += 1;
-      await sleep(GAP_MS);
+
+    // Posting in a channel the server nominated is not an unsolicited message,
+    // and a mention reaches the owner just as surely as a DM would. DMs are the
+    // fallback rather than the default, because bulk DM is what gets a bot
+    // reported.
+    const channel = await findChannel(guild).catch(() => null);
+    const ownerId = guild.ownerId ?? (await guild.fetchOwner().catch(() => null))?.id;
+
+    if (channel) {
+      const ok = await channel.send({
+        content: ownerId ? `<@${ownerId}>` : undefined,
+        embeds: [embed],
+        allowedMentions: ownerId ? { users: [ownerId] } : { parse: [] },
+      }).then(() => true).catch(() => false);
+
+      if (ok) { inChannel += 1; await sleep(GAP_MS); continue; }
     }
 
-    // A fallback for servers whose owner has DMs closed, so the notice is not
-    // simply lost.
-    if (!people.length) {
-      const cfg = guildConfig.get(guild.id);
-      const channelId = cfg.notify_channel_id ?? cfg.log_channel_id;
-      const channel = channelId ? await guild.channels.fetch(channelId).catch(() => null) : null;
-      if (channel?.isTextBased?.()) {
-        await channel.send({ embeds: [embed] }).catch(() => {});
-      }
-    }
+    const owner = await guild.fetchOwner().catch(() => null);
+    if (!owner) { failed += 1; continue; }
+
+    const sent = await owner.send({ embeds: [embed] }).then(() => true).catch(() => false);
+    if (sent) byDm += 1; else failed += 1;
+    await sleep(GAP_MS);
   }
+
+  const delivered = inChannel + byDm;
 
   // Written after the run so a crash mid-announcement retries rather than
   // silently skipping everyone who had not been reached yet.
   instanceState.set(KEY, 'enabled');
 
-  log.info('billing opened announcement sent', { guilds, delivered, failed });
+  log.info('billing opened announcement sent', { guilds, inChannel, byDm, failed });
   await record({
     action: 'billing_opened_announced',
     severity: 'medium',
-    detail: { guilds, delivered, failed },
+    detail: { guilds, in_channel: inChannel, by_dm: byDm, failed },
     mirror: false,
   }).catch(() => {});
 
-  return { announced: true, guilds, delivered, failed };
+  return { announced: true, guilds, delivered, inChannel, byDm, failed };
 }
