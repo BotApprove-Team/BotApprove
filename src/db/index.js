@@ -416,6 +416,20 @@ const MIGRATIONS = [
          AND source = 'license_key';
     `,
   },
+  {
+    id: 14,
+    name: 'instance_state',
+    sql: `
+      -- Small key/value store for facts about this instance rather than any one
+      -- guild. First use: remembering whether card payment was switched on, so
+      -- the announcement about it opening is sent once and not on every boot.
+      CREATE TABLE instance_state (
+        key        TEXT PRIMARY KEY,
+        value      TEXT,
+        updated_at INTEGER NOT NULL
+      );
+    `,
+  },
 ];
 
 function migrate() {

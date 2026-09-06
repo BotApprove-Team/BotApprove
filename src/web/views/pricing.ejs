@@ -10,6 +10,23 @@
   </div>
 </div>
 
+<% if (!plans.length) { %>
+  <div class="notice warn">
+    <strong>Card payment is not open yet</strong>
+    <p>
+      Checkout is switched off while the payment account is being set up, so nothing on this page
+      can be bought right now. <strong>Everything free stays free and is working normally</strong>:
+      the approval gate, keyword blocking, the audit trail and tamper detection do not depend on
+      any of this.
+    </p>
+    <p>
+      When card payment opens, every server owner running BotApprove is told directly, once. You
+      do not need to check back or sign up for anything. Holding a licence key already? It works
+      now and will keep working.
+    </p>
+  </div>
+<% } %>
+
 <section class="block">
   <div class="plans">
     <div class="plan">

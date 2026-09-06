@@ -11,6 +11,7 @@ import { reinviteTokens, guildConfig, selfCheckState, botPermissions } from '../
 import { rememberGuild, rememberAll, onMemberRemoved, onGuildRemoved } from '../services/removalWatch.js';
 import { checkAll as checkDriftAll, checkBot as checkDriftBot } from '../services/driftWatch.js';
 import { sendSetupGuide } from '../services/welcome.js';
+import { announceIfOpened } from '../services/billingOpened.js';
 import { handleInteraction } from './commands/index.js';
 
 const log = createLogger('bot');
@@ -65,6 +66,11 @@ export function createClient() {
 
     await enforceEntitlements(c).catch((err) =>
       log.error('entitlement sweep failed', { err: err.message }));
+
+    // Only does anything the first time the instance boots with card payment
+    // switched on after having been without it.
+    await announceIfOpened(c).catch((err) =>
+      log.error('billing announcement failed', { err: err.message }));
 
     setInterval(() => {
       const purged = reinviteTokens.purgeExpired();

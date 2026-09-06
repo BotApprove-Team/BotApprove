@@ -483,4 +483,12 @@ export const termsAcceptances = {
     q('SELECT * FROM terms_acceptances ORDER BY accepted_at DESC LIMIT ?').all(limit),
 };
 
+export const instanceState = {
+  get: (key) => q('SELECT value FROM instance_state WHERE key = ?').get(key)?.value ?? null,
+  set: (key, value) =>
+    q(`INSERT INTO instance_state (key, value, updated_at) VALUES (?, ?, ?)
+       ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at`)
+      .run(key, value, Date.now()),
+};
+
 export { db };
