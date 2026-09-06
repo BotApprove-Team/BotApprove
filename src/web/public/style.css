@@ -309,6 +309,18 @@ body, header.top, .notice, .server, input, select, textarea, button, .btn, .tag,
   transition-timing-function: var(--ease);
 }
 
+/* A theme swap has to land in one frame. The list above covers some elements and
+   not others, so animating the change leaves the step markers and cards on the
+   new palette while the page behind them is still fading, which reads as a
+   flash. The toggle adds this class for the duration of the swap only, so hover
+   and focus transitions are unaffected. */
+html.theme-switching,
+html.theme-switching *,
+html.theme-switching *::before,
+html.theme-switching *::after {
+  transition: none !important;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;
@@ -541,6 +553,23 @@ code {
 .cta { display: flex; gap: 10px; flex-wrap: wrap; }
 .hero p { color: var(--text-dim); font-size: 16px; line-height: 1.55; max-width: 58ch; margin: 0 0 22px; }
 .hero p.hint { font-size: 12.5px; margin: 10px 0 0; }
+
+.hero .stat {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-dim);
+  font-size: 13px;
+  margin: 0 0 18px;
+}
+.hero .stat strong { color: var(--text); font-weight: 600; }
+.hero .stat .live {
+  width: 6px;
+  height: 6px;
+  flex: none;
+  border-radius: var(--pill);
+  background: var(--ok);
+}
 
 .steps { counter-reset: step; margin: 0; padding: 0; list-style: none; }
 .steps li {

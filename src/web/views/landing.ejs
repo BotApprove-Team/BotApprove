@@ -7,6 +7,13 @@
     matter who invited it. The owner gets no exception, because a compromised owner account is
     exactly how servers get wiped.
   </p>
+  <% if (typeof serverCount !== 'undefined' && serverCount) { %>
+    <p class="stat">
+      <span class="live" aria-hidden="true"></span>
+      Screening bots in <strong><%= serverCount.toLocaleString('en-US') %></strong>
+      server<%= serverCount === 1 ? '' : 's' %>
+    </p>
+  <% } %>
   <div class="cta">
     <a class="btn primary" href="<%= inviteUrl %>">Add to Discord</a>
     <a class="btn" href="/login">Sign in to the dashboard</a>

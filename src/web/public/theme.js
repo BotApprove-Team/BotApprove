@@ -25,6 +25,17 @@
   var saved = stored();
   if (saved) root.setAttribute('data-theme', saved);
 
+  // Repaint the whole page on one frame. Without suppressing transitions the
+  // elements named in the stylesheet's transition list fade to the new palette
+  // while everything else has already snapped to it, and the mismatch is
+  // visible for the length of the transition.
+  function apply(next) {
+    root.classList.add('theme-switching');
+    root.setAttribute('data-theme', next);
+    void root.offsetHeight;
+    root.classList.remove('theme-switching');
+  }
+
   function paintButton(btn) {
     var next = current() === 'dark' ? 'light' : 'dark';
     btn.setAttribute('aria-label', 'Switch to ' + next + ' theme');
@@ -39,7 +50,7 @@
 
     btn.addEventListener('click', function () {
       var next = current() === 'dark' ? 'light' : 'dark';
-      root.setAttribute('data-theme', next);
+      apply(next);
       try {
         localStorage.setItem(KEY, next);
       } catch (e) {

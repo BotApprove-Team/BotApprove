@@ -9,6 +9,7 @@ import { SqliteStore } from './sessionStore.js';
 import { router as authRouter, requireLogin, isInstanceOwner } from './auth.js';
 import { router as dashboardRouter } from './routes/dashboard.js';
 import { FEATURES } from '../services/featureService.js';
+import { getClient } from '../bot/clientRef.js';
 import { blog } from '../db/queries.js';
 import { render as renderPost } from '../services/blogService.js';
 import {
@@ -35,6 +36,11 @@ export function createApp() {
   const app = express();
 
   app.set('trust proxy', config.web.trustProxy);
+  // Express 4 parses query strings with qs by default, which carries open
+  // denial-of-service advisories and cannot be upgraded away without moving to
+  // Express 5. Nothing here reads a nested or array parameter, so the built-in
+  // querystring parser covers every use and takes qs out of the request path.
+  app.set('query parser', 'simple');
   app.set('view engine', 'ejs');
   app.set('views', path.join(config.root, 'src/web/views'));
   app.disable('x-powered-by');
@@ -155,11 +161,22 @@ export function createApp() {
     contactEmail: config.legal.contactEmail,
   });
 
+  // Null rather than zero when there is nothing worth showing, so the view has
+  // one thing to test. The gateway cache is authoritative for guild membership
+  // and costs nothing to read, so there is no need to cache it further.
+  const serverCount = () => {
+    const { show, min } = config.web.serverCount;
+    if (!show) return null;
+    const size = getClient()?.guilds?.cache?.size ?? 0;
+    return size >= min && size > 0 ? size : null;
+  };
+
   app.get('/', (req, res) => {
     if (req.session?.user) return res.redirect('/guilds');
     return res.render('landing', {
       title: 'BotApprove',
       cardTitle: 'BotApprove, no bot gets in without a human saying yes',
+      serverCount: serverCount(),
       ...plans(),
     });
   });

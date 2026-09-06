@@ -35,6 +35,12 @@ export const config = {
     baseUrl: (process.env.BASE_URL || 'http://localhost:8420').replace(/\/+$/, ''),
     sessionSecret: process.env.SESSION_SECRET ?? '',
     trustProxy: int(process.env.TRUST_PROXY, 1),
+    // The landing page count is hidden below the minimum, so a small number is
+    // not advertised while the instance is still growing.
+    serverCount: {
+      show: bool(process.env.SHOW_SERVER_COUNT, true),
+      min: int(process.env.SERVER_COUNT_MIN, 25),
+    },
   },
   db: {
     path: path.isAbsolute(process.env.DATABASE_PATH ?? '')
