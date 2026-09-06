@@ -32,6 +32,11 @@
   <meta name="twitter:title" content="<%= ogTitle %>">
   <meta name="twitter:description" content="<%= ogDescription %>">
   <meta name="twitter:image" content="<%= ogImage %>">
+  <!-- X reads this one, not og:image:alt. Without it a shared link is an
+       undescribed image to anyone using a screen reader. -->
+  <meta name="twitter:image:alt"
+        content="Dark banner reading botapprove, no bot gets in without a human saying yes, with
+                 labels for approval gate, keyword blocking and nuke bot database.">
 
   <!-- Discord tints the left edge of the embed with this. -->
   <meta name="theme-color" content="#5e9bff">
