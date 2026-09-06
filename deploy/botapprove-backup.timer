@@ -1,0 +1,15 @@
+[Unit]
+Description=Nightly BotApprove database snapshot
+
+[Timer]
+OnCalendar=*-*-* 04:00:00
+# Everything else on a box tends to fire on the hour, so the snapshot is spread
+# across a window rather than competing with it.
+RandomizedDelaySec=900
+# A snapshot missed while the machine was off is taken on the next boot instead
+# of being skipped until the following night.
+Persistent=true
+Unit=botapprove-backup.service
+
+[Install]
+WantedBy=timers.target

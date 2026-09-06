@@ -17,7 +17,8 @@
   "scripts": {
     "start": "node src/index.js",
     "dev": "node --watch src/index.js",
-    "register": "node scripts/register-commands.js"
+    "register": "node scripts/register-commands.js",
+    "backup": "node scripts/backup.js"
   },
   "dependencies": {
     "better-sqlite3": "^11.10.0",

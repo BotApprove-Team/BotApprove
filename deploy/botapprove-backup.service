@@ -1,0 +1,22 @@
+[Unit]
+Description=BotApprove database snapshot
+Documentation=https://botapprove.mikuuu.xyz
+# Ordering only. The snapshot is safe against a live database and is also worth
+# taking when the bot is down, so this deliberately does not Require= it.
+After=botapprove.service
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/botapprove
+ExecStart=/usr/bin/node scripts/backup.js
+EnvironmentFile=/opt/botapprove/.env
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=botapprove-backup
+
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+ReadWritePaths=/opt/botapprove/data
