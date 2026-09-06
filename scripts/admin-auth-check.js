@@ -34,10 +34,24 @@ function check(label, actual, expected) {
 }
 
 let sessionSeq = 0;
-const newReq = () => ({
-  sessionID: `sess-${(sessionSeq += 1)}`,
-  session: { user: { id: '333333333333333333' } },
-  ip: '127.0.0.1',
+// A distinct operator per scenario. The lockout counts against the account and
+// its address rather than the session, so scenarios that deliberately burn
+// attempts would otherwise lock out the ones that run after them.
+const newReq = () => {
+  sessionSeq += 1;
+  return {
+    sessionID: `sess-${sessionSeq}`,
+    session: { user: { id: `33333333333333${String(sessionSeq).padStart(4, '0')}` } },
+    ip: '127.0.0.1',
+  };
+};
+
+// Same operator, same address, new session: what an attacker holding the
+// Discord account gets for free, since signing in again is a silent redirect.
+const sameOperator = (req) => ({
+  sessionID: `sess-rotated-${(sessionSeq += 1)}`,
+  session: { user: { id: req.session.user.id } },
+  ip: req.ip,
 });
 
 console.log('\n- configuration -');
@@ -97,6 +111,8 @@ check('four failures leave one attempt', (await auth.attemptUnlock(lock, 'wrong'
 const afterLockout = await auth.attemptUnlock(lock, P1);
 check('the correct password is refused while locked out', afterLockout.reason, 'locked_out');
 check('and no elevation was granted', auth.isAdminUnlocked(lock), false);
+check('a new session does not clear the lockout',
+  (await auth.attemptUnlock(sameOperator(lock), P1)).reason, 'locked_out');
 
 console.log('\n- expiry -');
 const stale = newReq();

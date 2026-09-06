@@ -14,12 +14,21 @@ const redirectUri = `${config.web.baseUrl}/auth/callback`;
 
 export const router = Router();
 
+// A single leading slash is not enough to keep a redirect on this site.
+// "//evil.example" and "/\evil.example" are protocol-relative, so a browser
+// resolves them against the current scheme and leaves for another host. That
+// turns a legitimate botapprove.mikuuu.xyz link into a phishing redirect.
+function safeReturnTo(next) {
+  if (typeof next !== 'string') return '/guilds';
+  if (!next.startsWith('/')) return '/guilds';
+  if (next.startsWith('//') || next.startsWith('/\\')) return '/guilds';
+  return next;
+}
+
 router.get('/login', (req, res) => {
   const state = crypto.randomBytes(24).toString('hex');
   req.session.oauthState = state;
-  req.session.returnTo = typeof req.query.next === 'string' && req.query.next.startsWith('/')
-    ? req.query.next
-    : '/guilds';
+  req.session.returnTo = safeReturnTo(req.query.next);
 
   const url = new URL('https://discord.com/oauth2/authorize');
   url.searchParams.set('client_id', config.discord.clientId);
@@ -83,7 +92,7 @@ router.get('/auth/callback', async (req, res) => {
 
     log.info('user logged in', { userId: user.id, guilds: req.session.guilds.length });
 
-    const next = req.session.returnTo ?? '/guilds';
+    const next = safeReturnTo(req.session.returnTo);
     delete req.session.returnTo;
     return res.redirect(next);
   } catch (err) {

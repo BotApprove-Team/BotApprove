@@ -21,6 +21,11 @@ process.env.PAYWALL_ENABLED = 'true';
 process.env.STRIPE_SECRET_KEY = 'sk_test_not_a_real_key';
 process.env.STRIPE_PRICE_ID = 'price_monthly';
 process.env.STRIPE_ENABLED = 'false';
+// Pinned rather than left unset. dotenv fills these from a real .env, so on a
+// configured host the run would inherit the live yearly and lifetime prices and
+// assert against plans this test never set up.
+process.env.STRIPE_PRICE_ID_YEARLY = '';
+process.env.STRIPE_PRICE_ID_LIFETIME = '';
 
 const { config } = await import('../src/config.js');
 for (const suffix of ['', '-wal', '-shm']) fs.rmSync(config.db.path + suffix, { force: true });

@@ -31,6 +31,33 @@ async function download(url) {
   }
 }
 
+/**
+ * Only the formats Discord's CDN actually serves.
+ *
+ * image-size has open advisories for infinite loops in its ICNS, JXL and HEIF
+ * parsers, and it picks a parser from the bytes rather than from the extension
+ * we asked for. Since the buffer originates from a file an untrusted bot
+ * uploaded, a parser that never returns would hang the event loop, and a bot
+ * that stops screening is a bot that fails open. Deciding the format here means
+ * those parsers are never reached whatever the library does with them.
+ */
+const SIGNATURES = [
+  { type: 'png', bytes: [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a] },
+  { type: 'jpg', bytes: [0xff, 0xd8, 0xff] },
+  { type: 'gif', bytes: [0x47, 0x49, 0x46, 0x38] },
+];
+
+function recognised(buffer) {
+  for (const { type, bytes } of SIGNATURES) {
+    if (buffer.length >= bytes.length && bytes.every((b, i) => buffer[i] === b)) return type;
+  }
+  // RIFF....WEBP, where the four bytes in between are the file length.
+  if (buffer.length >= 12
+    && buffer.toString('ascii', 0, 4) === 'RIFF'
+    && buffer.toString('ascii', 8, 12) === 'WEBP') return 'webp';
+  return null;
+}
+
 export async function probeAsset(url, { kind }) {
   if (!url) return { kind, present: false };
 
@@ -38,6 +65,12 @@ export async function probeAsset(url, { kind }) {
   if (!dl.ok) {
     log.warn('asset download failed', { kind, url, reason: dl.reason });
     return { kind, present: true, error: dl.reason };
+  }
+
+  const format = recognised(dl.buffer);
+  if (!format) {
+    log.warn('asset format not recognised, not parsed', { kind, url, bytes: dl.buffer.byteLength });
+    return { kind, present: true, error: 'unsupported_format', bytes: dl.buffer.byteLength };
   }
 
   try {

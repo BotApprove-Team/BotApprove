@@ -55,8 +55,21 @@ export function unlockRemaining(req) {
   return Math.max(0, Math.round((req.session.adminUnlockedUntil - Date.now()) / 60000));
 }
 
+/**
+ * Who is being rate limited, rather than which session is.
+ *
+ * Keying on the session id let an attacker reset the counter to zero simply by
+ * starting a new session, which costs nothing: OAuth is a silent redirect for
+ * an account that is already signed in. The whole point of these passwords is
+ * to hold when the operator's Discord account is already compromised, so the
+ * limit has to follow the account and its source address instead.
+ */
+function attemptKey(req) {
+  return `${req.session?.user?.id ?? 'anonymous'}|${req.ip ?? 'unknown'}`;
+}
+
 function lockoutState(req) {
-  const key = req.sessionID;
+  const key = attemptKey(req);
   const rec = attempts.get(key);
   if (!rec) return { locked: false, count: 0 };
   if (rec.until && rec.until > Date.now()) {
@@ -80,7 +93,7 @@ export async function attemptUnlock(req, password) {
 
   if (!verifyPassword(password, stage)) {
     const count = state.count + 1;
-    attempts.set(req.sessionID, {
+    attempts.set(attemptKey(req), {
       count,
       until: count >= MAX_ATTEMPTS ? Date.now() + LOCKOUT_MS : null,
     });
@@ -115,7 +128,7 @@ export async function attemptUnlock(req, password) {
     };
   }
 
-  attempts.delete(req.sessionID);
+  attempts.delete(attemptKey(req));
   resetStage(req);
   req.session.adminUnlockedUntil = Date.now() + config.admin.unlockTtlMs;
 
