@@ -152,6 +152,19 @@ router.get('/g/:guildId/:tab', requireGuildAccess('approve'), async (req, res, n
   const dormant = dormantCount(guildId);
   const setupTodo = (selfCheck.problems ?? []).length;
 
+  const icon = (d, extra = '') =>
+    `<svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"${extra}><path d="${d}"/></svg>`;
+
+  const ICONS = {
+    overview: icon('M4 13h6V4H4v9Zm0 7h6v-5H4v5Zm10 0h6v-9h-6v9Zm0-16v5h6V4h-6Z'),
+    setup: icon('M3 5h8v2H3V5Zm11 0h7v2h-7V5Zm-2-2h2v6h-2V3ZM3 11h6v2H3v-2Zm9 0h9v2h-9v-2Zm-2-2h2v6h-2V9ZM3 17h9v2H3v-2Zm12 0h6v2h-6v-2Zm-1-2h2v6h-2v-6Z'),
+    protection: icon('M12 2 4 5v6c0 5 3.4 9.4 8 11 4.6-1.6 8-6 8-11V5l-8-3Z'),
+    bots: icon('M12 2a2 2 0 0 1 2 2v1h3a3 3 0 0 1 3 3v9a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3V8a3 3 0 0 1 3-3h3V4a2 2 0 0 1 2-2ZM9 11a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3Zm6 0a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3Z'),
+    threats: icon('M12 2 1 21h22L12 2Zm-1 7h2v5h-2V9Zm0 7h2v2h-2v-2Z', ' fill-rule="evenodd"'),
+    log: icon('M4 4h16v2H4V4Zm0 5h16v2H4V9Zm0 5h10v2H4v-2Zm0 5h10v2H4v-2Z'),
+    licence: icon('M20 6H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2ZM8 15a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5Zm11-1h-6v-1.5h6V14Zm0-3h-6V9.5h6V11Z'),
+  };
+
   const tabs = [
     { key: 'overview', label: 'Overview', count: pending.length, urgent: pending.length > 0 },
     { key: 'setup', label: 'Setup', count: setupTodo, urgent: setupTodo > 0 },
@@ -160,7 +173,7 @@ router.get('/g/:guildId/:tab', requireGuildAccess('approve'), async (req, res, n
     { key: 'threats', label: 'Threats', count: incidentRows.length, urgent: incidentRows.length > 0 },
     { key: 'log', label: 'Log' },
     { key: 'licence', label: 'Licence' },
-  ];
+  ].map((t) => ({ ...t, icon: ICONS[t.key] }));
 
   return res.render('guild', {
     title: guild.name,

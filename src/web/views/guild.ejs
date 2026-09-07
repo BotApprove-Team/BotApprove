@@ -6,16 +6,13 @@
   const featOn = (k) => features.some((f) => f.key === k && f.enabled);
 %>
 
-<div class="page-head">
-  <h1><%= guild.name %></h1>
-  <div class="meta">
-    <%= guild.id %> &middot; <%= guild.memberCount %> members &middot;
-    <a href="/guilds">all servers</a>
-    <% if (!canConfigure) { %> &middot; read only, you are an approver not a manager<% } %>
-  </div>
-</div>
-
+<div class="gshell">
 <%- include('partials/guild-tabs') %>
+<div class="gmain">
+  <div class="page-head">
+    <h1><%= (tabs.find((t) => t.key === tab) || {}).label || tab %></h1>
+    <div class="meta"><%= guild.id %></div>
+  </div>
 
 <% if (flash) { %>
   <div class="notice <%= flash.type === 'error' ? 'danger' : 'ok' %>"><%= flash.message %></div>
@@ -830,5 +827,8 @@
   </div>
 </section>
 <% } %>
+
+</div>
+</div>
 
 <%- include('partials/foot') %>

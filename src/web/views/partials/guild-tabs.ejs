@@ -1,10 +1,42 @@
-<nav class="gtabs" aria-label="Server sections">
-  <% tabs.forEach((t) => { %>
-    <a class="gtab<%= t.key === tab ? ' on' : '' %>"
-       href="/g/<%= guild.id %>/<%= t.key %>"
-       <%= t.key === tab ? 'aria-current="page"' : '' %>>
-      <%= t.label %>
-      <% if (t.count) { %><span class="gcount<%= t.urgent ? ' urgent' : '' %>"><%= t.count %></span><% } %>
-    </a>
-  <% }) %>
-</nav>
+<aside class="gside">
+<div class="gside-in">
+  <div class="gserver">
+    <div class="gname"><%= guild.name %></div>
+    <div class="gmeta">
+      <%= guild.memberCount.toLocaleString('en-US') %> members, <%= whitelisted.length %> bots
+    </div>
+    <div class="gmeta"><a href="/guilds">all servers</a></div>
+    <% if (!canConfigure) { %>
+      <div class="gmeta gro">read only, you are an approver not a manager</div>
+    <% } %>
+  </div>
+
+  <nav class="gnav" aria-label="Server sections">
+    <% tabs.forEach((t) => { %>
+      <a class="gtab<%= t.key === tab ? ' on' : '' %>"
+         href="/g/<%= guild.id %>/<%= t.key %>"
+         <%= t.key === tab ? 'aria-current="page"' : '' %>>
+        <span class="gic" aria-hidden="true"><%- t.icon %></span>
+        <span class="glabel"><%= t.label %></span>
+        <% if (t.count) { %>
+          <span class="gcount<%= t.urgent ? ' urgent' : '' %>"><%= t.count %></span>
+        <% } %>
+      </a>
+    <% }) %>
+  </nav>
+
+  <div class="gplan">
+    <div class="gplan-label">Current plan</div>
+    <div class="gplan-tier"><%= entitlement.licensed ? 'Premium' : 'Free' %></div>
+    <% if (entitlement.licensed) { %>
+      <% if (dormant) { %>
+        <a href="/g/<%= guild.id %>/protection"><%= dormant %> waiting to switch on &rarr;</a>
+      <% } else { %>
+        <a href="/g/<%= guild.id %>/licence">Manage licence &rarr;</a>
+      <% } %>
+    <% } else { %>
+      <a href="/g/<%= guild.id %>/licence">See what premium adds &rarr;</a>
+    <% } %>
+  </div>
+</div>
+</aside>
