@@ -29,7 +29,9 @@ import {
   reviewNukeRequest,
   INVITER_ACTIONS,
 } from '../../services/nukeDefense.js';
-import { featureState, hasFeature } from '../../services/featureService.js';
+import {
+  featureState, hasFeature, featureSwitches, dormantCount, setFeature, FEATURES,
+} from '../../services/featureService.js';
 import {
   removeFromWhitelist,
   revokeReinviteToken,
@@ -116,7 +118,14 @@ router.get('/guilds', (req, res) => {
   });
 });
 
-router.get('/g/:guildId', requireGuildAccess('approve'), async (req, res) => {
+const GUILD_TABS = ['overview', 'setup', 'protection', 'bots', 'threats', 'log', 'licence'];
+
+router.get('/g/:guildId', requireGuildAccess('approve'), (req, res) =>
+  res.redirect(`/g/${req.params.guildId}/overview`));
+
+router.get('/g/:guildId/:tab', requireGuildAccess('approve'), async (req, res, next) => {
+  const tab = String(req.params.tab);
+  if (!GUILD_TABS.includes(tab)) return next();
   const { guild, canConfigure } = req.guildAccess;
   const guildId = guild.id;
 
@@ -139,8 +148,24 @@ router.get('/g/:guildId', requireGuildAccess('approve'), async (req, res) => {
   const recent = pendingApprovals.listRecent(guildId, 25)
     .filter((r) => r.status !== 'pending');
 
-  res.render('guild', {
+  const incidentRows = nukeIncidents.recent(guildId, 15);
+  const dormant = dormantCount(guildId);
+  const setupTodo = (selfCheck.problems ?? []).length;
+
+  const tabs = [
+    { key: 'overview', label: 'Overview', count: pending.length, urgent: pending.length > 0 },
+    { key: 'setup', label: 'Setup', count: setupTodo, urgent: setupTodo > 0 },
+    { key: 'protection', label: 'Protection', count: dormant, urgent: false },
+    { key: 'bots', label: 'Bots', count: whitelist.list(guildId).length, urgent: false },
+    { key: 'threats', label: 'Threats', count: incidentRows.length, urgent: incidentRows.length > 0 },
+    { key: 'log', label: 'Log' },
+    { key: 'licence', label: 'Licence' },
+  ];
+
+  return res.render('guild', {
     title: guild.name,
+    tab,
+    tabs,
     guild: { id: guildId, name: guild.name, icon: guild.icon, memberCount: guild.memberCount },
     canConfigure,
     cfg,
@@ -158,7 +183,9 @@ router.get('/g/:guildId', requireGuildAccess('approve'), async (req, res) => {
     entitlement: resolveEntitlement(guildId),
     features: featureState(guildId),
     nukes: nukeRegistry.list(guildId),
-    incidents: nukeIncidents.recent(guildId, 15),
+    incidents: incidentRows,
+    featureSwitches: featureSwitches(guildId),
+    dormant,
     requests: nukeDbRequests.listForGuild(guildId, 12),
     inviterActions: INVITER_ACTIONS,
     tamperModes: TAMPER_MODES,
@@ -229,6 +256,32 @@ router.post('/g/:guildId/approvals/:id', requireGuildAccess('approve'), async (r
   }
 
   return res.redirect(`/g/${req.params.guildId}`);
+});
+
+router.post('/g/:guildId/features', requireGuildAccess('configure'), async (req, res) => {
+  const guildId = req.guildAccess.guild.id;
+  const key = String(req.body.feature ?? '');
+  const wanted = req.body.enabled === '1';
+
+  const result = setFeature(guildId, key, wanted, req.session.user.id);
+  if (!result.ok) {
+    flash(req, 'error', {
+      unknown_feature: 'No such feature.',
+      always_on: 'That one is free and always on.',
+      not_entitled: 'That needs premium on this server.',
+    }[result.reason] ?? 'Could not change that.');
+  } else {
+    await record({
+      guildId,
+      actorId: req.session.user.id,
+      action: result.enabled ? 'feature_enabled' : 'feature_disabled',
+      severity: 'info',
+      detail: { feature: key },
+      mirror: false,
+    }).catch(() => {});
+    flash(req, 'ok', `${FEATURES[key]?.name ?? key} is now ${result.enabled ? 'on' : 'off'}.`);
+  }
+  return res.redirect(`/g/${guildId}/protection`);
 });
 
 router.post('/g/:guildId/whitelist/remove', requireGuildAccess('configure'), async (req, res) => {

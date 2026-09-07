@@ -15,6 +15,8 @@
   </div>
 </div>
 
+<%- include('partials/guild-tabs') %>
+
 <% if (flash) { %>
   <div class="notice <%= flash.type === 'error' ? 'danger' : 'ok' %>"><%= flash.message %></div>
 <% } %>
@@ -58,6 +60,7 @@
   </div>
 <% } %>
 
+<% if (tab === 'overview') { %>
 <section class="block">
   <div class="block-head">
     <h2>Pending approvals</h2>
@@ -114,7 +117,9 @@
     </p>
   <% } %>
 </section>
+<% } %>
 
+<% if (tab === 'licence') { %>
 <% if (paywallEnabled) { %>
 <section class="block">
   <div class="block-head">
@@ -266,29 +271,71 @@
   <% } %>
 </section>
 <% } %>
+<% } %>
+
+<% if (tab === 'protection') { %>
+<div class="notice ok">
+  <strong>Your protection is free forever.</strong>
+  <p>The approval gate, keyword blocking, the audit trail and tamper detection are on and stay
+    on. Nothing below switches them off.</p>
+</div>
 
 <section class="block">
-  <div class="block-head"><h2>Features</h2></div>
-  <div class="cols two">
-    <div>
-      <% features.filter((f) => f.tier === 'free').forEach((f) => { %>
-        <div class="feat">
-          <span class="st ok">free</span>
-          <div><div class="name"><%= f.name %></div><div class="blurb"><%= f.blurb %></div></div>
+  <div class="block-head"><h2>Included</h2></div>
+  <div class="frows">
+    <% features.filter((f) => f.tier === 'free').forEach((f) => { %>
+      <div class="frow">
+        <div class="fbody">
+          <div class="fname"><%= f.name %></div>
+          <div class="fblurb"><%= f.blurb %></div>
         </div>
-      <% }) %>
-    </div>
-    <div>
-      <% features.filter((f) => f.tier === 'premium').forEach((f) => { %>
-        <div class="feat">
-          <span class="st <%= f.enabled ? 'ok' : 'off' %>"><%= f.enabled ? 'active' : 'off' %></span>
-          <div><div class="name"><%= f.name %></div><div class="blurb"><%= f.blurb %></div></div>
-        </div>
-      <% }) %>
-    </div>
+        <span class="fsw on fixed" title="Always on"></span>
+      </div>
+    <% }) %>
   </div>
 </section>
 
+<section class="block">
+  <div class="block-head">
+    <h2>Recommended extras</h2>
+    <% if (dormant) { %><span class="count"><%= dormant %> off</span><% } %>
+  </div>
+  <% if (dormant) { %>
+    <div class="notice info">
+      <strong><%= dormant %> premium feature<%= dormant === 1 ? '' : 's' %> ready but not switched on.</strong>
+      <p>Nothing turns itself on. These change how BotApprove behaves, so they wait for you.</p>
+    </div>
+  <% } %>
+  <div class="frows">
+    <% featureSwitches.forEach((f) => { %>
+      <div class="frow<%= f.entitled ? '' : ' locked' %>">
+        <div class="fbody">
+          <div class="fname">
+            <% if (!f.entitled) { %><span class="flock" aria-hidden="true">&#128274;</span><% } %>
+            <%= f.name %>
+          </div>
+          <div class="fblurb"><%= f.blurb %></div>
+        </div>
+        <% if (!f.entitled) { %>
+          <a class="fupsell" href="/g/<%= guild.id %>/licence">Premium</a>
+        <% } else if (!canConfigure) { %>
+          <span class="fsw <%= f.enabled ? 'on' : '' %> fixed"></span>
+        <% } else { %>
+          <form method="post" action="/g/<%= guild.id %>/features">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+            <input type="hidden" name="feature" value="<%= f.key %>">
+            <input type="hidden" name="enabled" value="<%= f.enabled ? '0' : '1' %>">
+            <button type="submit" class="fsw <%= f.enabled ? 'on' : '' %>"
+                    aria-label="<%= f.enabled ? 'Turn off' : 'Turn on' %> <%= f.name %>"></button>
+          </form>
+        <% } %>
+      </div>
+    <% }) %>
+  </div>
+</section>
+<% } %>
+
+<% if (tab === 'setup') { %>
 <div class="cols two">
   <section class="block">
     <div class="block-head"><h2>Settings</h2></div>
@@ -587,7 +634,9 @@
     </table>
   </section>
 </div>
+<% } %>
 
+<% if (tab === 'threats') { %>
 <% if (incidents.length) { %>
 <section class="block">
   <div class="block-head">
@@ -706,7 +755,9 @@
     <button type="submit">Submit for review</button>
   </form>
 </section>
+<% } %>
 
+<% if (tab === 'bots') { %>
 <section class="block">
   <div class="block-head">
     <h2>Approved bots</h2>
@@ -755,7 +806,9 @@
   </table>
 </section>
 <% } %>
+<% } %>
 
+<% if (tab === 'log') { %>
 <section class="block">
   <div class="block-head">
     <h2>Security log</h2>
@@ -776,5 +829,6 @@
     </table>
   </div>
 </section>
+<% } %>
 
 <%- include('partials/foot') %>

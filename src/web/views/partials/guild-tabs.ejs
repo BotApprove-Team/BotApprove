@@ -1,0 +1,10 @@
+<nav class="gtabs" aria-label="Server sections">
+  <% tabs.forEach((t) => { %>
+    <a class="gtab<%= t.key === tab ? ' on' : '' %>"
+       href="/g/<%= guild.id %>/<%= t.key %>"
+       <%= t.key === tab ? 'aria-current="page"' : '' %>>
+      <%= t.label %>
+      <% if (t.count) { %><span class="gcount<%= t.urgent ? ' urgent' : '' %>"><%= t.count %></span><% } %>
+    </a>
+  <% }) %>
+</nav>
