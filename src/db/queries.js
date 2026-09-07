@@ -130,6 +130,9 @@ const CONFIG_COLUMNS = [
   'quorum_required',
   'whitelist_expiry_days',
   'impersonation_check',
+  'tamper_response',
+  'webhook_guard',
+  'quarantine_role_id',
 ];
 
 export const guildConfig = {
@@ -372,6 +375,59 @@ export const removalEvents = {
     q('SELECT * FROM removal_events ORDER BY id DESC LIMIT ?').all(limit),
   lastForGuild: (guildId) =>
     q('SELECT * FROM removal_events WHERE guild_id = ? ORDER BY id DESC LIMIT 1').get(guildId),
+};
+
+export const tamperResponses = {
+  create: ({ guildId, actorId, actorTag, trigger, outcome, rolesRemoved, detail }) =>
+    q(`INSERT INTO tamper_responses
+         (guild_id, actor_id, actor_tag, trigger, outcome, roles_removed, detail, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`)
+      .run(guildId, actorId ?? null, actorTag ?? null, trigger, outcome,
+           rolesRemoved ? JSON.stringify(rolesRemoved) : null,
+           detail ? JSON.stringify(detail) : null, Date.now()),
+  restorable: (guildId, actorId) =>
+    q(`SELECT * FROM tamper_responses
+        WHERE guild_id = ? AND actor_id = ? AND roles_removed IS NOT NULL
+          AND restored_at IS NULL
+        ORDER BY id DESC`).all(guildId, actorId),
+  markRestored: (id) =>
+    q('UPDATE tamper_responses SET restored_at = ? WHERE id = ?').run(Date.now(), id),
+  recent: (guildId, limit = 25) =>
+    q('SELECT * FROM tamper_responses WHERE guild_id = ? ORDER BY id DESC LIMIT ?')
+      .all(guildId, limit),
+  countSince: (guildId, since) =>
+    q(`SELECT COUNT(*) AS n FROM tamper_responses
+        WHERE guild_id = ? AND created_at >= ?
+          AND outcome IN ('stripped', 'quarantined')`)
+      .get(guildId, since).n,
+};
+
+export const webhookEvents = {
+  create: ({ guildId, webhookId, webhookName, channelId, actorId, actorTag, outcome }) =>
+    q(`INSERT INTO webhook_events
+         (guild_id, webhook_id, webhook_name, channel_id, actor_id, actor_tag, outcome, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`)
+      .run(guildId, webhookId ?? null, webhookName ?? null, channelId ?? null,
+           actorId ?? null, actorTag ?? null, outcome, Date.now()),
+  recent: (guildId, limit = 25) =>
+    q('SELECT * FROM webhook_events WHERE guild_id = ? ORDER BY id DESC LIMIT ?')
+      .all(guildId, limit),
+};
+
+export const lockdown = {
+  get: (guildId) => q('SELECT * FROM lockdown_state WHERE guild_id = ?').get(guildId),
+  isActive: (guildId) => !!q('SELECT active FROM lockdown_state WHERE guild_id = ?')
+    .get(guildId)?.active,
+  start: (guildId, { applied, startedBy }) =>
+    q(`INSERT INTO lockdown_state (guild_id, active, applied, started_by, started_at, ended_at)
+       VALUES (?, 1, ?, ?, ?, NULL)
+       ON CONFLICT(guild_id) DO UPDATE SET
+         active = 1, applied = excluded.applied, started_by = excluded.started_by,
+         started_at = excluded.started_at, ended_at = NULL`)
+      .run(guildId, JSON.stringify(applied ?? []), startedBy ?? null, Date.now()),
+  end: (guildId) =>
+    q('UPDATE lockdown_state SET active = 0, applied = NULL, ended_at = ? WHERE guild_id = ?')
+      .run(Date.now(), guildId),
 };
 
 export const entitlements = {

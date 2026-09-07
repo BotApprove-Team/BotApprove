@@ -22,7 +22,9 @@
 <% } %>
 
 <% if (pending) {
-     const willReach = targets.filter((t) => t.optedIn);
+     const only = pending.guildIds && pending.guildIds.length
+       ? new Set(pending.guildIds) : null;
+     const willReach = targets.filter((t) => (only ? only.has(t.id) : t.optedIn));
      const willPing = pending.everyone
        ? willReach.filter((t) => t.allowsEveryone) : []; %>
 <section class="block">
@@ -30,8 +32,13 @@
   <div class="notice <%= willPing.length ? 'danger' : 'ok' %>">
     <strong>
       This posts to <%= willReach.length %> server<%= willReach.length === 1 ? '' : 's' %><%
+        if (only) { %> you picked<% } %><%
+        if (pending.pingOwner) { %>, pinging the owner in each<% } %><%
         if (willPing.length) { %>, pinging @everyone in <%= willPing.length %> of them<% } %>.
     </strong>
+    <% if (only) { %>
+      <p class="hint">Going to: <%= willReach.map((t) => t.name).join(', ') || '(none matched)' %></p>
+    <% } %>
     <p>
       <% if (pending.everyone && !willPing.length) { %>
         You asked for @everyone, but no opted-in server allows it, so this will arrive quietly
@@ -95,6 +102,40 @@
         </p>
       </div>
     </div>
+    <div class="check">
+      <input type="checkbox" id="pingowner" name="ping_owner" value="1">
+      <div>
+        <label for="pingowner">Ping the server owner</label>
+        <p class="hint">
+          Mentions the owner directly in whichever channel the message lands in. This needs no
+          per-server permission, because it addresses one person rather than notifying the whole
+          membership. Use it when something in their server actually needs them to act.
+        </p>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Send only to these servers, optional</label>
+      <p class="hint">
+        Leave everything unticked to send to every server that opted in. Picking servers makes
+        this a directed message instead, and those will also fall back to the approval or log
+        channel if no announcement channel is set.
+      </p>
+      <div class="picker">
+        <% targets.forEach((t) => { %>
+          <label class="check compact">
+            <input type="checkbox" name="guild_ids" value="<%= t.id %>">
+            <span>
+              <%= t.name %>
+              <span class="st <%= t.optedIn ? 'ok' : 'off' %>">
+                <%= t.optedIn ? 'announce channel set' : 'will fall back' %>
+              </span>
+            </span>
+          </label>
+        <% }) %>
+      </div>
+    </div>
+
     <div class="actions">
       <button class="primary" type="submit" <%= botReady ? '' : 'disabled' %>>Review before sending</button>
     </div>

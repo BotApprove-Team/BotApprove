@@ -48,6 +48,11 @@ import {
   resolveEntitlement,
 } from '../../services/entitlementService.js';
 import { checkGuild } from '../../services/selfCheck.js';
+import {
+  start as startLockdown,
+  lift as liftLockdown,
+  isActive as lockdownActive,
+} from '../../services/lockdownService.js';
 import { checkChannel, describeChannelProblem } from '../../services/channelCheck.js';
 import { config } from '../../config.js';
 import { createLogger } from '../../logger.js';
@@ -110,6 +115,23 @@ export const commandDefinitions = [
           { name: 'Ban them', value: 'ban' },
           { name: 'Nothing, just tell me', value: 'none' },
         ))),
+
+  new SlashCommandBuilder()
+    .setName('support')
+    .setDescription('Where to ask questions, report a bug, or get a licence')
+    .setDMPermission(false),
+
+  new SlashCommandBuilder()
+    .setName('lockdown')
+    .setDescription('Stop everyone posting while you work out what is happening')
+    .setDefaultMemberPermissions(MANAGE)
+    .setDMPermission(false)
+    .addSubcommand((s) => s.setName('on')
+      .setDescription('Disable sending for @everyone across the server'))
+    .addSubcommand((s) => s.setName('off')
+      .setDescription('Put back exactly what was there before'))
+    .addSubcommand((s) => s.setName('status')
+      .setDescription('Whether a lockdown is currently active')),
 
   new SlashCommandBuilder()
     .setName('nukedb')
@@ -843,6 +865,73 @@ async function handleCommand(interaction) {
       break;
     }
 
+    case 'support': {
+      return interaction.reply({
+        embeds: [new EmbedBuilder()
+          .setColor(0x5e9bff)
+          .setTitle('BotApprove support')
+          .setDescription(
+            'Questions, bug reports, feature requests, or a licence key: the support server is '
+            + 'the fastest way to reach the person who builds this.',
+          )
+          .addFields(
+            { name: 'Support server', value: config.supportUrl },
+            { name: 'Source code', value: config.repoUrl },
+            { name: 'Site and dashboard', value: config.web.baseUrl },
+            {
+              name: 'Free lifetime licences',
+              value: 'Being given out while BotApprove is growing. Ask in the support server.',
+            },
+          )],
+        ...ephemeral,
+      });
+    }
+
+    case 'lockdown': {
+      if (sub === 'status') {
+        const active = lockdownActive(guildId);
+        return interaction.reply({
+          content: active
+            ? 'A lockdown is active. `/lockdown off` puts the channels back.'
+            : 'No lockdown is active.',
+          ...ephemeral,
+        });
+      }
+
+      if (interaction.user.id !== interaction.guild.ownerId) {
+        return fail(interaction, 'Only the server owner can use lockdown.');
+      }
+
+      await interaction.deferReply(ephemeral);
+
+      if (sub === 'on') {
+        const result = await startLockdown(interaction.guild, interaction.user.id);
+        if (!result.ok) {
+          return interaction.editReply({
+            content: {
+              no_manage_channels: 'BotApprove needs Manage Channels to do this.',
+              already_active: 'A lockdown is already active.',
+              nothing_changed: 'No channels could be changed. Check the permissions BotApprove holds.',
+            }[result.reason] ?? `Could not lock down: ${result.reason}`,
+          });
+        }
+        return interaction.editReply({
+          content: `🔒 Locked down ${result.channels} channel(s)`
+            + (result.failed ? `, ${result.failed} could not be changed` : '')
+            + '. `/lockdown off` restores exactly what was there before.',
+        });
+      }
+
+      const result = await liftLockdown(interaction.guild, interaction.user.id);
+      if (!result.ok) {
+        return interaction.editReply({ content: 'No lockdown is active.' });
+      }
+      return interaction.editReply({
+        content: `🔓 Restored ${result.restored} channel(s)`
+          + (result.failed ? `, ${result.failed} could not be restored` : '') + '.',
+      });
+    }
+
     case 'selfcheck': {
       const result = await checkGuild(interaction.guild, { reason: 'manual' });
       const recent = securityLog.recent(guildId, 5);
@@ -1029,7 +1118,7 @@ async function handleCommand(interaction) {
           { name: 'Confirmed nuke bots', value: String(nukeRegistry.count(guildId)), inline: true },
           { name: 'Live re-invite tokens', value: String(reinviteTokens.listLive(guildId).length), inline: true },
         )
-        .setFooter({ text: config.botStatus })
+        .setFooter({ text: `${config.botStatus} • ${config.supportUrl}` })
         .setTimestamp(new Date());
 
       if (!cfg.notify_channel_id) {

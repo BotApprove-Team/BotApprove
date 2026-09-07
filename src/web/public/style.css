@@ -563,6 +563,28 @@ code {
   margin: 0 0 18px;
 }
 .hero .stat strong { color: var(--text); font-weight: 600; }
+.picker {
+  display: grid;
+  gap: 2px;
+  max-height: 260px;
+  overflow-y: auto;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 8px;
+  background: var(--surface);
+}
+.check.compact {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 5px 6px;
+  border-radius: 6px;
+  font-size: 13px;
+  cursor: pointer;
+}
+.check.compact:hover { background: var(--line); }
+.check.compact .st { margin-left: 6px; }
+
 .hero .stat .live {
   width: 6px;
   height: 6px;

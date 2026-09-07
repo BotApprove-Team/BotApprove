@@ -341,6 +341,43 @@
       </div>
 
       <div class="field">
+        <label for="tamper">If someone weakens BotApprove itself</label>
+        <select id="tamper" name="tamper_response" <%= ro %>>
+          <% tamperModes.forEach((m) => { %>
+            <option value="<%= m %>" <%= (cfg.tamper_response || 'defend') === m ? 'selected' : '' %>>
+              <%= tamperModeLabels[m] %>
+            </option>
+          <% }) %>
+        </select>
+        <p class="hint">
+          Triggered when BotApprove's role is moved down, deleted, or a permission it needs is
+          taken away &mdash; the step someone has to take before they can remove it.
+          <strong>The server owner is never acted against</strong>, and neither is anyone whose
+          roles rank above BotApprove. Removing roles automatically is powerful enough to be
+          worth misusing, so it stops itself after 3 responses in 10 minutes and tells you
+          instead. Anything it takes is recorded and can be given back.
+        </p>
+      </div>
+
+      <div class="field">
+        <label for="webhookguard">When a webhook is created</label>
+        <select id="webhookguard" name="webhook_guard" <%= ro %>>
+          <% webhookModes.forEach((m) => { %>
+            <option value="<%= m %>" <%= (cfg.webhook_guard || 'report') === m ? 'selected' : '' %>>
+              <%= webhookModeLabels[m] %>
+            </option>
+          <% }) %>
+        </select>
+        <p class="hint">
+          A webhook can post to a channel indefinitely with no account and no invite, which
+          makes it the usual next move once a bot has been stopped. Creation is rare, so
+          reporting every one is not noisy. <strong>Deleting is worth thinking about</strong>:
+          plenty of legitimate integrations create webhooks, and removing one breaks whatever
+          set it up. Webhooks the server owner creates are reported but never deleted.
+        </p>
+      </div>
+
+      <div class="field">
         <label for="announce">Announcement channel</label>
         <select id="announce" name="announce_channel_id" <%= ro %>>
           <option value="">not receiving announcements</option>

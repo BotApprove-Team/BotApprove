@@ -405,7 +405,6 @@ const MIGRATIONS = [
       -- Servers that redeemed a perpetual key before the flag existed. A
       -- licence key with no expiry is unambiguously permanent, so it can be
       -- inferred safely.
-      --
       -- Stripe rows deliberately are not touched: a trialling subscription also
       -- has no expiry, and flagging one perpetual would make it impossible to
       -- ever lapse. Stripe lifetime purchases set the flag explicitly instead.
@@ -427,6 +426,59 @@ const MIGRATIONS = [
         key        TEXT PRIMARY KEY,
         value      TEXT,
         updated_at INTEGER NOT NULL
+      );
+    `,
+  },
+  {
+    id: 15,
+    name: 'tamper_response',
+    sql: `
+      --
+      ALTER TABLE guild_config ADD COLUMN tamper_response TEXT NOT NULL DEFAULT 'defend';
+
+      CREATE TABLE tamper_responses (
+        id            INTEGER PRIMARY KEY AUTOINCREMENT,
+        guild_id      TEXT    NOT NULL,
+        actor_id      TEXT,
+        actor_tag     TEXT,
+        trigger       TEXT    NOT NULL,
+        outcome       TEXT    NOT NULL,
+        roles_removed TEXT,
+        detail        TEXT,
+        created_at    INTEGER NOT NULL,
+        restored_at   INTEGER
+      );
+      CREATE INDEX idx_tamper_guild ON tamper_responses(guild_id, created_at DESC);
+    `,
+  },
+  {
+    id: 16,
+    name: 'webhook_guard_quarantine_lockdown',
+    sql: `
+      ALTER TABLE guild_config ADD COLUMN webhook_guard TEXT NOT NULL DEFAULT 'report';
+
+      ALTER TABLE guild_config ADD COLUMN quarantine_role_id TEXT;
+
+      CREATE TABLE webhook_events (
+        id           INTEGER PRIMARY KEY AUTOINCREMENT,
+        guild_id     TEXT    NOT NULL,
+        webhook_id   TEXT,
+        webhook_name TEXT,
+        channel_id   TEXT,
+        actor_id     TEXT,
+        actor_tag    TEXT,
+        outcome      TEXT    NOT NULL,
+        created_at   INTEGER NOT NULL
+      );
+      CREATE INDEX idx_webhook_guild ON webhook_events(guild_id, created_at DESC);
+
+      CREATE TABLE lockdown_state (
+        guild_id   TEXT PRIMARY KEY,
+        active     INTEGER NOT NULL DEFAULT 0,
+        applied    TEXT,
+        started_by TEXT,
+        started_at INTEGER,
+        ended_at   INTEGER
       );
     `,
   },

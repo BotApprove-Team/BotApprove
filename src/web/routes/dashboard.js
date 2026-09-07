@@ -17,6 +17,8 @@ import {
   announcements,
   blog,
   termsAcceptances,
+  tamperResponses,
+  webhookEvents as webhookEventRows,
 } from '../../db/queries.js';
 import {
   confirmNukeBot,
@@ -35,6 +37,14 @@ import {
 } from '../../services/securityService.js';
 import { resolveApproval } from '../../services/approvalService.js';
 import { setNickname } from '../../services/nicknameService.js';
+import {
+  MODES as TAMPER_MODES,
+  MODE_LABELS as TAMPER_MODE_LABELS,
+} from '../../services/tamperResponse.js';
+import {
+  MODES as WEBHOOK_MODES,
+  MODE_LABELS as WEBHOOK_MODE_LABELS,
+} from '../../services/webhookGuard.js';
 import {
   resolveEntitlement,
   redeemLicenseKey,
@@ -151,6 +161,12 @@ router.get('/g/:guildId', requireGuildAccess('approve'), async (req, res) => {
     incidents: nukeIncidents.recent(guildId, 15),
     requests: nukeDbRequests.listForGuild(guildId, 12),
     inviterActions: INVITER_ACTIONS,
+    tamperModes: TAMPER_MODES,
+    tamperModeLabels: TAMPER_MODE_LABELS,
+    tamperEvents: tamperResponses.recent(guildId, 10),
+    webhookModes: WEBHOOK_MODES,
+    webhookModeLabels: WEBHOOK_MODE_LABELS,
+    webhookEvents: webhookEventRows.recent(guildId, 10),
     purchaseUrl: config.paywall.purchaseUrl,
     viaOperator: req.guildAccess.via === 'instance_owner',
     configureViaOperator: !!req.guildAccess.configureViaOperator,
@@ -302,6 +318,12 @@ router.post('/g/:guildId/config', requireGuildAccess('configure'), async (req, r
   patch.auto_ban_nuke_inviters = req.body.auto_ban_nuke_inviters ? 1 : 0;
   if (INVITER_ACTIONS.includes(req.body.nuke_inviter_action)) {
     patch.nuke_inviter_action = req.body.nuke_inviter_action;
+  }
+  if (TAMPER_MODES.includes(req.body.tamper_response)) {
+    patch.tamper_response = req.body.tamper_response;
+  }
+  if (WEBHOOK_MODES.includes(req.body.webhook_guard)) {
+    patch.webhook_guard = req.body.webhook_guard;
   }
 
   const announce = String(req.body.announce_channel_id ?? '');
@@ -751,6 +773,8 @@ router.post('/admin/announce', requireOwner, requireUnlocked, async (req, res) =
       title: draft.title,
       body: draft.body,
       everyone: draft.everyone,
+      guildIds: draft.guildIds ?? null,
+      pingOwner: !!draft.pingOwner,
       sentBy: req.session.user.id,
     });
 
@@ -762,7 +786,8 @@ router.post('/admin/announce', requireOwner, requireUnlocked, async (req, res) =
     flash(req, 'ok', `Sent to ${result.delivered} server(s). ` +
       `${result.skipped} skipped (no channel set)` +
       `${result.failed ? `, ${result.failed} failed` : ''}. ` +
-      `${result.pinged ?? 0} were pinged with @everyone.`);
+      `${result.pinged ?? 0} were pinged with @everyone` +
+      `${draft.pingOwner ? ', and the owner was pinged in each' : ''}.`);
     return res.redirect('/admin/announce');
   }
 
@@ -772,10 +797,16 @@ router.post('/admin/announce', requireOwner, requireUnlocked, async (req, res) =
     return res.redirect('/admin/announce');
   }
 
+  const selected = req.body.guild_ids;
+  const guildIds = (Array.isArray(selected) ? selected : [selected])
+    .filter((id) => typeof id === 'string' && /^\d{15,25}$/.test(id));
+
   req.session.announceDraft = {
     title: valid.title,
     body: valid.body,
     everyone: !!req.body.everyone,
+    pingOwner: !!req.body.ping_owner,
+    guildIds: guildIds.length ? guildIds : null,
   };
   return res.redirect('/admin/announce');
 });

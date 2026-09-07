@@ -1,4 +1,6 @@
-import { ActivityType, Client, Events, GatewayIntentBits, Partials } from 'discord.js';
+import {
+  ActivityType, AuditLogEvent, Client, Events, GatewayIntentBits, Partials,
+} from 'discord.js';
 import { config } from '../config.js';
 import { createLogger } from '../logger.js';
 import { setClient } from './clientRef.js';
@@ -10,6 +12,8 @@ import { enforceEntitlements, startTrial, resolveEntitlement } from '../services
 import { reinviteTokens, guildConfig, selfCheckState, botPermissions } from '../db/queries.js';
 import { rememberGuild, rememberAll, onMemberRemoved, onGuildRemoved } from '../services/removalWatch.js';
 import { checkAll as checkDriftAll, checkBot as checkDriftBot } from '../services/driftWatch.js';
+import { onRoleUpdate, onRoleDelete, onSelfMemberUpdate } from '../services/tamperWatch.js';
+import { onWebhookCreated } from '../services/webhookGuard.js';
 import { sendSetupGuide } from '../services/welcome.js';
 import { announceIfOpened } from '../services/billingOpened.js';
 import { handleInteraction } from './commands/index.js';
@@ -39,6 +43,7 @@ export function createClient() {
     intents: [
       GatewayIntentBits.Guilds,
       GatewayIntentBits.GuildMembers,
+      GatewayIntentBits.GuildModeration,
     ],
     partials: [Partials.GuildMember, Partials.User],
   });
@@ -132,6 +137,8 @@ export function createClient() {
 
   client.on(Events.GuildMemberUpdate, async (oldMember, updated) => {
     if (updated.id === client.user?.id) {
+      await onSelfMemberUpdate(oldMember, updated).catch((err) =>
+        log.error('tamper response failed', { guildId: updated.guild.id, err: err.message }));
       await checkGuild(updated.guild, { reason: 'self_member_update' }).catch(() => {});
       return;
     }
@@ -140,10 +147,30 @@ export function createClient() {
     await checkDriftBot(updated, { reason: 'role_change' }).catch(() => {});
   });
 
-  client.on(Events.GuildRoleUpdate, async (_old, role) => {
+  client.on(Events.GuildRoleUpdate, async (oldRole, role) => {
     const me = role.guild.members.me;
     if (!me?.roles.cache.has(role.id)) return;
+    await onRoleUpdate(oldRole, role).catch((err) =>
+      log.error('tamper response failed', { guildId: role.guild.id, err: err.message }));
     await checkGuild(role.guild, { reason: 'role_update' }).catch(() => {});
+  });
+
+  client.on(Events.GuildRoleDelete, async (role) => {
+    await onRoleDelete(role).catch((err) =>
+      log.error('tamper response failed', { guildId: role.guild.id, err: err.message }));
+  });
+
+  client.on(Events.GuildAuditLogEntryCreate, async ({ entry, guild }) => {
+    if (entry.action !== AuditLogEvent.WebhookCreate) return;
+    await onWebhookCreated(guild, {
+      webhookId: entry.targetId,
+      name: entry.changes?.find((c) => c.key === 'name')?.new ?? null,
+      channelId: entry.changes?.find((c) => c.key === 'channel_id')?.new ?? null,
+      actor: entry.executor
+        ? { id: entry.executor.id, tag: entry.executor.tag }
+        : null,
+    }).catch((err) =>
+      log.error('webhook guard failed', { guildId: guild.id, err: err.message }));
   });
 
   client.on(Events.GuildMemberRemove, async (member) => {
