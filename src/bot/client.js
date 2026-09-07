@@ -160,8 +160,8 @@ export function createClient() {
       log.error('tamper response failed', { guildId: role.guild.id, err: err.message }));
   });
 
-  client.on(Events.GuildAuditLogEntryCreate, async ({ entry, guild }) => {
-    if (entry.action !== AuditLogEvent.WebhookCreate) return;
+  client.on(Events.GuildAuditLogEntryCreate, async (entry, guild) => {
+    if (entry?.action !== AuditLogEvent.WebhookCreate) return;
     await onWebhookCreated(guild, {
       webhookId: entry.targetId,
       name: entry.changes?.find((c) => c.key === 'name')?.new ?? null,
