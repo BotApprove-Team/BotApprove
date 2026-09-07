@@ -581,7 +581,7 @@ code {
 .fbody { flex: 1; min-width: 0; }
 .fname { font-weight: 560; display: flex; align-items: center; gap: 7px; }
 .fblurb { color: var(--text-dim); font-size: 12.5px; margin-top: 2px; }
-.flock { font-size: 11px; opacity: .75; }
+.flock { display: inline-flex; color: var(--text-faint); }
 
 .fsw {
   flex: none;

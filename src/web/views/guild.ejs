@@ -308,7 +308,7 @@
       <div class="frow<%= f.entitled ? '' : ' locked' %>">
         <div class="fbody">
           <div class="fname">
-            <% if (!f.entitled) { %><span class="flock" aria-hidden="true">&#128274;</span><% } %>
+            <% if (!f.entitled) { %><span class="flock" aria-hidden="true"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M17 9V7a5 5 0 0 0-10 0v2H5v13h14V9h-2Zm-8-2a3 3 0 0 1 6 0v2H9V7Z"/></svg></span><% } %>
             <%= f.name %>
           </div>
           <div class="fblurb"><%= f.blurb %></div>
