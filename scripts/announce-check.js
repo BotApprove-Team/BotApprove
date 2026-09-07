@@ -45,6 +45,7 @@ function makeGuild({ id, name, canMention = true, sendThrows = false, channelMis
   return {
     id,
     name,
+    ownerId: `owner-${id}`,
     members: { me: { permissions: perms } },
     channels: { fetch: async () => (channelMissing ? null : channel) },
   };
@@ -117,6 +118,47 @@ check('every guild has a target row', targets.length, 5);
 check('the pinged one is marked', targets.filter((t) => t.pinged_everyone).length, 1);
 check('the skipped one says why',
   targets.find((t) => t.guild_id === 'g-optout').detail, 'no channel configured');
+
+console.log('\n- a message aimed at named servers -');
+sent.length = 0;
+const directed = await broadcast(client, {
+  body: 'Your role sits below the bots it is meant to gate.',
+  guildIds: ['g-quiet'],
+  sentBy: 'operator',
+});
+check('it went out', directed.ok, true);
+check('to exactly one server', sent.length, 1);
+check('and it was the one named', sent[0].guildId, 'g-quiet');
+
+console.log('\n- pinging the owner -');
+sent.length = 0;
+await broadcast(client, {
+  body: 'Please move the BotApprove role above your bots.',
+  guildIds: ['g-quiet'],
+  pingOwner: true,
+  sentBy: 'operator',
+});
+check('the owner is mentioned', sent[0].content, '<@owner-g-quiet>');
+check('and only they can be mentioned', sent[0].allowed, { parse: [], users: ['owner-g-quiet'] });
+
+console.log('\n- a server that never opted in can still be reached directly -');
+sent.length = 0;
+guildConfig.set('g-optout', { notify_channel_id: 'fallback' });
+const reached = await broadcast(client, {
+  body: 'This one needs fixing.',
+  guildIds: ['g-optout'],
+  pingOwner: true,
+  sentBy: 'operator',
+});
+check('the fallback channel was used', reached.delivered, 1);
+check('and the owner was pinged there', sent[0].content, '<@owner-g-optout>');
+
+console.log('\n- and a broadcast still respects the opt-in -');
+sent.length = 0;
+const all = await broadcast(client, { body: 'To everyone who opted in.', sentBy: 'operator' });
+check('the opted-out server is still skipped', all.skipped, 1);
+check('even though it now has an approval channel',
+  sent.some((x) => x.guildId === 'g-optout'), false);
 
 console.log(`\n${failures ? `${failures} check(s) failed` : 'all checks passed'}\n`);
 process.exit(failures ? 1 : 0);

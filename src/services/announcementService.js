@@ -34,9 +34,14 @@ export function preview(client) {
   return rows.sort((a, b) => Number(b.optedIn) - Number(a.optedIn));
 }
 
-export async function broadcast(client, { title, body, everyone, sentBy }) {
+export async function broadcast(client, {
+  title, body, everyone, sentBy, guildIds = null, pingOwner = false,
+}) {
   const valid = validate({ title, body });
   if (!valid.ok) return { ok: false, reason: valid.reason };
+
+  const directed = Array.isArray(guildIds) && guildIds.length > 0;
+  const wanted = directed ? new Set(guildIds) : null;
 
   const info = announcements.create({
     title: valid.title,
@@ -52,24 +57,40 @@ export async function broadcast(client, { title, body, everyone, sentBy }) {
   let pinged = 0;
 
   for (const [, guild] of client.guilds.cache) {
+    if (wanted && !wanted.has(guild.id)) continue;
+
     const cfg = guildConfig.get(guild.id);
 
-    if (!cfg.announce_channel_id) {
+    const candidates = directed
+      ? [cfg.announce_channel_id, cfg.notify_channel_id, cfg.log_channel_id].filter(Boolean)
+      : [cfg.announce_channel_id].filter(Boolean);
+
+    if (!candidates.length) {
       skipped += 1;
       announcements.recordTarget({
-        announcementId, guildId: guild.id, status: 'skipped', detail: 'no channel configured',
+        announcementId,
+        guildId: guild.id,
+        status: 'skipped',
+        detail: directed ? 'no usable channel' : 'no channel configured',
       });
       continue;
     }
 
-    const health = await checkChannel(guild, cfg.announce_channel_id);
-    if (!health.ok) {
+    let health = null;
+    let lastReason = null;
+    for (const id of candidates) {
+      const probe = await checkChannel(guild, id);
+      if (probe.ok) { health = probe; break; }
+      lastReason = probe.reason ?? `missing ${probe.missing.join(', ')}`;
+    }
+
+    if (!health) {
       failed += 1;
       announcements.recordTarget({
         announcementId,
         guildId: guild.id,
         status: 'failed',
-        detail: health.reason ?? `missing ${health.missing.join(', ')}`,
+        detail: lastReason,
       });
       continue;
     }
@@ -78,6 +99,10 @@ export async function broadcast(client, { title, body, everyone, sentBy }) {
     const canMention = me?.permissions.has(PermissionsBitField.Flags.MentionEveryone)
       || health.channel.permissionsFor(me)?.has(PermissionsBitField.Flags.MentionEveryone);
     const ping = !!everyone && !!cfg.announce_allow_everyone && !!canMention;
+
+    const ownerId = pingOwner ? guild.ownerId : null;
+    const mentions = [ping ? '@everyone' : null, ownerId ? `<@${ownerId}>` : null]
+      .filter(Boolean).join(' ');
 
     const embed = new EmbedBuilder()
       .setColor(0x5e9bff)
@@ -88,9 +113,12 @@ export async function broadcast(client, { title, body, everyone, sentBy }) {
 
     try {
       await health.channel.send({
-        content: ping ? '@everyone' : undefined,
+        content: mentions || undefined,
         embeds: [embed],
-        allowedMentions: ping ? { parse: ['everyone'] } : { parse: [] },
+        allowedMentions: {
+          parse: ping ? ['everyone'] : [],
+          users: ownerId ? [ownerId] : [],
+        },
       });
       delivered += 1;
       if (ping) pinged += 1;
