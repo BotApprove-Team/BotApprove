@@ -79,6 +79,11 @@ export async function redeemLicenseKey(guildId, rawKey, actorId) {
     detail: { tier: result.key.tier, expires_at: expiresAt, reused: result.reused },
   });
 
+  if (!result.reused) {
+    const { announcePremium } = await import('./premiumWelcome.js');
+    await announcePremium(guildId, { actorId }).catch(() => {});
+  }
+
   return { ok: true, tier: result.key.tier, expiresAt, reused: result.reused };
 }
 

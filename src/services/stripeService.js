@@ -224,6 +224,7 @@ export async function handleEvent(event) {
         entitlements.markPerpetual(guildId);
 
         log.info('lifetime purchase activated', { guildId, customer: obj.customer });
+        await notifyPremium(guildId);
         return { handled: true, action: 'lifetime_activated' };
       }
 
@@ -250,6 +251,7 @@ export async function handleEvent(event) {
       if (onTrial) entitlements.markStripeTrialUsed(guildId);
 
       log.info('subscription activated', { guildId, customer: obj.customer, trialDays });
+      if (!onTrial) await notifyPremium(guildId);
       return { handled: true, action: onTrial ? 'trial_started' : 'activated' };
     }
 
@@ -291,6 +293,11 @@ export async function handleEvent(event) {
     default:
       return { handled: false, reason: 'unhandled_type' };
   }
+}
+
+async function notifyPremium(guildId) {
+  const { announcePremium } = await import('./premiumWelcome.js');
+  await announcePremium(guildId, { actorId: 'stripe' }).catch(() => {});
 }
 
 export function constructEvent(rawBody, signature) {
