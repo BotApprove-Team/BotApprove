@@ -19,6 +19,7 @@ import {
   termsAcceptances,
   tamperResponses,
   webhookEvents as webhookEventRows,
+  externalAppEvents,
 } from '../../db/queries.js';
 import {
   confirmNukeBot,
@@ -47,6 +48,10 @@ import {
   MODES as WEBHOOK_MODES,
   MODE_LABELS as WEBHOOK_MODE_LABELS,
 } from '../../services/webhookGuard.js';
+import {
+  ACTIONS as EXTAPP_ACTIONS,
+  ACTION_LABELS as EXTAPP_LABELS,
+} from '../../services/externalAppGuard.js';
 import {
   resolveEntitlement,
   redeemLicenseKey,
@@ -207,6 +212,9 @@ router.get('/g/:guildId/:tab', requireGuildAccess('approve'), async (req, res, n
     webhookModes: WEBHOOK_MODES,
     webhookModeLabels: WEBHOOK_MODE_LABELS,
     webhookEvents: webhookEventRows.recent(guildId, 10),
+    extAppActions: EXTAPP_ACTIONS,
+    extAppLabels: EXTAPP_LABELS,
+    extAppEvents: externalAppEvents.recent(guildId, 10),
     purchaseUrl: config.paywall.purchaseUrl,
     viaOperator: req.guildAccess.via === 'instance_owner',
     configureViaOperator: !!req.guildAccess.configureViaOperator,
@@ -391,6 +399,11 @@ router.post('/g/:guildId/config', requireGuildAccess('configure'), async (req, r
   if (WEBHOOK_MODES.includes(req.body.webhook_guard)) {
     patch.webhook_guard = req.body.webhook_guard;
   }
+  if (EXTAPP_ACTIONS.includes(req.body.external_app_action)) {
+    patch.external_app_action = req.body.external_app_action;
+  }
+  const burst = Number.parseInt(req.body.external_app_burst, 10);
+  if (Number.isFinite(burst) && burst >= 1 && burst <= 20) patch.external_app_burst = burst;
 
   const announce = String(req.body.announce_channel_id ?? '');
   if (!announce) {

@@ -86,6 +86,15 @@ export async function checkGuild(guild, { reason = 'periodic' } = {}) {
     );
   }
 
+  const everyone = guild.roles.everyone;
+  if (everyone?.permissions?.has(PermissionsBitField.Flags.UseExternalApps, false)) {
+    notes.push(
+      '@everyone can use apps installed to their own account. Those never join the server, so '
+      + 'they never go through the approval gate, and someone can post with one without '
+      + 'inviting a bot. Server Settings, Roles, Apps Permissions, turn off Use External Apps.',
+    );
+  }
+
   const cfg = guildConfig.get(guild.id);
   const notify = await checkChannel(guild, cfg.notify_channel_id);
   if (cfg.notify_channel_id && !notify.ok) {

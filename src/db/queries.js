@@ -133,6 +133,9 @@ const CONFIG_COLUMNS = [
   'tamper_response',
   'webhook_guard',
   'quarantine_role_id',
+  'external_app_action',
+  'external_app_burst',
+  'external_app_window_s',
 ];
 
 export const guildConfig = {
@@ -425,6 +428,28 @@ export const guildFeatures = {
   enabledCount: (guildId) =>
     q('SELECT COUNT(*) AS n FROM guild_features WHERE guild_id = ? AND enabled = 1')
       .get(guildId).n,
+};
+
+export const externalAppEvents = {
+  create: ({ guildId, channelId, messageId, appId, actorId, actorTag, deleted, action, outcome }) =>
+    q(`INSERT INTO external_app_events
+         (guild_id, channel_id, message_id, app_id, actor_id, actor_tag, deleted, action,
+          outcome, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+      .run(guildId, channelId ?? null, messageId ?? null, appId ?? null, actorId ?? null,
+           actorTag ?? null, deleted ? 1 : 0, action ?? null, outcome ?? null, Date.now()),
+  burstCount: (guildId, actorId, since) =>
+    q(`SELECT COUNT(*) AS n FROM external_app_events
+        WHERE guild_id = ? AND actor_id = ? AND created_at >= ?`)
+      .get(guildId, actorId, since).n,
+  actedSince: (guildId, since) =>
+    q(`SELECT COUNT(*) AS n FROM external_app_events
+        WHERE guild_id = ? AND created_at >= ?
+          AND outcome IN ('timeout', 'kick', 'ban')`)
+      .get(guildId, since).n,
+  recent: (guildId, limit = 25) =>
+    q('SELECT * FROM external_app_events WHERE guild_id = ? ORDER BY id DESC LIMIT ?')
+      .all(guildId, limit),
 };
 
 export const webhookEvents = {

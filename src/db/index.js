@@ -515,6 +515,31 @@ const MIGRATIONS = [
        WHERE e.status = 'active';
     `,
   },
+  {
+    id: 18,
+    name: 'external_app_guard',
+    sql: `
+      ALTER TABLE guild_config ADD COLUMN external_app_action TEXT NOT NULL DEFAULT 'report';
+      ALTER TABLE guild_config ADD COLUMN external_app_burst INTEGER NOT NULL DEFAULT 3;
+      ALTER TABLE guild_config ADD COLUMN external_app_window_s INTEGER NOT NULL DEFAULT 15;
+
+      CREATE TABLE external_app_events (
+        id           INTEGER PRIMARY KEY AUTOINCREMENT,
+        guild_id     TEXT    NOT NULL,
+        channel_id   TEXT,
+        message_id   TEXT,
+        app_id       TEXT,
+        actor_id     TEXT,
+        actor_tag    TEXT,
+        deleted      INTEGER NOT NULL DEFAULT 0,
+        action       TEXT,
+        outcome      TEXT,
+        created_at   INTEGER NOT NULL
+      );
+      CREATE INDEX idx_extapp_guild ON external_app_events(guild_id, created_at DESC);
+      CREATE INDEX idx_extapp_actor ON external_app_events(guild_id, actor_id, created_at DESC);
+    `,
+  },
 ];
 
 function migrate() {

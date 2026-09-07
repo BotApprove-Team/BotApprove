@@ -58,6 +58,24 @@
       paintButton(btn);
     });
 
+    var warners = document.querySelectorAll('select[data-warn-on]');
+    for (var i = 0; i < warners.length; i += 1) {
+      (function (sel) {
+        var risky = sel.getAttribute('data-warn-on');
+        var last = sel.value;
+        sel.addEventListener('change', function () {
+          if (sel.value !== risky) { last = sel.value; return; }
+          var ok = window.confirm(
+            'Leaving this off means BotApprove will not tell you when someone posts with an app '
+            + 'that never joined your server. That is the route people use to spam without '
+            + 'inviting a bot. Recommended: keep it on at least Tell me. '
+            + 'Turn it off anyway?',
+          );
+          if (!ok) sel.value = last; else last = sel.value;
+        });
+      }(warners[i]));
+    }
+
     if (window.matchMedia) {
       var mq = window.matchMedia('(prefers-color-scheme: dark)');
       var onChange = function () {

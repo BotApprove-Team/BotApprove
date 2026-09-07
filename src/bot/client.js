@@ -14,6 +14,7 @@ import { rememberGuild, rememberAll, onMemberRemoved, onGuildRemoved } from '../
 import { checkAll as checkDriftAll, checkBot as checkDriftBot } from '../services/driftWatch.js';
 import { onRoleUpdate, onRoleDelete, onSelfMemberUpdate } from '../services/tamperWatch.js';
 import { onWebhookCreated } from '../services/webhookGuard.js';
+import { onExternalAppMessage, fromUserInstalledApp } from '../services/externalAppGuard.js';
 import { sendSetupGuide } from '../services/welcome.js';
 import { announceIfOpened } from '../services/billingOpened.js';
 import { handleInteraction } from './commands/index.js';
@@ -44,6 +45,7 @@ export function createClient() {
       GatewayIntentBits.Guilds,
       GatewayIntentBits.GuildMembers,
       GatewayIntentBits.GuildModeration,
+      GatewayIntentBits.GuildMessages,
     ],
     partials: [Partials.GuildMember, Partials.User],
   });
@@ -171,6 +173,13 @@ export function createClient() {
         : null,
     }).catch((err) =>
       log.error('webhook guard failed', { guildId: guild.id, err: err.message }));
+  });
+
+  client.on(Events.MessageCreate, async (message) => {
+    if (!message.guild) return;
+    if (!fromUserInstalledApp(message)) return;
+    await onExternalAppMessage(message).catch((err) =>
+      log.error('external app guard failed', { guildId: message.guild.id, err: err.message }));
   });
 
   client.on(Events.GuildMemberRemove, async (member) => {
