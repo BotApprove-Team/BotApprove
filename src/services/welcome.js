@@ -43,6 +43,23 @@ export function roleStanding(guild) {
     .filter((r) => r.position >= mine.position && r.managed && r.id !== mine.id)
     .map((r) => r.name);
 
+  const humans = [...(guild.members.cache?.values?.() ?? [])]
+    .filter((m) => !m.user?.bot && m.id !== guild.ownerId);
+
+  const shielded = [];
+  for (const role of guild.roles.cache.values()) {
+    if (role.position <= mine.position || role.managed) continue;
+    const others = humans.filter((m) => m.roles?.cache?.has?.(role.id));
+    if (others.length) {
+      shielded.push({
+        role: role.name,
+        position: role.position,
+        people: others.length,
+        names: others.slice(0, 4).map((m) => m.user.tag),
+      });
+    }
+  }
+
   return {
     roleName: mine.name,
     position: mine.position,
@@ -51,6 +68,8 @@ export function roleStanding(guild) {
     unreachable: unreachable.map((b) => b.tag),
     unreachableDetail: unreachable,
     sharing,
+    shielded,
+    shieldedPeople: shielded.reduce((n, r) => n + r.people, 0),
     ok: unreachable.length === 0 && botRolesAtOrAbove.length === 0,
   };
 }
@@ -105,6 +124,36 @@ function buildEmbed(guild, standing) {
     embed.addFields({
       name: `Cannot be removed right now: ${standing.unreachable.length}`,
       value: `${shown}${more}\n\nThese are the bots the gate would fail on today.`,
+    });
+  }
+
+  const shielded = standing?.shielded ?? [];
+  if (shielded.length) {
+    const list = shielded.slice(0, 4)
+      .map((r) => `**${r.role}** (${r.people} ${r.people === 1 ? 'person' : 'people'})`)
+      .join(', ');
+    const more = shielded.length > 4 ? ` and ${shielded.length - 4} more` : '';
+    embed.addFields({
+      name: `How high to put it: ${standing.shieldedPeople} out of reach`,
+      value:
+        'For the tamper response to actually bite, BotApprove has to outrank whoever it might ' +
+        'need to act against. Right now these roles sit above it and are held by people other ' +
+        `than you: ${list}${more}.\n\n` +
+        '**You do not have to put it above a role only you hold.** The server owner cannot be ' +
+        'acted against by anything, BotApprove included, so your own role can stay on top and ' +
+        'you keep every permission.\n\n' +
+        'The exception is a role **shared** by several people. Everyone on it becomes ' +
+        'untouchable purely because of where it sits, so if more than one person wears your top ' +
+        'role, BotApprove needs to be above it.',
+    });
+  } else if (standing) {
+    embed.addFields({
+      name: 'How high to put it',
+      value:
+        'Above every role except your own is enough. The server owner cannot be acted against ' +
+        'by anything, so a role only you hold can sit on top and you keep every permission.\n\n' +
+        'If several people share your top role, move BotApprove above it: otherwise all of them ' +
+        'are out of reach if one ever turns on the server.',
     });
   }
 

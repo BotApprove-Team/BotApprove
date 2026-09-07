@@ -42,14 +42,16 @@ const collection = (items) => ({
   map: (fn) => items.map(fn),
 });
 
-const makeGuild = ({ myRole, roles, bots = [] }) => {
+const makeGuild = ({ myRole, roles, bots = [], humans = [], ownerId = 'owner-1' }) => {
   const all = [myRole, ...roles];
   return {
+    ownerId,
     members: {
       me: { id: 'me', roles: { highest: myRole } },
       cache: collection([
         { id: 'me', user: { bot: true, tag: 'BotApprove#3260' }, roles: { highest: myRole } },
         ...bots,
+        ...humans,
       ]),
     },
     roles: { cache: collection(all) },
@@ -136,6 +138,54 @@ check('and the role above is named', s5.botRolesAtOrAbove, ['Carl-bot']);
 console.log('\n- BotApprove never counts itself -');
 check('not among the unreachable', s2.unreachable.includes('BotApprove#3260'), false);
 check('its own role is not listed above itself', s3.botRolesAtOrAbove.includes('BotApprove'), false);
+
+console.log('\n- how high the role has to go -');
+const person = (id, tag, roleIds) => ({
+  id,
+  user: { bot: false, tag },
+  roles: { highest: { id: roleIds[0], position: 90 }, cache: { has: (r) => roleIds.includes(r) } },
+});
+
+const OWNER_ONLY = makeGuild({
+  myRole: { ...OWN, position: 50 },
+  roles: [{ id: 'r-owner', name: 'Owner', position: 90, managed: false }],
+  humans: [person('owner-1', 'miku#0001', ['r-owner'])],
+});
+const so = roleStanding(OWNER_ONLY);
+check('a role only the owner holds shields nobody', so.shielded, []);
+check('so nothing is out of reach', so.shieldedPeople, 0);
+
+const SHARED = makeGuild({
+  myRole: { ...OWN, position: 50 },
+  roles: [{ id: 'r-owner', name: 'Owner', position: 90, managed: false }],
+  humans: [
+    person('owner-1', 'miku#0001', ['r-owner']),
+    person('u2', 'second#0002', ['r-owner']),
+    person('u3', 'third#0003', ['r-owner']),
+  ],
+});
+const ss = roleStanding(SHARED);
+check('a shared top role shields the others', ss.shielded.length, 1);
+check('the owner is not counted among them', ss.shieldedPeople, 2);
+check('and the role is named', ss.shielded[0].role, 'Owner');
+
+const BELOW = makeGuild({
+  myRole: { ...OWN, position: 95 },
+  roles: [{ id: 'r-owner', name: 'Owner', position: 90, managed: false }],
+  humans: [
+    person('owner-1', 'miku#0001', ['r-owner']),
+    person('u2', 'second#0002', ['r-owner']),
+  ],
+});
+check('nothing above it shields anyone', roleStanding(BELOW).shielded, []);
+
+const BOTROLE = makeGuild({
+  myRole: { ...OWN, position: 50 },
+  roles: [{ id: 'r-int', name: 'SomeBot', position: 80, managed: true }],
+  humans: [person('u2', 'second#0002', ['r-int'])],
+});
+check('a managed integration role is not a placement problem',
+  roleStanding(BOTROLE).shielded, []);
 
 console.log(`\n${failures ? `${failures} check(s) failed` : 'all checks passed'}\n`);
 process.exit(failures ? 1 : 0);
