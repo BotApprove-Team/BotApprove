@@ -23,6 +23,7 @@ import { hasFeature } from './featureService.js';
 import { describe as describeImpersonation } from './impersonation.js';
 import { checkChannel, describeChannelProblem } from './channelCheck.js';
 import { confirmNukeBot, banNukeInviter } from './nukeDefense.js';
+import { config } from '../config.js';
 import { createLogger } from '../logger.js';
 import { getClient } from '../bot/clientRef.js';
 
@@ -107,7 +108,7 @@ export function buildApprovalMessage({
       `**${botUser.tag}** tried to join and was removed pending review.\n` +
       'Nothing is trusted by default here, including bots invited by the owner.',
     )
-    .setFooter({ text: `Approval #${pendingId} • ${guild.name}` })
+    .setFooter({ text: `Approval #${pendingId} • ${guild.name} • ${config.supportUrl}` })
     .setTimestamp(new Date());
 
   const files = [];

@@ -1,6 +1,7 @@
 import { EmbedBuilder, PermissionsBitField } from 'discord.js';
 import { guildConfig } from '../db/queries.js';
 import { record } from './securityService.js';
+import { config } from '../config.js';
 import { createLogger } from '../logger.js';
 
 const log = createLogger('welcome');
@@ -121,6 +122,11 @@ function buildEmbed(guild, standing) {
       name: 'Check it worked',
       value: 'Run `/selfcheck`. It reports anything still standing between BotApprove and a ' +
         'working gate.',
+    },
+    {
+      name: 'If you get stuck',
+      value: `Ask in the support server, ${config.supportUrl}. Free lifetime licences are `
+        + 'going out while BotApprove is growing, so it is worth asking for one.',
     },
   );
 
