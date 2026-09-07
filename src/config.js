@@ -69,7 +69,8 @@ export const config = {
   repoUrl: process.env.REPO_URL || 'https://github.com/BotApprove-Team/BotApprove',
 
   inviteUrl: `https://discord.com/oauth2/authorize?client_id=${process.env.DISCORD_CLIENT_ID ?? ''}` +
-    '&permissions=67226758&scope=bot%20applications.commands',
+    `&permissions=${process.env.INVITE_PERMISSIONS || '1100384169110'}` +
+    '&scope=bot%20applications.commands',
 
   stripe: {
     enabled: bool(process.env.STRIPE_ENABLED, false),
