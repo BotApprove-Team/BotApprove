@@ -18,7 +18,7 @@ const { matchKeyword, seedDefaultKeywords, addToWhitelist, issueReinviteToken, c
   await import('../src/services/securityService.js');
 const { resolveEntitlement, generateLicenseKey, redeemLicenseKey, markBillingLapse } =
   await import('../src/services/entitlementService.js');
-const { hasFeature, featureState, activeFeatureUsage } =
+const { hasFeature, featureState, activeFeatureUsage, isEntitled, setFeature } =
   await import('../src/services/featureService.js');
 const { confirmNukeBot, isConfirmedNukeBot, unconfirmNukeBot,
         addKnownNukeBot, removeKnownNukeBot, isKnownNukeBot, INVITER_ACTIONS } =
@@ -123,7 +123,13 @@ check('audit trail is free', hasFeature(UNPAID, 'audit_trail'), true);
 check('tamper detection is free', hasFeature(UNPAID, 'tamper_detection'), true);
 check('custom keywords are premium', hasFeature(UNPAID, 'custom_keywords'), false);
 check('auto-ban is premium', hasFeature(UNPAID, 'auto_ban_inviters'), false);
-check('licensed guild keeps premium', hasFeature(GUILD, 'custom_keywords'), true);
+check('a licence alone does not switch premium on',
+  hasFeature(GUILD, 'custom_keywords'), false);
+check('it is entitled, just not enabled', isEntitled(GUILD, 'custom_keywords'), true);
+setFeature(GUILD, 'custom_keywords', true, ADMIN);
+check('switching it on makes it live', hasFeature(GUILD, 'custom_keywords'), true);
+check('an unlicensed guild cannot switch it on',
+  setFeature(UNPAID, 'custom_keywords', true, ADMIN).reason, 'not_entitled');
 
 keywords.add(UNPAID, 'giveaway', ADMIN);
 check('default keyword blocks when unpaid', matchKeyword(UNPAID, 'raid-helper'), 'raid');
@@ -144,7 +150,10 @@ console.log('\n- known nuke bot database -');
 const KNOWN = '666666666666666666';
 await addKnownNukeBot({ botId: KNOWN, botTag: 'wrecker#9', reason: 'mass ban', addedBy: ADMIN });
 check('listed in the shared db', knownNukeBots.has(KNOWN), true);
-check('licensed guild consults the db', isKnownNukeBot(GUILD, KNOWN), true);
+check('a licensed guild with the feature off does not consult the db',
+  isKnownNukeBot(GUILD, KNOWN), false);
+setFeature(GUILD, 'known_nuke_db', true, ADMIN);
+check('and consults it once switched on', isKnownNukeBot(GUILD, KNOWN), true);
 check('unpaid guild does NOT consult the db', isKnownNukeBot(UNPAID, KNOWN), false);
 check('unlisted bot is not a hit', isKnownNukeBot(GUILD, '123123123123123123'), false);
 check('inviter actions are the expected set', INVITER_ACTIONS, ['none', 'kick', 'ban']);
@@ -193,6 +202,7 @@ check('cyrillic lookalikes fold to latin',
   distance(normalise('арргоvе'), normalise('approve')) <= 1, true);
 check('unrelated names stay far apart', distance(normalise('Dyno'), normalise('Groovy')) > 3, true);
 
+setFeature(GUILD, 'impersonation_check', true, ADMIN);
 const lookalike = checkImpersonation(GUILD, {
   botId: BOT, username: 'Dyn0', knownNames: KNOWN_NAMES,
 });
@@ -219,6 +229,7 @@ const fakeMember = (perms) => ({
   permissions: new PermissionsBitField(perms),
 });
 
+setFeature(GUILD, 'permission_drift', true, ADMIN);
 baseline(fakeMember(['SendMessages']));
 check('baseline recorded at approval time',
   JSON.parse((await import('../src/db/queries.js')).botPermissions.get(GUILD, BOT).dangerous), []);

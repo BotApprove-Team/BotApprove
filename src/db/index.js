@@ -482,6 +482,39 @@ const MIGRATIONS = [
       );
     `,
   },
+  {
+    id: 17,
+    name: 'per_guild_feature_switches',
+    sql: `
+      CREATE TABLE guild_features (
+        guild_id    TEXT    NOT NULL,
+        feature_key TEXT    NOT NULL,
+        enabled     INTEGER NOT NULL DEFAULT 0,
+        updated_by  TEXT,
+        updated_at  INTEGER NOT NULL,
+        PRIMARY KEY (guild_id, feature_key)
+      );
+
+      INSERT INTO guild_features (guild_id, feature_key, enabled, updated_by, updated_at)
+      SELECT e.guild_id, f.key, 1, 'migration', strftime('%s','now') * 1000
+        FROM entitlements e
+        CROSS JOIN (
+          SELECT 'custom_keywords' AS key UNION ALL
+          SELECT 'known_nuke_db' UNION ALL
+          SELECT 'custom_nickname' UNION ALL
+          SELECT 'auto_ban_inviters' UNION ALL
+          SELECT 'dm_alerts' UNION ALL
+          SELECT 'image_analysis' UNION ALL
+          SELECT 'permission_drift' UNION ALL
+          SELECT 'impersonation_check' UNION ALL
+          SELECT 'account_age_floor' UNION ALL
+          SELECT 'approval_quorum' UNION ALL
+          SELECT 'whitelist_expiry' UNION ALL
+          SELECT 'log_channel'
+        ) f
+       WHERE e.status = 'active';
+    `,
+  },
 ];
 
 function migrate() {

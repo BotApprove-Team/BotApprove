@@ -1,4 +1,4 @@
-import { entitlements } from '../db/queries.js';
+import { entitlements, guildFeatures } from '../db/queries.js';
 import { config } from '../config.js';
 
 export const FREE = 'free';
@@ -117,12 +117,43 @@ export function resolveEntitlement(guildId) {
   return { licensed: true, tier: row.tier, state: 'active', row, expiresAt: row.expires_at };
 }
 
-export function hasFeature(guildId, key) {
+export function isEntitled(guildId, key) {
   const feature = FEATURES[key];
   if (!feature) return false;
   if (feature.tier === FREE) return true;
   if (!config.paywall.enabled) return true;
   return resolveEntitlement(guildId).licensed;
+}
+
+export function hasFeature(guildId, key) {
+  const feature = FEATURES[key];
+  if (!feature) return false;
+  if (feature.tier === FREE) return true;
+  if (!isEntitled(guildId, key)) return false;
+  return guildFeatures.isEnabled(guildId, key);
+}
+
+export function setFeature(guildId, key, enabled, actorId = null) {
+  const feature = FEATURES[key];
+  if (!feature) return { ok: false, reason: 'unknown_feature' };
+  if (feature.tier === FREE) return { ok: false, reason: 'always_on' };
+  if (enabled && !isEntitled(guildId, key)) return { ok: false, reason: 'not_entitled' };
+  guildFeatures.set(guildId, key, enabled, actorId);
+  return { ok: true, enabled: !!enabled };
+}
+
+export function featureSwitches(guildId) {
+  const enabled = guildFeatures.map(guildId);
+  return premiumKeys.map((key) => ({
+    key,
+    ...FEATURES[key],
+    entitled: isEntitled(guildId, key),
+    enabled: !!enabled[key],
+  }));
+}
+
+export function dormantCount(guildId) {
+  return featureSwitches(guildId).filter((f) => f.entitled && !f.enabled).length;
 }
 
 export function disabledFeatures(guildId) {

@@ -402,6 +402,31 @@ export const tamperResponses = {
       .get(guildId, since).n,
 };
 
+export const guildFeatures = {
+  map: (guildId) => {
+    const out = {};
+    for (const r of q('SELECT feature_key, enabled FROM guild_features WHERE guild_id = ?')
+      .all(guildId)) out[r.feature_key] = !!r.enabled;
+    return out;
+  },
+  isEnabled: (guildId, key) => {
+    const row = q('SELECT enabled FROM guild_features WHERE guild_id = ? AND feature_key = ?')
+      .get(guildId, key);
+    return row ? !!row.enabled : false;
+  },
+  set: (guildId, key, enabled, actorId = null) =>
+    q(`INSERT INTO guild_features (guild_id, feature_key, enabled, updated_by, updated_at)
+       VALUES (?, ?, ?, ?, ?)
+       ON CONFLICT(guild_id, feature_key) DO UPDATE SET
+         enabled    = excluded.enabled,
+         updated_by = excluded.updated_by,
+         updated_at = excluded.updated_at`)
+      .run(guildId, key, enabled ? 1 : 0, actorId, Date.now()),
+  enabledCount: (guildId) =>
+    q('SELECT COUNT(*) AS n FROM guild_features WHERE guild_id = ? AND enabled = 1')
+      .get(guildId).n,
+};
+
 export const webhookEvents = {
   create: ({ guildId, webhookId, webhookName, channelId, actorId, actorTag, outcome }) =>
     q(`INSERT INTO webhook_events
