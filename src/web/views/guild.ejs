@@ -680,7 +680,7 @@
   </p>
   <div class="tw">
     <table>
-      <tr><th>When</th><th>Who</th><th>App</th><th>Result</th><th></th></tr>
+      <tr><th>When</th><th>Who</th><th>App</th><th>Result</th><th>Message</th><th></th></tr>
       <% extAppEvents.forEach((e) => { %>
         <tr>
           <td class="faint" style="white-space:nowrap"><%= ts(e.created_at) %></td>
@@ -690,6 +690,14 @@
             <span class="st <%= ['ban','kick','timeout'].includes(e.outcome) ? 'danger' : e.deleted ? 'warn' : 'off' %>">
               <%= e.outcome %>
             </span>
+          </td>
+          <td>
+            <% if (e.channel_id && e.message_id) { %>
+              <a href="https://discord.com/channels/<%= guild.id %>/<%= e.channel_id %>/<%= e.message_id %>"
+                 rel="noopener noreferrer" target="_blank">
+                <%= e.deleted ? 'channel' : 'jump' %>
+              </a>
+            <% } %>
           </td>
           <td>
             <% if (canConfigure && e.app_id) { %>
@@ -704,7 +712,7 @@
         </tr>
       <% }) %>
       <% if (!extAppEvents.length) { %>
-        <tr><td colspan="5" class="empty">Nothing has posted here without joining.</td></tr>
+        <tr><td colspan="6" class="empty">Nothing has posted here without joining.</td></tr>
       <% } %>
     </table>
   </div>
@@ -755,7 +763,7 @@
   </div>
   <div class="tw">
     <table>
-      <tr><th>When</th><th>Who</th><th>What</th><th>Response</th></tr>
+      <tr><th>When</th><th>Who</th><th>What</th><th>Response</th><th>Detail</th></tr>
       <% tamperEvents.forEach((e) => { %>
         <tr>
           <td class="faint" style="white-space:nowrap"><%= ts(e.created_at) %></td>
@@ -766,10 +774,26 @@
               <%= e.outcome %>
             </span>
           </td>
+          <td class="faint">
+            <%
+              let td = null; let tr2 = null;
+              try { td = e.detail ? JSON.parse(e.detail) : null; } catch (err) { td = null; }
+              try { tr2 = e.roles_removed ? JSON.parse(e.roles_removed) : null; } catch (err) { tr2 = null; }
+            %>
+            <% if (td && td.from !== undefined && td.to !== undefined) { %>
+              position <%= td.from %> &rarr; <%= td.to %><br>
+            <% } %>
+            <% if (td && td.lost && td.lost.length) { %>
+              lost <%= td.lost.join(', ') %><br>
+            <% } %>
+            <% if (tr2 && tr2.length) { %>
+              took <%= tr2.map((r) => r.name).join(', ') %>
+            <% } %>
+          </td>
         </tr>
       <% }) %>
       <% if (!tamperEvents.length) { %>
-        <tr><td colspan="4" class="empty">Nobody has tried.</td></tr>
+        <tr><td colspan="5" class="empty">Nobody has tried.</td></tr>
       <% } %>
     </table>
   </div>
