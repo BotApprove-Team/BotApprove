@@ -20,6 +20,7 @@ import {
   tamperResponses,
   webhookEvents as webhookEventRows,
   externalAppEvents,
+  externalAppRules,
 } from '../../db/queries.js';
 import {
   confirmNukeBot,
@@ -214,7 +215,8 @@ router.get('/g/:guildId/:tab', requireGuildAccess('approve'), async (req, res, n
     webhookEvents: webhookEventRows.recent(guildId, 10),
     extAppActions: EXTAPP_ACTIONS,
     extAppLabels: EXTAPP_LABELS,
-    extAppEvents: externalAppEvents.recent(guildId, 10),
+    extAppEvents: externalAppEvents.recent(guildId, 15),
+    extAppRules: externalAppRules.list(guildId),
     purchaseUrl: config.paywall.purchaseUrl,
     viaOperator: req.guildAccess.via === 'instance_owner',
     configureViaOperator: !!req.guildAccess.configureViaOperator,
@@ -277,6 +279,35 @@ router.post('/g/:guildId/approvals/:id', requireGuildAccess('approve'), async (r
   }
 
   return res.redirect(`/g/${req.params.guildId}`);
+});
+
+router.post('/g/:guildId/extapp-rule', requireGuildAccess('configure'), async (req, res) => {
+  const guildId = req.guildAccess.guild.id;
+  const appId = String(req.body.app_id ?? '').trim();
+  const rule = String(req.body.rule ?? '');
+
+  if (!/^\d{15,25}$/.test(appId)) {
+    flash(req, 'error', 'That is not an application id.');
+  } else if (rule === 'remove') {
+    externalAppRules.remove(guildId, appId);
+    flash(req, 'ok', `Rule removed for ${appId}.`);
+  } else if (rule === 'block' || rule === 'allow') {
+    externalAppRules.set({ guildId, appId, rule, addedBy: req.session.user.id });
+    await record({
+      guildId,
+      actorId: req.session.user.id,
+      action: rule === 'block' ? 'external_app_blocked' : 'external_app_allowed',
+      severity: 'medium',
+      detail: { app_id: appId },
+      mirror: false,
+    }).catch(() => {});
+    flash(req, 'ok', rule === 'block'
+      ? `${appId} will be acted on the moment it posts.`
+      : `${appId} will never be flagged here.`);
+  } else {
+    flash(req, 'error', 'Unknown rule.');
+  }
+  return res.redirect(`/g/${guildId}/threats`);
 });
 
 router.post('/g/:guildId/features', requireGuildAccess('configure'), async (req, res) => {

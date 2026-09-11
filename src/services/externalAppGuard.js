@@ -1,5 +1,5 @@
 import { EmbedBuilder, PermissionsBitField } from 'discord.js';
-import { guildConfig, externalAppEvents } from '../db/queries.js';
+import { guildConfig, externalAppEvents, externalAppRules } from '../db/queries.js';
 import { record } from './securityService.js';
 import { createLogger } from '../logger.js';
 
@@ -101,14 +101,22 @@ export async function onExternalAppMessage(message) {
   if (!found) return { outcome: 'not_external' };
 
   const configured = action(guild.id);
-  if (configured === 'off') return { outcome: 'disabled' };
+
+  const rule = found.appId ? externalAppRules.get(guild.id, found.appId) : null;
+  if (rule?.rule === 'allow') return { outcome: 'allowed_app' };
+
+  if (configured === 'off' && rule?.rule !== 'block') return { outcome: 'disabled' };
 
   const me = guild.members.me;
   const actor = found.actor;
   const actorId = actor?.id ?? found.installedBy;
 
+  const effective = rule?.rule === 'block' && !HITS_PERSON.includes(configured)
+    ? 'delete'
+    : configured;
+
   let deleted = false;
-  if (DELETES.includes(configured)
+  if ((DELETES.includes(effective) || rule?.rule === 'block')
     && me?.permissions.has(PermissionsBitField.Flags.ManageMessages)) {
     deleted = await message.delete().then(() => true).catch(() => false);
   }
@@ -119,12 +127,12 @@ export async function onExternalAppMessage(message) {
 
   let outcome = deleted ? 'deleted' : 'reported';
 
-  if (HITS_PERSON.includes(configured)) {
+  if (HITS_PERSON.includes(effective)) {
     if (actorId === guild.ownerId) {
       outcome = 'owner_exempt';
     } else if (externalAppEvents.actedSince(guild.id, Date.now() - BREAKER_WINDOW_MS) >= BREAKER_MAX) {
       outcome = 'breaker_open';
-    } else if (burst < threshold) {
+    } else if (burst < threshold && rule?.rule !== 'block') {
       outcome = 'below_burst';
     } else {
       const member = guild.members.cache.get(actorId)
@@ -132,17 +140,17 @@ export async function onExternalAppMessage(message) {
 
       if (!reachable(me, member)) {
         outcome = 'unreachable';
-      } else if (configured === 'timeout') {
+      } else if (effective === 'timeout') {
         outcome = me.permissions.has(PermissionsBitField.Flags.ModerateMembers)
           ? await member.timeout(TIMEOUT_MS, 'BotApprove: raiding with a user-installed app')
             .then(() => 'timeout').catch(() => 'failed')
           : 'no_permission';
-      } else if (configured === 'kick') {
+      } else if (effective === 'kick') {
         outcome = me.permissions.has(PermissionsBitField.Flags.KickMembers)
           ? await member.kick('BotApprove: raiding with a user-installed app')
             .then(() => 'kick').catch(() => 'failed')
           : 'no_permission';
-      } else if (configured === 'ban') {
+      } else if (effective === 'ban') {
         outcome = me.permissions.has(PermissionsBitField.Flags.BanMembers)
           ? await guild.bans.create(actorId, {
             reason: 'BotApprove: raiding with a user-installed app',
@@ -161,7 +169,7 @@ export async function onExternalAppMessage(message) {
     actorId,
     actorTag: actor?.tag ?? null,
     deleted,
-    action: configured,
+    action: effective,
     outcome,
   });
 
@@ -172,7 +180,7 @@ export async function onExternalAppMessage(message) {
     severity: HITS_PERSON.includes(outcome) ? 'critical' : 'high',
     title: 'An app posted without being in the server',
     description: `${actor?.tag ?? actorId} used a user-installed app. Response: ${outcome}.`,
-    detail: { app_id: found.appId, deleted, burst, configured, outcome },
+    detail: { app_id: found.appId, deleted, burst, configured, effective, outcome, rule: rule?.rule ?? null },
   }).catch(() => {});
 
   await alert(guild, {

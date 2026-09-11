@@ -11,7 +11,7 @@ const { config } = await import('../src/config.js');
 for (const suffix of ['', '-wal', '-shm']) fs.rmSync(config.db.path + suffix, { force: true });
 fs.mkdirSync(path.dirname(config.db.path), { recursive: true });
 
-const { guildConfig, externalAppEvents } = await import('../src/db/queries.js');
+const { guildConfig, externalAppEvents, externalAppRules } = await import('../src/db/queries.js');
 const { onExternalAppMessage, fromUserInstalledApp } =
   await import('../src/services/externalAppGuard.js');
 
@@ -183,6 +183,40 @@ for (let i = 0; i < 21; i += 1) {
 check('the first five act', outcomes.slice(0, 5), ['kick', 'kick', 'kick', 'kick', 'kick']);
 check('then it stands down', outcomes[5], 'breaker_open');
 check('and stays down', outcomes[20], 'breaker_open');
+
+console.log('\n- per-app rules -');
+acted = [];
+externalAppRules.set({ guildId: 'g-block', appId: 'app-1', rule: 'block', addedBy: 'u1' });
+const blocked = await onExternalAppMessage(
+  makeMessage({ guildId: 'g-block', action: 'ban', burst: 5 }),
+);
+check('a blocked app skips the burst wait', blocked.outcome, 'ban');
+check('on the very first message', acted, ['delete', 'ban']);
+
+acted = [];
+externalAppRules.set({ guildId: 'g-allow', appId: 'app-1', rule: 'allow', addedBy: 'u1' });
+const allowed = await onExternalAppMessage(
+  makeMessage({ guildId: 'g-allow', action: 'ban', burst: 1 }),
+);
+check('an allowed app is ignored entirely', allowed.outcome, 'allowed_app');
+check('nothing is done to it', acted, []);
+check('and nothing is recorded', externalAppEvents.recent('g-allow').length, 0);
+
+acted = [];
+externalAppRules.set({ guildId: 'g-blockoff', appId: 'app-1', rule: 'block', addedBy: 'u1' });
+const evenOff = await onExternalAppMessage(
+  makeMessage({ guildId: 'g-blockoff', action: 'off', burst: 1 }),
+);
+check('a blocked app is still removed with the guard off', evenOff.deleted, true);
+check('though nobody is punished for it', evenOff.outcome, 'deleted');
+
+acted = [];
+externalAppRules.remove('g-block', 'app-1');
+const unblocked = await onExternalAppMessage(
+  makeMessage({ guildId: 'g-block2', action: 'ban', burst: 5 }),
+);
+check('removing the rule restores the burst wait', unblocked.outcome, 'below_burst');
+
 
 console.log(`\n${failures ? `${failures} check(s) failed` : 'all checks passed'}\n`);
 process.exit(failures ? 1 : 0);

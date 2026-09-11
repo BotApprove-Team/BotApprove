@@ -540,6 +540,23 @@ const MIGRATIONS = [
       CREATE INDEX idx_extapp_actor ON external_app_events(guild_id, actor_id, created_at DESC);
     `,
   },
+  {
+    id: 19,
+    name: 'external_app_rules',
+    sql: `
+      CREATE TABLE external_app_rules (
+        guild_id  TEXT    NOT NULL,
+        app_id    TEXT    NOT NULL,
+        app_name  TEXT,
+        rule      TEXT    NOT NULL DEFAULT 'block',
+        note      TEXT,
+        added_by  TEXT,
+        added_at  INTEGER NOT NULL,
+        PRIMARY KEY (guild_id, app_id)
+      );
+      CREATE INDEX idx_extrules_guild ON external_app_rules(guild_id, rule);
+    `,
+  },
 ];
 
 function migrate() {

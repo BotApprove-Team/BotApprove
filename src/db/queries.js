@@ -430,6 +430,25 @@ export const guildFeatures = {
       .get(guildId).n,
 };
 
+export const externalAppRules = {
+  get: (guildId, appId) =>
+    q('SELECT * FROM external_app_rules WHERE guild_id = ? AND app_id = ?').get(guildId, appId),
+  list: (guildId) =>
+    q('SELECT * FROM external_app_rules WHERE guild_id = ? ORDER BY added_at DESC').all(guildId),
+  set: ({ guildId, appId, appName, rule, note, addedBy }) =>
+    q(`INSERT INTO external_app_rules (guild_id, app_id, app_name, rule, note, added_by, added_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?)
+       ON CONFLICT(guild_id, app_id) DO UPDATE SET
+         app_name = excluded.app_name,
+         rule     = excluded.rule,
+         note     = excluded.note,
+         added_by = excluded.added_by,
+         added_at = excluded.added_at`)
+      .run(guildId, appId, appName ?? null, rule, note ?? null, addedBy ?? null, Date.now()),
+  remove: (guildId, appId) =>
+    q('DELETE FROM external_app_rules WHERE guild_id = ? AND app_id = ?').run(guildId, appId),
+};
+
 export const externalAppEvents = {
   create: ({ guildId, channelId, messageId, appId, actorId, actorTag, deleted, action, outcome }) =>
     q(`INSERT INTO external_app_events

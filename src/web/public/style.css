@@ -566,6 +566,10 @@ code {
   margin: 0 0 18px;
 }
 .hero .stat strong { color: var(--text); font-weight: 600; }
+.row-form { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; }
+.row-form input[type="text"] { flex: 1; min-width: 220px; }
+form.inline { display: inline; margin: 0; }
+
 .frows { border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
 .frow {
   display: flex;

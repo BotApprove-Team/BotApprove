@@ -668,6 +668,138 @@
 <% } %>
 
 <% if (tab === 'threats') { %>
+<section class="block">
+  <div class="block-head">
+    <h2>Apps posting without joining</h2>
+    <span class="count"><%= extAppEvents.length %></span>
+  </div>
+  <p class="hint">
+    A user-installed app never joins the server, so the approval gate never sees it. These are
+    the ones that have posted here. Block an app id to act on it the moment it posts, without
+    waiting for a burst.
+  </p>
+  <div class="tw">
+    <table>
+      <tr><th>When</th><th>Who</th><th>App</th><th>Result</th><th></th></tr>
+      <% extAppEvents.forEach((e) => { %>
+        <tr>
+          <td class="faint" style="white-space:nowrap"><%= ts(e.created_at) %></td>
+          <td><%= e.actor_tag || e.actor_id || 'unknown' %><div class="sub"><%= e.actor_id || '' %></div></td>
+          <td class="mono"><%= e.app_id || 'unknown' %></td>
+          <td>
+            <span class="st <%= ['ban','kick','timeout'].includes(e.outcome) ? 'danger' : e.deleted ? 'warn' : 'off' %>">
+              <%= e.outcome %>
+            </span>
+          </td>
+          <td>
+            <% if (canConfigure && e.app_id) { %>
+              <form method="post" action="/g/<%= guild.id %>/extapp-rule" class="inline">
+                <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                <input type="hidden" name="app_id" value="<%= e.app_id %>">
+                <input type="hidden" name="rule" value="block">
+                <button type="submit">Block this app</button>
+              </form>
+            <% } %>
+          </td>
+        </tr>
+      <% }) %>
+      <% if (!extAppEvents.length) { %>
+        <tr><td colspan="5" class="empty">Nothing has posted here without joining.</td></tr>
+      <% } %>
+    </table>
+  </div>
+
+  <% if (extAppRules.length) { %>
+    <div class="block-head" style="margin-top:18px"><h2>App rules</h2></div>
+    <div class="tw">
+      <table>
+        <tr><th>App</th><th>Rule</th><th>Added</th><th></th></tr>
+        <% extAppRules.forEach((r) => { %>
+          <tr>
+            <td class="mono"><%= r.app_id %><% if (r.app_name) { %><div class="sub"><%= r.app_name %></div><% } %></td>
+            <td><span class="st <%= r.rule === 'block' ? 'danger' : 'ok' %>"><%= r.rule %></span></td>
+            <td class="faint"><%= ts(r.added_at) %></td>
+            <td>
+              <% if (canConfigure) { %>
+                <form method="post" action="/g/<%= guild.id %>/extapp-rule" class="inline">
+                  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                  <input type="hidden" name="app_id" value="<%= r.app_id %>">
+                  <input type="hidden" name="rule" value="remove">
+                  <button type="submit">Remove</button>
+                </form>
+              <% } %>
+            </td>
+          </tr>
+        <% }) %>
+      </table>
+    </div>
+  <% } %>
+
+  <% if (canConfigure) { %>
+    <form method="post" action="/g/<%= guild.id %>/extapp-rule" class="row-form">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <input type="text" name="app_id" placeholder="Application id" pattern="\d{15,25}" required>
+      <select name="rule">
+        <option value="block">Block, act on sight</option>
+        <option value="allow">Allow, never flag it</option>
+      </select>
+      <button type="submit">Add rule</button>
+    </form>
+  <% } %>
+</section>
+
+<section class="block">
+  <div class="block-head">
+    <h2>Attempts to weaken BotApprove</h2>
+    <span class="count"><%= tamperEvents.length %></span>
+  </div>
+  <div class="tw">
+    <table>
+      <tr><th>When</th><th>Who</th><th>What</th><th>Response</th></tr>
+      <% tamperEvents.forEach((e) => { %>
+        <tr>
+          <td class="faint" style="white-space:nowrap"><%= ts(e.created_at) %></td>
+          <td><%= e.actor_tag || e.actor_id || 'unknown' %></td>
+          <td class="faint"><%= e.trigger %></td>
+          <td>
+            <span class="st <%= ['stripped','quarantined'].includes(e.outcome) ? 'danger' : 'off' %>">
+              <%= e.outcome %>
+            </span>
+          </td>
+        </tr>
+      <% }) %>
+      <% if (!tamperEvents.length) { %>
+        <tr><td colspan="4" class="empty">Nobody has tried.</td></tr>
+      <% } %>
+    </table>
+  </div>
+</section>
+
+<section class="block">
+  <div class="block-head">
+    <h2>Webhooks created</h2>
+    <span class="count"><%= webhookEvents.length %></span>
+  </div>
+  <div class="tw">
+    <table>
+      <tr><th>When</th><th>Who</th><th>Name</th><th>Result</th></tr>
+      <% webhookEvents.forEach((e) => { %>
+        <tr>
+          <td class="faint" style="white-space:nowrap"><%= ts(e.created_at) %></td>
+          <td><%= e.actor_tag || e.actor_id || 'unknown' %></td>
+          <td><%= e.webhook_name || e.webhook_id || '' %></td>
+          <td>
+            <span class="st <%= e.outcome === 'deleted' ? 'danger' : 'off' %>"><%= e.outcome %></span>
+          </td>
+        </tr>
+      <% }) %>
+      <% if (!webhookEvents.length) { %>
+        <tr><td colspan="4" class="empty">None created since this was switched on.</td></tr>
+      <% } %>
+    </table>
+  </div>
+</section>
+
 <% if (incidents.length) { %>
 <section class="block">
   <div class="block-head">
