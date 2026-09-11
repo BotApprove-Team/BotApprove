@@ -40,12 +40,28 @@ export async function checkGuild(guild, { reason = 'periodic' } = {}) {
   }
 
   if (rolesAbove.size) {
-    notes.push(
-      `${rolesAbove.size} role(s) rank above BotApprove: ` +
-      `${[...rolesAbove.values()].map((r) => r.name).join(', ')}. ` +
-      'Bot screening is unaffected, but members holding them cannot be kicked or banned ' +
-      'by the nuke-inviter actions.',
-    );
+    const humans = [...guild.members.cache.values()]
+      .filter((m) => !m.user?.bot && m.id !== guild.ownerId);
+    const outOfReach = humans.filter((m) => m.roles.highest.position >= position);
+    const held = [...rolesAbove.values()]
+      .filter((r) => humans.some((m) => m.roles.cache.has(r.id)))
+      .sort((a2, b2) => b2.position - a2.position);
+
+    if (outOfReach.length) {
+      const top = held.slice(0, 3).map((r) => r.name).join(', ');
+      notes.push(
+        `${outOfReach.length} member(s) cannot be kicked or banned by the nuke-inviter actions, `
+        + `because their top role sits above BotApprove. Only ${held.length} of the `
+        + `${rolesAbove.size} roles above it are held by anyone`
+        + (top ? `, the highest being ${top}` : '')
+        + '. Bot screening is unaffected.',
+      );
+    } else {
+      notes.push(
+        `${rolesAbove.size} role(s) rank above BotApprove, but nobody other than you holds any `
+        + 'of them, so nobody is out of reach. Bot screening is unaffected.',
+      );
+    }
   }
 
   // A bot we cannot remove is the gate failing for that bot, not a limit on an
@@ -80,7 +96,8 @@ export async function checkGuild(guild, { reason = 'periodic' } = {}) {
   if (threats.size) {
     notes.push(
       `${threats.size} bot(s) outrank BotApprove and hold kick or ban power: ` +
-      `${[...threats.values()].map((m) => m.user.tag).join(', ')}. ` +
+      `${[...threats.values()].slice(0, 6).map((m) => m.user.tag).join(', ')}` +
+      `${threats.size > 6 ? ` and ${threats.size - 6} more` : ''}. ` +
       'If one of them is compromised it can remove BotApprove. Moving BotApprove above them, ' +
       'or removing their kick and ban permissions, closes that path.',
     );
