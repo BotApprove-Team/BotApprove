@@ -218,5 +218,30 @@ const unblocked = await onExternalAppMessage(
 check('removing the rule restores the burst wait', unblocked.outcome, 'below_burst');
 
 
+console.log('\n- the log channel does not fill up -');
+let alerts = 0;
+const alerting = (guildId, action) => {
+  const m = makeMessage({ guildId, action });
+  m.guild.channels.fetch = async () => ({
+    isTextBased: () => true,
+    send: async () => { alerts += 1; },
+  });
+  guildConfig.set(guildId, { log_channel_id: 'log-1' });
+  return m;
+};
+
+alerts = 0;
+for (let i = 0; i < 6; i += 1) {
+  await onExternalAppMessage(alerting('g-noise', 'report'));
+}
+check('six messages from one app alert once', alerts, 1);
+check('but all six are recorded', externalAppEvents.recent('g-noise').length, 6);
+
+alerts = 0;
+for (let i = 0; i < 4; i += 1) {
+  await onExternalAppMessage(alerting('g-acted', 'kick'));
+}
+check('acting on someone always alerts', alerts >= 2, true);
+
 console.log(`\n${failures ? `${failures} check(s) failed` : 'all checks passed'}\n`);
 process.exit(failures ? 1 : 0);

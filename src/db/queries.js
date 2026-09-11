@@ -461,6 +461,10 @@ export const externalAppEvents = {
     q(`SELECT COUNT(*) AS n FROM external_app_events
         WHERE guild_id = ? AND actor_id = ? AND created_at >= ?`)
       .get(guildId, actorId, since).n,
+  alertedSince: (guildId, appId, since) =>
+    q(`SELECT COUNT(*) AS n FROM external_app_events
+        WHERE guild_id = ? AND app_id = ? AND created_at >= ?`)
+      .get(guildId, appId, since).n,
   actedSince: (guildId, since) =>
     q(`SELECT COUNT(*) AS n FROM external_app_events
         WHERE guild_id = ? AND created_at >= ?

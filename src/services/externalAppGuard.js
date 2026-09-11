@@ -24,6 +24,8 @@ const TIMEOUT_MS = 10 * 60_000;
 const BREAKER_WINDOW_MS = 10 * 60_000;
 const BREAKER_MAX = 5;
 
+const ALERT_QUIET_MS = 30 * 60_000;
+
 export function action(guildId) {
   const cfg = guildConfig.get(guildId);
   const value = cfg?.external_app_action;
@@ -41,7 +43,7 @@ export function fromUserInstalledApp(message) {
   };
 }
 
-async function alert(guild, { actor, appId, channelId, outcome, deleted, burst }) {
+async function alert(guild, { actor, appId, channelId, outcome, deleted, burst, repeat }) {
   const cfg = guildConfig.get(guild.id);
   const target = cfg?.log_channel_id ?? cfg?.notify_channel_id;
   if (!target) return;
@@ -78,9 +80,13 @@ async function alert(guild, { actor, appId, channelId, outcome, deleted, burst }
         { name: 'Recent messages', value: String(burst ?? 1), inline: true },
         { name: 'Response', value: outcomeText },
         {
-          name: 'Stop this happening',
-          value: 'Server Settings, Roles, Apps Permissions: turn off **Use External Apps** for '
-            + '@everyone. That prevents it rather than cleaning up after it.',
+          name: repeat ? 'Seen before' : 'If this one is fine',
+          value: repeat
+            ? 'This app has posted here before. Further messages from it are recorded but not '
+              + 'reported again for half an hour, so this channel does not fill up.'
+            : 'Allow it on the Threats tab and it stops being flagged here at all. Otherwise, '
+              + 'turning off **Use External Apps** for @everyone in Server Settings, Roles, '
+              + 'Apps Permissions prevents all of this rather than cleaning up after it.',
         },
       )
       .setTimestamp(new Date())],
@@ -183,14 +189,22 @@ export async function onExternalAppMessage(message) {
     detail: { app_id: found.appId, deleted, burst, configured, effective, outcome, rule: rule?.rule ?? null },
   }).catch(() => {});
 
-  await alert(guild, {
-    actor: actor ? { id: actor.id, tag: actor.tag } : { id: actorId },
-    appId: found.appId,
-    channelId: message.channelId,
-    outcome,
-    deleted,
-    burst,
-  }).catch(() => {});
+  const alreadyAlerted = found.appId
+    ? externalAppEvents.alertedSince(guild.id, found.appId, Date.now() - ALERT_QUIET_MS) > 1
+    : false;
+  const worthSaying = HITS_PERSON.includes(outcome) || outcome === 'breaker_open';
+
+  if (worthSaying || !alreadyAlerted) {
+    await alert(guild, {
+      actor: actor ? { id: actor.id, tag: actor.tag } : { id: actorId },
+      appId: found.appId,
+      channelId: message.channelId,
+      outcome,
+      deleted,
+      burst,
+      repeat: alreadyAlerted,
+    }).catch(() => {});
+  }
 
   log.alert('external app message', {
     guildId: guild.id, actorId, appId: found.appId, outcome, burst,

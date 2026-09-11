@@ -704,8 +704,14 @@
               <form method="post" action="/g/<%= guild.id %>/extapp-rule" class="inline">
                 <input type="hidden" name="_csrf" value="<%= csrfToken %>">
                 <input type="hidden" name="app_id" value="<%= e.app_id %>">
+                <input type="hidden" name="rule" value="allow">
+                <button type="submit">Allow</button>
+              </form>
+              <form method="post" action="/g/<%= guild.id %>/extapp-rule" class="inline">
+                <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                <input type="hidden" name="app_id" value="<%= e.app_id %>">
                 <input type="hidden" name="rule" value="block">
-                <button type="submit">Block this app</button>
+                <button type="submit">Block</button>
               </form>
             <% } %>
           </td>
