@@ -17,6 +17,7 @@ import { onWebhookCreated } from '../services/webhookGuard.js';
 import { onExternalAppMessage, fromUserInstalledApp } from '../services/externalAppGuard.js';
 import { sendSetupGuide } from '../services/welcome.js';
 import { announceIfOpened } from '../services/billingOpened.js';
+import { drawDue } from '../services/giveawayService.js';
 import { handleInteraction } from './commands/index.js';
 
 const log = createLogger('bot');
@@ -85,6 +86,7 @@ export function createClient() {
       checkAllGuilds(c, { reason: 'periodic' }).catch(() => {});
       checkDriftAll(c, { reason: 'periodic' }).catch(() => {});
       enforceEntitlements(c).catch(() => {});
+      drawDue().catch((err) => log.error('giveaway draw sweep failed', { err: err.message }));
     }, SWEEP_INTERVAL_MS).unref?.();
   });
 

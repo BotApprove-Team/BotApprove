@@ -22,6 +22,7 @@ import {
   nukeIncidents,
   nukeDbRequests,
   entitlements,
+  giveaways,
 } from '../../db/queries.js';
 import {
   confirmNukeBot,
@@ -41,6 +42,9 @@ import {
   record,
 } from '../../services/securityService.js';
 import { resolveApproval, BUTTON_PREFIX } from '../../services/approvalService.js';
+import {
+  BUTTON as GIVEAWAY_BUTTON, enter as enterGiveaway, prizeLabel,
+} from '../../services/giveawayService.js';
 import { setNickname } from '../../services/nicknameService.js';
 import {
   redeemLicenseKey,
@@ -398,9 +402,57 @@ export async function handleInteraction(interaction) {
   }
 }
 
+async function handleGiveawayButton(interaction, giveawayId) {
+  if (!interaction.guild) {
+    return interaction.reply({
+      content: 'Press this in the server you want to enter, not in a DM. The button in your '
+        + 'server posts it for that server.',
+      ...ephemeral,
+    });
+  }
+
+  const result = await enterGiveaway(giveawayId, interaction.guild, interaction.user.id);
+  if (!result.ok) {
+    return interaction.reply({
+      content: {
+        no_such_giveaway: 'That giveaway no longer exists.',
+        not_open: 'That giveaway is not open.',
+        closed: 'That giveaway has closed.',
+        not_owner: 'Only the server owner can enter this server.',
+        already_premium: 'This server already has premium, so it is not eligible. '
+          + 'Giveaways are for servers without it.',
+      }[result.reason] ?? 'Could not enter.',
+      ...ephemeral,
+    });
+  }
+
+  const row = giveaways.byId(giveawayId);
+  const lines = result.reasons.map((r) => `• ${r.why}`).join('\n');
+  return interaction.reply({
+    embeds: [new EmbedBuilder()
+      .setColor(0x3fb950)
+      .setTitle(result.updated ? 'Entry updated' : 'Entered')
+      .setDescription(`**${interaction.guild.name}** is in the draw for ${prizeLabel(row)}.`)
+      .addFields(
+        { name: `Entries: ${result.weight}`, value: lines },
+        {
+          name: 'Want more',
+          value: 'Fix anything missing above and press the button again to recount. '
+            + 'Nothing here costs money and it all makes the gate work better anyway.',
+        },
+      )],
+    ...ephemeral,
+  });
+}
+
 async function handleButton(interaction) {
   const parts = interaction.customId.split(':');
   const [prefix] = parts;
+
+  if (prefix === GIVEAWAY_BUTTON && parts[1] === 'enter') {
+    return handleGiveawayButton(interaction, Number(parts[2]));
+  }
+
   if (prefix !== BUTTON_PREFIX) return;
 
   if (parts[1] === 'inc') return handleIncidentButton(interaction, parts[2], Number(parts[3]));

@@ -557,6 +557,48 @@ const MIGRATIONS = [
       CREATE INDEX idx_extrules_guild ON external_app_rules(guild_id, rule);
     `,
   },
+  {
+    id: 20,
+    name: 'giveaways',
+    sql: `
+      CREATE TABLE giveaways (
+        id            INTEGER PRIMARY KEY AUTOINCREMENT,
+        title         TEXT,
+        tier          TEXT    NOT NULL DEFAULT 'pro',
+        duration_days INTEGER,
+        winners       INTEGER NOT NULL DEFAULT 1,
+        status        TEXT    NOT NULL DEFAULT 'draft',
+        closes_at     INTEGER NOT NULL,
+        created_by    TEXT,
+        created_at    INTEGER NOT NULL,
+        announced_at  INTEGER,
+        drawn_at      INTEGER,
+        reach         TEXT
+      );
+
+      CREATE TABLE giveaway_entries (
+        giveaway_id INTEGER NOT NULL,
+        guild_id    TEXT    NOT NULL,
+        guild_name  TEXT,
+        entered_by  TEXT,
+        weight      INTEGER NOT NULL DEFAULT 1,
+        reasons     TEXT,
+        entered_at  INTEGER NOT NULL,
+        PRIMARY KEY (giveaway_id, guild_id)
+      );
+      CREATE INDEX idx_gaentries_giveaway ON giveaway_entries(giveaway_id);
+
+      CREATE TABLE giveaway_winners (
+        giveaway_id INTEGER NOT NULL,
+        guild_id    TEXT    NOT NULL,
+        guild_name  TEXT,
+        granted     INTEGER NOT NULL DEFAULT 0,
+        notified    INTEGER NOT NULL DEFAULT 0,
+        drawn_at    INTEGER NOT NULL,
+        PRIMARY KEY (giveaway_id, guild_id)
+      );
+    `,
+  },
 ];
 
 function migrate() {

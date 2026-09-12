@@ -21,6 +21,9 @@ import {
   webhookEvents as webhookEventRows,
   externalAppEvents,
   externalAppRules,
+  giveaways,
+  giveawayEntries,
+  giveawayWinners,
 } from '../../db/queries.js';
 import {
   confirmNukeBot,
@@ -53,6 +56,11 @@ import {
   ACTIONS as EXTAPP_ACTIONS,
   ACTION_LABELS as EXTAPP_LABELS,
 } from '../../services/externalAppGuard.js';
+import {
+  announce as announceGiveaway,
+  draw as drawGiveaway,
+  prizeLabel,
+} from '../../services/giveawayService.js';
 import {
   resolveEntitlement,
   redeemLicenseKey,
@@ -950,6 +958,87 @@ function renderAnnounce(req, res) {
     flash: takeFlash(req),
   });
 }
+
+router.get('/admin/giveaways', requireOwner, requireUnlocked, (req, res) => {
+  const client = getClient();
+  const unlicensed = client
+    ? [...client.guilds.cache.values()].filter((g) => !resolveEntitlement(g.id).licensed).length
+    : 0;
+
+  res.render('giveaways', {
+    title: 'Giveaways',
+    list: giveaways.recent(20).map((g) => ({
+      ...g,
+      counts: giveawayEntries.count(g.id),
+      winners_list: giveawayWinners.list(g.id),
+      prize: prizeLabel(g),
+    })),
+    unlicensed,
+    botReady: !!client,
+    flash: takeFlash(req),
+  });
+});
+
+router.post('/admin/giveaways', requireOwner, requireUnlocked, async (req, res) => {
+  const doing = String(req.body.action ?? 'create');
+  const id = Number(req.body.id);
+
+  if (doing === 'announce') {
+    const result = await announceGiveaway(id);
+    flash(req, result.ok ? 'ok' : 'error', result.ok
+      ? `Sent to ${result.inChannel} channel(s) and ${result.byDm} owner DM(s). `
+        + `${result.skipped} already had premium.`
+      : `Could not announce: ${result.reason}`);
+    return res.redirect('/admin/giveaways');
+  }
+
+  if (doing === 'draw') {
+    const result = await drawGiveaway(id);
+    flash(req, result.ok ? 'ok' : 'error', result.ok
+      ? (result.winners.length
+        ? `Drawn. Winners: ${result.winners.map((w) => w.guild_name || w.guild_id).join(', ')}.`
+        : 'Drawn, but nobody had entered.')
+      : `Could not draw: ${result.reason}`);
+    return res.redirect('/admin/giveaways');
+  }
+
+  if (doing === 'cancel') {
+    giveaways.cancel(id);
+    flash(req, 'ok', 'Cancelled. Nothing was granted.');
+    return res.redirect('/admin/giveaways');
+  }
+
+  const days = Number.parseInt(req.body.duration_days, 10);
+  const winners = Number.parseInt(req.body.winners, 10);
+  const hours = Number.parseInt(req.body.open_hours, 10);
+  const perpetual = !!req.body.perpetual;
+
+  if (!Number.isFinite(winners) || winners < 1 || winners > 50) {
+    flash(req, 'error', 'Winners must be between 1 and 50.');
+    return res.redirect('/admin/giveaways');
+  }
+  if (!Number.isFinite(hours) || hours < 1 || hours > 720) {
+    flash(req, 'error', 'The giveaway must run between 1 and 720 hours.');
+    return res.redirect('/admin/giveaways');
+  }
+  if (!perpetual && (!Number.isFinite(days) || days < 1 || days > 3650)) {
+    flash(req, 'error', 'Set a duration in days, or tick perpetual.');
+    return res.redirect('/admin/giveaways');
+  }
+
+  const info = giveaways.create({
+    title: String(req.body.title ?? '').trim().slice(0, 140) || null,
+    tier: 'pro',
+    durationDays: perpetual ? null : days,
+    winners,
+    closesAt: Date.now() + hours * 3600_000,
+    createdBy: req.session.user.id,
+  });
+
+  flash(req, 'ok', `Giveaway #${info.lastInsertRowid} created as a draft. `
+    + 'Nothing has been sent yet: announce it when you are ready.');
+  return res.redirect('/admin/giveaways');
+});
 
 router.get('/admin/announce', requireOwner, requireUnlocked, (req, res) => {
   renderAnnounce(req, res);

@@ -430,6 +430,66 @@ export const guildFeatures = {
       .get(guildId).n,
 };
 
+export const giveaways = {
+  create: ({ title, tier, durationDays, winners, closesAt, createdBy }) =>
+    q(`INSERT INTO giveaways (title, tier, duration_days, winners, status, closes_at,
+                              created_by, created_at)
+       VALUES (?, ?, ?, ?, 'draft', ?, ?, ?)`)
+      .run(title ?? null, tier, durationDays ?? null, winners, closesAt, createdBy ?? null,
+           Date.now()),
+  byId: (id) => q('SELECT * FROM giveaways WHERE id = ?').get(id),
+  recent: (limit = 20) =>
+    q('SELECT * FROM giveaways ORDER BY id DESC LIMIT ?').all(limit),
+  open: () =>
+    q("SELECT * FROM giveaways WHERE status = 'open' AND closes_at > ? ORDER BY closes_at")
+      .all(Date.now()),
+  dueToDraw: () =>
+    q("SELECT * FROM giveaways WHERE status = 'open' AND closes_at <= ?").all(Date.now()),
+  markAnnounced: (id, reach) =>
+    q("UPDATE giveaways SET status = 'open', announced_at = ?, reach = ? WHERE id = ?")
+      .run(Date.now(), JSON.stringify(reach ?? {}), id),
+  markDrawn: (id) =>
+    q("UPDATE giveaways SET status = 'drawn', drawn_at = ? WHERE id = ?").run(Date.now(), id),
+  cancel: (id) => q("UPDATE giveaways SET status = 'cancelled' WHERE id = ?").run(id),
+};
+
+export const giveawayEntries = {
+  add: ({ giveawayId, guildId, guildName, enteredBy, weight, reasons }) =>
+    q(`INSERT INTO giveaway_entries
+         (giveaway_id, guild_id, guild_name, entered_by, weight, reasons, entered_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?)
+       ON CONFLICT(giveaway_id, guild_id) DO UPDATE SET
+         weight  = excluded.weight,
+         reasons = excluded.reasons`)
+      .run(giveawayId, guildId, guildName ?? null, enteredBy ?? null, weight,
+           JSON.stringify(reasons ?? []), Date.now()),
+  has: (giveawayId, guildId) =>
+    !!q('SELECT 1 FROM giveaway_entries WHERE giveaway_id = ? AND guild_id = ?')
+      .get(giveawayId, guildId),
+  get: (giveawayId, guildId) =>
+    q('SELECT * FROM giveaway_entries WHERE giveaway_id = ? AND guild_id = ?')
+      .get(giveawayId, guildId),
+  list: (giveawayId) =>
+    q('SELECT * FROM giveaway_entries WHERE giveaway_id = ? ORDER BY entered_at').all(giveawayId),
+  count: (giveawayId) =>
+    q('SELECT COUNT(*) AS n, COALESCE(SUM(weight), 0) AS w FROM giveaway_entries WHERE giveaway_id = ?')
+      .get(giveawayId),
+};
+
+export const giveawayWinners = {
+  add: ({ giveawayId, guildId, guildName }) =>
+    q(`INSERT OR IGNORE INTO giveaway_winners (giveaway_id, guild_id, guild_name, drawn_at)
+       VALUES (?, ?, ?, ?)`).run(giveawayId, guildId, guildName ?? null, Date.now()),
+  list: (giveawayId) =>
+    q('SELECT * FROM giveaway_winners WHERE giveaway_id = ?').all(giveawayId),
+  markGranted: (giveawayId, guildId) =>
+    q('UPDATE giveaway_winners SET granted = 1 WHERE giveaway_id = ? AND guild_id = ?')
+      .run(giveawayId, guildId),
+  markNotified: (giveawayId, guildId) =>
+    q('UPDATE giveaway_winners SET notified = 1 WHERE giveaway_id = ? AND guild_id = ?')
+      .run(giveawayId, guildId),
+};
+
 export const externalAppRules = {
   get: (guildId, appId) =>
     q('SELECT * FROM external_app_rules WHERE guild_id = ? AND app_id = ?').get(guildId, appId),

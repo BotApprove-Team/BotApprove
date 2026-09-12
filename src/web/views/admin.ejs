@@ -9,6 +9,7 @@
     paywall <%= paywall.enabled ? 'on' : 'off' %><% if (paywall.enabled) { %>,
       <%= paywall.trialDays > 0 ? `${paywall.trialDays} day trial` : 'no trial, new servers start free' %><% } %>
     &middot; <a href="/admin/announce">announcements</a>
+    &middot; <a href="/admin/giveaways">giveaways</a>
     &middot; <a href="/admin/blog">blog</a>
     &middot; <a href="/admin/unlock">lock</a>
   </div>

@@ -1,0 +1,163 @@
+<%- include('partials/head') %>
+<%
+  const ts = (ms) => ms ? new Date(ms).toISOString().replace('T', ' ').slice(0, 16) + 'Z' : '';
+  const left = (ms) => {
+    const m = Math.round((ms - Date.now()) / 60000);
+    if (m <= 0) return 'closed';
+    if (m < 60) return `${m}m left`;
+    const h = Math.round(m / 60);
+    return h < 48 ? `${h}h left` : `${Math.round(h / 24)}d left`;
+  };
+%>
+
+<div class="page-head">
+  <h1>Giveaways</h1>
+  <div class="meta">
+    Give premium away to servers that do not have it.
+    <%= unlicensed %> server<%= unlicensed === 1 ? '' : 's' %> would be eligible right now.
+  </div>
+</div>
+
+<% if (flash) { %>
+  <div class="notice <%= flash.type === 'error' ? 'danger' : 'ok' %>"><%= flash.message %></div>
+<% } %>
+
+<section class="block">
+  <div class="block-head"><h2>Start one</h2></div>
+  <div class="notice info">
+    <strong>Creating it sends nothing.</strong>
+    <p>A new giveaway is a draft. You announce it separately, once you have read it back.</p>
+  </div>
+  <form method="post" action="/admin/giveaways">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <input type="hidden" name="action" value="create">
+
+    <div class="field" style="max-width:560px">
+      <label for="title">Title, optional</label>
+      <input type="text" id="title" name="title" maxlength="140"
+             placeholder="Launch giveaway">
+    </div>
+
+    <div class="cols two">
+      <div class="field">
+        <label for="days">Premium for how many days</label>
+        <input type="number" id="days" name="duration_days" min="1" max="3650" value="30">
+      </div>
+      <div class="field">
+        <label for="winners">How many servers win</label>
+        <input type="number" id="winners" name="winners" min="1" max="50" value="1">
+      </div>
+    </div>
+
+    <div class="check">
+      <input type="checkbox" id="perpetual" name="perpetual" value="1">
+      <div>
+        <label for="perpetual">Perpetual instead</label>
+        <p class="hint">Premium that never expires. The days field is ignored.</p>
+      </div>
+    </div>
+
+    <div class="field" style="max-width:280px">
+      <label for="hours">Open for how many hours</label>
+      <input type="number" id="hours" name="open_hours" min="1" max="720" value="48">
+      <p class="hint">It draws itself when the time is up. You can also draw early.</p>
+    </div>
+
+    <div class="actions">
+      <button class="primary" type="submit" <%= botReady ? '' : 'disabled' %>>Create draft</button>
+    </div>
+  </form>
+</section>
+
+<section class="block">
+  <div class="block-head">
+    <h2>Every giveaway</h2>
+    <span class="count"><%= list.length %></span>
+  </div>
+  <div class="tw">
+    <table>
+      <tr>
+        <th>#</th><th>Prize</th><th>Status</th><th>Entries</th><th>Closes</th><th></th>
+      </tr>
+      <% list.forEach((g) => { %>
+        <tr>
+          <td class="num"><%= g.id %><% if (g.title) { %><div class="sub"><%= g.title %></div><% } %></td>
+          <td>
+            <%= g.prize %>
+            <div class="sub"><%= g.winners %> winner<%= g.winners === 1 ? '' : 's' %></div>
+          </td>
+          <td>
+            <span class="st <%= g.status === 'open' ? 'ok' : g.status === 'drawn' ? 'off' : g.status === 'cancelled' ? 'danger' : 'warn' %>">
+              <%= g.status %>
+            </span>
+          </td>
+          <td class="num">
+            <%= g.counts.n %>
+            <% if (g.counts.w && g.counts.w !== g.counts.n) { %>
+              <div class="sub"><%= g.counts.w %> tickets</div>
+            <% } %>
+          </td>
+          <td class="faint" style="white-space:nowrap">
+            <%= g.status === 'open' ? left(g.closes_at) : ts(g.closes_at) %>
+          </td>
+          <td>
+            <% if (g.status === 'draft') { %>
+              <form method="post" action="/admin/giveaways" class="inline">
+                <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                <input type="hidden" name="action" value="announce">
+                <input type="hidden" name="id" value="<%= g.id %>">
+                <button class="primary" type="submit">Announce it</button>
+              </form>
+              <form method="post" action="/admin/giveaways" class="inline">
+                <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                <input type="hidden" name="action" value="cancel">
+                <input type="hidden" name="id" value="<%= g.id %>">
+                <button type="submit">Discard</button>
+              </form>
+            <% } else if (g.status === 'open') { %>
+              <form method="post" action="/admin/giveaways" class="inline">
+                <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                <input type="hidden" name="action" value="draw">
+                <input type="hidden" name="id" value="<%= g.id %>">
+                <button class="primary" type="submit">Draw now</button>
+              </form>
+            <% } %>
+          </td>
+        </tr>
+        <% if (g.winners_list.length) { %>
+          <tr>
+            <td></td>
+            <td colspan="5" class="faint">
+              Won by:
+              <%= g.winners_list.map((w) => w.guild_name || w.guild_id).join(', ') %>
+            </td>
+          </tr>
+        <% } %>
+      <% }) %>
+      <% if (!list.length) { %>
+        <tr><td colspan="6" class="empty">None yet.</td></tr>
+      <% } %>
+    </table>
+  </div>
+</section>
+
+<section class="block">
+  <div class="block-head"><h2>How entries work</h2></div>
+  <p class="lede">
+    Only the server owner can enter, and only servers without premium. One entry each, plus one
+    for every sign that the server is actually set up.
+  </p>
+  <ul class="plan-list">
+    <li>An approval channel is set, so somebody sees held bots</li>
+    <li>Approver roles are chosen, so somebody can let one back in</li>
+    <li>The role sits high enough to remove every bot in the server</li>
+    <li>Manage Roles is granted, so BotApprove can defend itself</li>
+  </ul>
+  <p class="hint">
+    Weighted this way on purpose: the thing that improves the odds is the thing that makes the
+    gate work. A large server with no approval channel is worth less than a small one that is
+    configured, because the small one is protected and the large one only looks it.
+  </p>
+</section>
+
+<%- include('partials/foot') %>
