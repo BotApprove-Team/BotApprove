@@ -1,0 +1,93 @@
+<%- include('partials/head') %>
+<%
+  const label = { monthly: 'Monthly', yearly: 'Yearly', lifetime: 'Lifetime' }[plan] || plan;
+  const cost = {
+    monthly: `${price.symbol}${prices.monthly} a month`,
+    yearly: `${price.symbol}${prices.yearly} a year`,
+    lifetime: `${price.symbol}${prices.lifetime} once`,
+  }[plan];
+  const ready = guilds.filter((g) => g.botPresent && !g.licensed);
+  const already = guilds.filter((g) => g.licensed);
+  const missing = guilds.filter((g) => !g.botPresent);
+%>
+
+<div class="page-head">
+  <h1>Which server is this for?</h1>
+  <div class="meta"><%= label %>, <%= cost %>. Premium applies to one server.</div>
+</div>
+
+<% if (flash) { %>
+  <div class="notice <%= flash.type === 'error' ? 'danger' : 'ok' %>"><%= flash.message %></div>
+<% } %>
+
+<% if (!ready.length && !already.length && !missing.length) { %>
+  <div class="notice warn">
+    <strong>No servers to buy for.</strong>
+    <p>Premium is bought per server, and you need Manage Server in one. If you run a server that
+      is not listed, sign in again so Discord refreshes what it tells us.</p>
+  </div>
+  <div class="cta"><a class="btn primary" href="<%= inviteUrl %>">Add BotApprove to a server</a></div>
+<% } %>
+
+<% if (ready.length) { %>
+  <section class="block">
+    <div class="block-head"><h2>Your servers</h2></div>
+    <div class="picker-list">
+      <% ready.forEach((g) => { %>
+        <form method="post" action="/subscribe" class="pick">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <input type="hidden" name="plan" value="<%= plan %>">
+          <input type="hidden" name="guild_id" value="<%= g.id %>">
+          <span class="pick-name">
+            <%= g.name %>
+            <% if (g.viaOperator) { %><span class="st">operator</span><% } %>
+            <div class="sub"><%= g.id %></div>
+          </span>
+          <button class="primary" type="submit">Buy <%= label.toLowerCase() %></button>
+        </form>
+      <% }) %>
+    </div>
+    <p class="hint">
+      You are sent to Stripe to pay. BotApprove never sees your card.
+      <% if (trial.offered && plan !== 'lifetime') { %>
+        The first <%= trial.days %> days are free and you can cancel before being charged.
+      <% } %>
+    </p>
+  </section>
+<% } %>
+
+<% if (already.length) { %>
+  <section class="block">
+    <div class="block-head"><h2>Already on premium</h2></div>
+    <div class="picker-list">
+      <% already.forEach((g) => { %>
+        <div class="pick">
+          <span class="pick-name"><%= g.name %><div class="sub"><%= g.id %></div></span>
+          <a class="btn" href="/g/<%= g.id %>/licence">Manage licence</a>
+        </div>
+      <% }) %>
+    </div>
+  </section>
+<% } %>
+
+<% if (missing.length) { %>
+  <section class="block">
+    <div class="block-head"><h2>BotApprove is not in these yet</h2></div>
+    <p class="hint">Add it first, then come back. There is nothing to upgrade until it is in.</p>
+    <div class="picker-list">
+      <% missing.forEach((g) => { %>
+        <div class="pick">
+          <span class="pick-name"><%= g.name %><div class="sub"><%= g.id %></div></span>
+          <a class="btn" href="<%= inviteUrl %>">Add it</a>
+        </div>
+      <% }) %>
+    </div>
+  </section>
+<% } %>
+
+<p class="hint">
+  Changed your mind about the plan? <a href="/pricing">Back to pricing</a>. Holding a licence key
+  instead? Redeem it on your server's Licence tab, no payment needed.
+</p>
+
+<%- include('partials/foot') %>

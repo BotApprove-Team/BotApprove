@@ -63,7 +63,7 @@ import {
 } from '../../services/entitlementService.js';
 import { checkGuild } from '../../services/selfCheck.js';
 import { checkChannel, describeChannelProblem } from '../../services/channelCheck.js';
-import { requireGuildAccess, isInstanceOwner } from '../auth.js';
+import { requireGuildAccess, isInstanceOwner, resolveGuildAccess } from '../auth.js';
 import {
   attemptUnlock, lock, isAdminUnlocked, unlockRemaining, isConfigured,
   currentStage, requireUnlocked,
@@ -99,6 +99,105 @@ function takeFlash(req) {
   if (req.session) delete req.session.flash;
   return f;
 }
+
+function sellableGuilds(req) {
+  const client = getClient();
+  const present = new Set(client ? [...client.guilds.cache.keys()] : []);
+
+  const mine = (req.session.guilds ?? [])
+    .filter((g) => g.owner || (BigInt(g.permissions) & MANAGE_GUILD_BIT) === MANAGE_GUILD_BIT)
+    .map((g) => ({
+      id: g.id,
+      name: g.name,
+      icon: g.icon,
+      botPresent: present.has(g.id),
+      licensed: resolveEntitlement(g.id).licensed,
+    }));
+
+  const asOperator = isInstanceOwner(req.session.user.id)
+    ? [...(client?.guilds.cache.values() ?? [])]
+      .filter((g) => !mine.some((c) => c.id === g.id))
+      .map((g) => ({
+        id: g.id,
+        name: g.name,
+        icon: g.icon,
+        botPresent: true,
+        licensed: resolveEntitlement(g.id).licensed,
+        viaOperator: true,
+      }))
+    : [];
+
+  return [...mine, ...asOperator]
+    .sort((a2, b2) => Number(b2.botPresent) - Number(a2.botPresent)
+      || Number(a2.licensed) - Number(b2.licensed)
+      || a2.name.localeCompare(b2.name));
+}
+
+router.get('/subscribe', (req, res) => {
+  const plan = String(req.query.plan ?? 'monthly');
+  if (!Object.prototype.hasOwnProperty.call(PLANS, plan)) {
+    return res.redirect('/pricing');
+  }
+  if (!stripeEnabled()) {
+    flash(req, 'error', 'Card payment is not open yet. A licence key still works.');
+    return res.redirect('/pricing');
+  }
+  if (!req.session?.user) {
+    return res.redirect(`/login?next=${encodeURIComponent(`/subscribe?plan=${plan}`)}`);
+  }
+  if (plan === 'lifetime' && lifetimeAvailability().soldOut) {
+    flash(req, 'error', `The lifetime licence is sold out. Email ${config.legal.contactEmail}.`);
+    return res.redirect('/pricing');
+  }
+
+  return res.render('subscribe', {
+    title: 'Choose a server',
+    plan,
+    guilds: sellableGuilds(req),
+    inviteUrl: config.inviteUrl,
+    price: { amount: config.paywall.priceAmount, symbol: config.paywall.priceSymbol },
+    prices: {
+      monthly: config.paywall.priceAmount,
+      yearly: config.stripe.priceAmountYearly,
+      lifetime: config.stripe.priceAmountLifetime,
+    },
+    trial: { offered: stripeEnabled() && config.stripe.trialDays > 0, days: config.stripe.trialDays },
+    flash: takeFlash(req),
+  });
+});
+
+router.post('/subscribe', async (req, res) => {
+  const plan = String(req.body.plan ?? 'monthly');
+  const guildId = String(req.body.guild_id ?? '');
+
+  if (!Object.prototype.hasOwnProperty.call(PLANS, plan)) {
+    flash(req, 'error', 'Unknown plan.');
+    return res.redirect('/pricing');
+  }
+
+  const access = await resolveGuildAccess(req.session.user.id, guildId, {
+    elevated: isAdminUnlocked(req),
+  });
+  if (!access.allowed || !access.canConfigure) {
+    flash(req, 'error', 'You need Manage Server in that server to buy for it.');
+    return res.redirect(`/subscribe?plan=${plan}`);
+  }
+
+  const result = await createCheckoutSession({
+    guildId,
+    guildName: access.guild.name,
+    userId: req.session.user.id,
+    plan,
+  });
+
+  if (!result.ok) {
+    flash(req, 'error', result.reason === 'lifetime_sold_out'
+      ? `The lifetime licence is sold out. Email ${config.legal.contactEmail} if you need one.`
+      : `Could not start checkout: ${result.reason}`);
+    return res.redirect(`/subscribe?plan=${plan}`);
+  }
+  return res.redirect(303, result.url);
+});
 
 router.get('/guilds', (req, res) => {
   const client = getClient();

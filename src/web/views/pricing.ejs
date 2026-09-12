@@ -97,10 +97,35 @@
       <ul class="plan-list">
         <% premiumFeatures.forEach((f) => { %><li><%= f.name %></li><% }) %>
       </ul>
+
+      <% if (plans.length) { %>
+        <div class="buy">
+          <% if (plans.includes('monthly')) { %>
+            <a class="btn primary" href="/subscribe?plan=monthly">
+              Get monthly, <%= price.symbol %><%= price.amount %>
+            </a>
+          <% } %>
+          <% if (plans.includes('yearly')) { %>
+            <a class="btn" href="/subscribe?plan=yearly">
+              Get yearly, <%= price.symbol %><%= prices.yearly %>
+            </a>
+          <% } %>
+          <% if (plans.includes('lifetime')) { %>
+            <a class="btn" href="/subscribe?plan=lifetime">
+              Get lifetime, <%= price.symbol %><%= prices.lifetime %>
+            </a>
+          <% } %>
+        </div>
+        <p class="hint">
+          You pick which server it applies to next. Premium is per server, so one purchase covers
+          one server.
+        </p>
+      <% } %>
     </div>
   </div>
   <p class="hint">
     Priced per server, not per member, so a large community costs the same as a small one.
+    Holding a licence key instead? Redeem it on your server's Licence tab and pay nothing.
   </p>
 </section>
 

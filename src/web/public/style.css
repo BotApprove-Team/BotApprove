@@ -566,6 +566,26 @@ code {
   margin: 0 0 18px;
 }
 .hero .stat strong { color: var(--text); font-weight: 600; }
+.buy { display: flex; flex-wrap: wrap; gap: 8px; margin: 16px 0 0; }
+.buy .btn { flex: 1; min-width: 150px; justify-content: center; }
+
+.picker-list { display: grid; gap: 8px; }
+.pick {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--bg);
+  margin: 0;
+  transition: border-color var(--dur) var(--ease);
+}
+.pick:hover { border-color: var(--line-strong); }
+.pick-name { flex: 1; min-width: 0; font-weight: 560; }
+.pick .sub { font-weight: 400; }
+.pick button, .pick .btn { flex: none; }
+
 .row-form { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; }
 .row-form input[type="text"] { flex: 1; min-width: 220px; }
 form.inline { display: inline; margin: 0; }
