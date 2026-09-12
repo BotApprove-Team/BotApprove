@@ -31,23 +31,59 @@ export function eligible(guildId) {
 
 export function weighFor(guild) {
   const reasons = [{ why: 'Entered', entries: 1 }];
+  const missing = [];
   const cfg = guildConfig.get(guild.id);
   const me = guild.members?.me;
 
-  if (cfg?.notify_channel_id) reasons.push({ why: 'Approval channel set', entries: 1 });
-  if (approverRoles.list(guild.id).length) reasons.push({ why: 'Approvers chosen', entries: 1 });
+  if (cfg?.notify_channel_id) {
+    reasons.push({ why: 'Approval channel set', entries: 1 });
+  } else {
+    missing.push({
+      why: 'No approval channel',
+      how: 'Run `/config notify-channel` and pick a channel your moderators read. Without one, '
+        + 'bots are still kicked but nobody is told about it.',
+    });
+  }
+
+  if (approverRoles.list(guild.id).length) {
+    reasons.push({ why: 'Approvers chosen', entries: 1 });
+  } else {
+    missing.push({
+      why: 'Nobody can approve a bot',
+      how: 'Run `/approvers add` with a role. Until then every bot stays kicked, because there '
+        + 'is nobody allowed to let one back in.',
+    });
+  }
 
   if (me) {
     const position = me.roles.highest.position;
     const stuck = [...(guild.members.cache?.values?.() ?? [])]
       .filter((m) => m.user?.bot && m.id !== me.id && m.roles.highest.position >= position);
-    if (!stuck.length) reasons.push({ why: 'Can remove every bot here', entries: 1 });
+
+    if (!stuck.length) {
+      reasons.push({ why: 'Can remove every bot here', entries: 1 });
+    } else {
+      const names = stuck.slice(0, 4).map((m) => m.user?.tag ?? m.id).join(', ');
+      const more = stuck.length > 4 ? ` and ${stuck.length - 4} more` : '';
+      missing.push({
+        why: `Cannot remove ${stuck.length} bot(s) here`,
+        how: `${names}${more} rank at or above BotApprove, so the gate would fail on them. `
+          + 'Server Settings, Roles, drag BotApprove above them.',
+      });
+    }
+
     if (me.permissions.has(PermissionsBitField.Flags.ManageRoles)) {
       reasons.push({ why: 'Can defend itself', entries: 1 });
+    } else {
+      missing.push({
+        why: 'Cannot defend itself',
+        how: 'Grant Manage Roles in Server Settings, Roles, BotApprove. Without it, anyone who '
+          + 'weakens BotApprove can only be reported, not stopped.',
+      });
     }
   }
 
-  return { weight: reasons.reduce((n, r) => n + r.entries, 0), reasons };
+  return { weight: reasons.reduce((n, r) => n + r.entries, 0), reasons, missing };
 }
 
 function entryRow(giveawayId, closed = false) {
@@ -160,7 +196,7 @@ export async function enter(giveawayId, guild, userId) {
   if (!eligible(guild.id)) return { ok: false, reason: 'already_premium' };
 
   const already = giveawayEntries.get(giveawayId, guild.id);
-  const { weight, reasons } = weighFor(guild);
+  const { weight, reasons, missing } = weighFor(guild);
 
   giveawayEntries.add({
     giveawayId,
@@ -171,7 +207,7 @@ export async function enter(giveawayId, guild, userId) {
     reasons,
   });
 
-  return { ok: true, weight, reasons, updated: !!already };
+  return { ok: true, weight, reasons, missing, updated: !!already };
 }
 
 export function drawFrom(entries, winners) {

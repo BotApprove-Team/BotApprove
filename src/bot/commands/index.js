@@ -428,21 +428,38 @@ async function handleGiveawayButton(interaction, giveawayId) {
 
   const row = giveaways.byId(giveawayId);
   const lines = result.reasons.map((r) => `• ${r.why}`).join('\n');
-  return interaction.reply({
-    embeds: [new EmbedBuilder()
-      .setColor(0x3fb950)
-      .setTitle(result.updated ? 'Entry updated' : 'Entered')
-      .setDescription(`**${interaction.guild.name}** is in the draw for ${prizeLabel(row)}.`)
-      .addFields(
-        { name: `Entries: ${result.weight}`, value: lines },
-        {
-          name: 'Want more',
-          value: 'Fix anything missing above and press the button again to recount. '
-            + 'Nothing here costs money and it all makes the gate work better anyway.',
-        },
-      )],
-    ...ephemeral,
-  });
+
+  const embed = new EmbedBuilder()
+    .setColor(result.missing.length ? 0xd29922 : 0x3fb950)
+    .setTitle(result.updated ? 'Entry updated' : 'Entered')
+    .setDescription(`**${interaction.guild.name}** is in the draw for ${prizeLabel(row)}.`)
+    .addFields({
+      name: `Entries: ${result.weight} of ${result.weight + result.missing.length}`,
+      value: lines,
+    });
+
+  if (result.missing.length) {
+    const fixes = result.missing
+      .map((m) => `**${m.why}**\n${m.how}`)
+      .join('\n\n')
+      .slice(0, 1024);
+    embed.addFields(
+      { name: `Worth ${result.missing.length} more entr`
+        + `${result.missing.length === 1 ? 'y' : 'ies'}`, value: fixes },
+      {
+        name: 'Then press the button again',
+        value: 'It recounts rather than stacking, so fixing something and re-entering is the '
+          + 'point. None of it costs money, and all of it is what makes the gate work.',
+      },
+    );
+  } else {
+    embed.addFields({
+      name: 'Nothing left to fix',
+      value: 'This server has every entry going. It is fully set up.',
+    });
+  }
+
+  return interaction.reply({ embeds: [embed], ...ephemeral });
 }
 
 async function handleButton(interaction) {

@@ -173,5 +173,26 @@ check('it draws nobody', empty.winners, []);
 check('and says why', empty.reason, 'no_entries');
 check('and does not stay open', giveaways.byId(emptyId).status, 'drawn');
 
+console.log('\n- the owner is told what they are missing -');
+const gaps = weighFor(bare);
+check('a bare server is told about three gaps', gaps.missing.length, 3);
+check('and what they are', gaps.missing.map((m) => m.why), [
+  'No approval channel', 'Nobody can approve a bot', 'Cannot defend itself',
+]);
+check('each comes with a fix', gaps.missing.every((m) => m.how && m.how.length > 30), true);
+check('the approval channel fix names the command',
+  gaps.missing[0].how.includes('/config notify-channel'), true);
+check('the approver fix names its command',
+  gaps.missing[1].how.includes('/approvers add'), true);
+
+const full = weighFor(setup);
+check('a fully set up server has nothing missing', full.missing, []);
+
+const unreachable = weighFor(blocked);
+check('an unreachable-bots server is told which bots',
+  unreachable.missing.some((m) => m.why.includes('Cannot remove')), true);
+
+check('entering reports the gaps too', (await enter(gid, bare, OWNER)).missing.length, 3);
+
 console.log(`\n${failures ? `${failures} check(s) failed` : 'all checks passed'}\n`);
 process.exit(failures ? 1 : 0);
