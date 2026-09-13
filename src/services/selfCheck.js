@@ -181,9 +181,8 @@ export async function checkGuild(guild, { reason = 'periodic', announce = true }
   const now = Date.now();
   const hash = fingerprint(codes);
   const since = previous?.last_alert_at ? now - previous.last_alert_at : Infinity;
-  const speak = tampering
-    ? since >= INCIDENT_COOLDOWN_MS
-    : hash !== previous?.problems_hash || since >= RENAG_MS;
+  const changed = hash !== previous?.problems_hash;
+  const speak = changed || since >= (tampering ? INCIDENT_COOLDOWN_MS : RENAG_MS);
 
   if (!speak) return { ...result, suppressed: true };
 

@@ -179,7 +179,8 @@ posted = [];
 await checkGuild(hit, { reason: 'role_update' });
 check('within the cooldown it holds off', posted.length, 0);
 
-selfCheckState.noteProblems('g-hit', 'stale-hash', Date.now() - 20 * 60_000);
+const held = selfCheckState.get('g-hit').problems_hash;
+selfCheckState.noteProblems('g-hit', held, Date.now() - 20 * 60_000);
 selfCheckState.save('g-hit', {
   rolePosition: 40,
   permissions: JSON.stringify(REQUIRED),
@@ -187,6 +188,24 @@ selfCheckState.save('g-hit', {
 posted = [];
 await checkGuild(hit, { reason: 'role_update' });
 check('past it, the same incident is repeated', posted.length, 1);
+
+console.log('\n- and a fresh incident is not swallowed by an unrelated notice -');
+const late = makeGuild({ id: 'g-late' });
+approverRoles.add('g-late', 'r-approve');
+guildConfig.set('g-late', { notify_channel_id: null });
+posted = [];
+await checkGuild(late, { reason: 'periodic' });
+check('the setup gap is announced', posted.length, 1);
+
+guildConfig.set('g-late', { notify_channel_id: 'c1' });
+selfCheckState.save('g-late', {
+  rolePosition: 40,
+  permissions: JSON.stringify(REQUIRED),
+});
+posted = [];
+const urgent = await checkGuild(late, { reason: 'role_update' });
+check('a demotion two minutes later still gets through', posted.length, 1);
+check('and is treated as tampering', urgent.tampering, true);
 
 console.log('\n- a standing gap is renagged weekly, not every sweep -');
 const old = makeGuild({ id: 'g-old' });
