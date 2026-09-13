@@ -182,6 +182,9 @@ export const selfCheckState = {
          last_ok_at    = COALESCE(excluded.last_ok_at, self_check_state.last_ok_at),
          last_alert_at = COALESCE(excluded.last_alert_at, self_check_state.last_alert_at)`)
       .run(guildId, rolePosition ?? null, permissions ?? null, lastOkAt ?? null, lastAlertAt ?? null),
+  noteProblems: (guildId, hash, at) =>
+    q('UPDATE self_check_state SET problems_hash = ?, last_alert_at = ? WHERE guild_id = ?')
+      .run(hash ?? null, at ?? null, guildId),
 };
 
 export const nukeRegistry = {

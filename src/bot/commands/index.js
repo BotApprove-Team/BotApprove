@@ -1002,7 +1002,7 @@ async function handleCommand(interaction) {
     }
 
     case 'selfcheck': {
-      const result = await checkGuild(interaction.guild, { reason: 'manual' });
+      const result = await checkGuild(interaction.guild, { reason: 'manual', announce: false });
       const recent = securityLog.recent(guildId, 5);
       return interaction.reply({
         embeds: [new EmbedBuilder()
@@ -1158,14 +1158,19 @@ async function handleCommand(interaction) {
     case 'status': {
       const ent = resolveEntitlement(guildId);
       const cfg = guildConfig.get(guildId);
-      const self = await checkGuild(interaction.guild, { reason: 'status' })
+      const self = await checkGuild(interaction.guild, { reason: 'status', announce: false })
         .catch((err) => ({ ok: false, problems: [err.message] }));
       const pendingCount = pendingApprovals.listPending(guildId).length;
       const premium = !config.paywall.enabled || ent.licensed;
 
+      const impaired = (self.codes ?? []).some((c) =>
+        ['perms', 'demoted', 'unreachable', 'channel_broken'].includes(c));
+
       const embed = new EmbedBuilder()
-        .setColor(self.ok ? (premium ? 0x57f287 : 0x5865f2) : 0xed4245)
-        .setTitle(self.ok ? '🛡️ This server is protected' : 'Protection is impaired')
+        .setColor(self.ok ? (premium ? 0x57f287 : 0x5865f2) : (impaired ? 0xed4245 : 0xd29922))
+        .setTitle(self.ok
+          ? '🛡️ This server is protected'
+          : (impaired ? 'Protection is impaired' : 'Setup is not finished'))
         .setDescription(self.ok
           ? 'Every bot that joins is removed and held for a human decision, including ones ' +
             'invited by the owner.'

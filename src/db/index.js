@@ -599,6 +599,13 @@ const MIGRATIONS = [
       );
     `,
   },
+  {
+    id: 21,
+    name: 'self_check_fingerprint',
+    sql: `
+      ALTER TABLE self_check_state ADD COLUMN problems_hash TEXT;
+    `,
+  },
 ];
 
 function migrate() {

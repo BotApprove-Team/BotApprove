@@ -34,8 +34,11 @@
 <% } %>
 
 <% if (selfCheck && !selfCheck.ok) { %>
-  <div class="notice danger">
-    <strong><%= selfCheck.tampering ? 'BotApprove has been weakened' : 'Protection is impaired' %></strong>
+  <% const impaired = (selfCheck.codes || []).some((c) =>
+       ['perms', 'demoted', 'unreachable', 'channel_broken'].includes(c)); %>
+  <div class="notice <%= selfCheck.tampering || impaired ? 'danger' : 'warn' %>">
+    <strong><%= selfCheck.tampering ? 'BotApprove has been weakened'
+      : (impaired ? 'Protection is impaired' : 'Setup is not finished') %></strong>
     <ul>
       <% (selfCheck.problems || []).forEach((p) => { %><li><%= p %></li><% }) %>
     </ul>

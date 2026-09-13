@@ -243,7 +243,7 @@ router.get('/g/:guildId/:tab', requireGuildAccess('approve'), async (req, res, n
   const guildId = guild.id;
 
   const cfg = guildConfig.get(guildId);
-  const selfCheck = await checkGuild(guild, { reason: 'dashboard' }).catch((err) => ({
+  const selfCheck = await checkGuild(guild, { reason: 'dashboard', announce: false }).catch((err) => ({
     ok: false, problems: [err.message],
   }));
 

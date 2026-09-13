@@ -1,5 +1,7 @@
+import crypto from 'node:crypto';
 import { EmbedBuilder, PermissionsBitField } from 'discord.js';
 import { selfCheckState, approverRoles, guildConfig } from '../db/queries.js';
+import { config } from '../config.js';
 import { record } from './securityService.js';
 import { checkChannel, describeChannelProblem } from './channelCheck.js';
 import { createLogger } from '../logger.js';
@@ -8,9 +10,29 @@ const log = createLogger('self-check');
 
 const REQUIRED = ['KickMembers', 'ViewAuditLog'];
 
-const ALERT_COOLDOWN_MS = 15 * 60_000;
+const PERM_LABEL = {
+  KickMembers: 'Kick Members',
+  ViewAuditLog: 'View Audit Log',
+};
 
-export async function checkGuild(guild, { reason = 'periodic' } = {}) {
+const INCIDENT_COOLDOWN_MS = 15 * 60_000;
+const RENAG_MS = 7 * 86_400_000;
+
+const IMPAIRED = ['perms', 'demoted', 'unreachable', 'channel_broken'];
+
+function fingerprint(codes) {
+  return crypto.createHash('sha1').update([...codes].sort().join('|')).digest('hex').slice(0, 16);
+}
+
+function headline(codes, tampering) {
+  if (tampering) return 'BotApprove was weakened, likely compromise attempt';
+  if (codes.includes('perms')) return 'BotApprove is missing permissions it needs';
+  if (codes.includes('unreachable')) return 'BotApprove is not correctly positioned';
+  if (codes.includes('channel_broken')) return 'BotApprove cannot reach the approval channel';
+  return 'BotApprove is not finished being set up';
+}
+
+export async function checkGuild(guild, { reason = 'periodic', announce = true } = {}) {
   const me = guild.members.me ?? await guild.members.fetchMe().catch(() => null);
   if (!me) {
     log.warn('cannot resolve self member', { guildId: guild.id });
@@ -31,12 +53,17 @@ export async function checkGuild(guild, { reason = 'periodic' } = {}) {
     ? REQUIRED.filter((p) => previousPerms.includes(p) && missing.includes(p))
     : [];
 
-  const problems = [];
+  const found = [];
   const notes = [];
+  const problem = (code, text) => found.push({ code, text });
 
-  if (missing.length) problems.push(`Missing permission(s): ${missing.join(', ')}`);
+  if (missing.length) {
+    problem('perms', `Missing ${missing.map((p) => PERM_LABEL[p] ?? p).join(' and ')}. `
+      + 'Grant them in Server Settings, Roles, BotApprove. Without them a bot that joins '
+      + 'cannot be removed at all.');
+  }
   if (demoted) {
-    problems.push(`Role position dropped from ${previous.role_position} to ${position}`);
+    problem('demoted', `Role position dropped from ${previous.role_position} to ${position}.`);
   }
 
   if (rolesAbove.size) {
@@ -76,14 +103,13 @@ export async function checkGuild(guild, { reason = 'periodic' } = {}) {
     const sharing = unreachable.some((m) => m.roles.highest.id === me.roles.highest.id);
     const names = [...unreachable.values()].map((m) => m.user.tag).slice(0, 6).join(', ');
     const more = unreachable.size > 6 ? ` and ${unreachable.size - 6} more` : '';
-    problems.push(
+    problem('unreachable',
       `BotApprove cannot remove ${unreachable.size} bot(s) here: ${names}${more}. ` +
       (sharing
         ? `They share its own **${me.roles.highest.name}** role, and level is not above. ` +
           'Give BotApprove a role of its own, positioned higher.'
         : 'Their roles rank at or above BotApprove. Drag its role above them in ' +
-          'Server Settings, Roles.'),
-    );
+          'Server Settings, Roles.'));
   }
 
   const threats = guild.members.cache.filter((m) => {
@@ -115,19 +141,18 @@ export async function checkGuild(guild, { reason = 'periodic' } = {}) {
   const cfg = guildConfig.get(guild.id);
   const notify = await checkChannel(guild, cfg.notify_channel_id);
   if (cfg.notify_channel_id && !notify.ok) {
-    problems.push(describeChannelProblem(notify, cfg.notify_channel_id));
+    problem('channel_broken', describeChannelProblem(notify, cfg.notify_channel_id));
   } else if (!cfg.notify_channel_id) {
-    problems.push('No approval channel is set, so nobody is notified when a bot is held. ' +
-      'Use /config notify-channel.');
+    problem('no_channel', 'No approval channel is set, so nobody is notified when a bot is '
+      + 'held. Use /config notify-channel.');
   }
 
   if (!approverRoles.list(guild.id).length) {
-    problems.push(
+    problem('no_approvers',
       'No approver roles are set, so the approval card is posted with nobody mentioned. It is '
       + 'the same as not being told: anyone with Manage Server can still press the buttons, but '
       + 'nothing points them at it. Use /approvers add. Until then the server owner is pinged '
-      + 'instead, as a stand-in.',
-    );
+      + 'instead, as a stand-in.');
   }
   const logCh = await checkChannel(guild, cfg.log_channel_id);
   if (cfg.log_channel_id && !logCh.ok) {
@@ -138,37 +163,54 @@ export async function checkGuild(guild, { reason = 'periodic' } = {}) {
   selfCheckState.save(guild.id, {
     rolePosition: position,
     permissions: JSON.stringify(REQUIRED.filter((p) => !missing.includes(p))),
-    lastOkAt: problems.length ? null : Date.now(),
+    lastOkAt: found.length ? null : Date.now(),
   });
 
-  if (!problems.length) return { ok: true, position, notes };
+  if (!found.length) {
+    if (previous?.problems_hash) selfCheckState.noteProblems(guild.id, null, null);
+    return { ok: true, position, notes };
+  }
 
+  const codes = found.map((p) => p.code);
+  const problems = found.map((p) => p.text);
   const tampering = demoted || lostPerms.length > 0;
-  const severity = tampering ? 'critical' : 'high';
+  const result = { ok: false, problems, codes, notes, tampering };
+
+  if (!announce) return result;
 
   const now = Date.now();
-  const cooling = previous?.last_alert_at && now - previous.last_alert_at < ALERT_COOLDOWN_MS;
-  if (cooling) return { ok: false, problems, notes, suppressed: true };
+  const hash = fingerprint(codes);
+  const since = previous?.last_alert_at ? now - previous.last_alert_at : Infinity;
+  const speak = tampering
+    ? since >= INCIDENT_COOLDOWN_MS
+    : hash !== previous?.problems_hash || since >= RENAG_MS;
 
-  selfCheckState.save(guild.id, { rolePosition: position, lastAlertAt: now });
+  if (!speak) return { ...result, suppressed: true };
+
+  selfCheckState.noteProblems(guild.id, hash, now);
 
   await record({
     guildId: guild.id,
     action: tampering ? 'self_check_tampering' : 'self_check_misconfigured',
-    severity,
-    title: tampering
-    ? 'BotApprove was weakened, likely compromise attempt'
-    : 'BotApprove is not correctly positioned',
+    severity: tampering ? 'critical' : 'high',
+    title: headline(codes, tampering),
     description: problems.join('\n'),
-    detail: { reason, missing, position, roles_above: rolesAbove.size },
+    detail: {
+      reason,
+      problems: codes.join(', '),
+      missing: missing.length ? missing.join(', ') : undefined,
+      position,
+      roles_above: rolesAbove.size || undefined,
+    },
+    mirror: false,
   });
 
-  await pingApprovers(guild, { problems, tampering }).catch(() => {});
+  await pingApprovers(guild, { problems, codes, tampering }).catch(() => {});
 
-  return { ok: false, problems, notes, tampering };
+  return result;
 }
 
-async function pingApprovers(guild, { problems, tampering }) {
+async function pingApprovers(guild, { problems, codes, tampering }) {
   const cfg = guildConfig.get(guild.id);
   const channelId = cfg.log_channel_id ?? cfg.notify_channel_id;
   if (!channelId) return;
@@ -176,21 +218,36 @@ async function pingApprovers(guild, { problems, tampering }) {
   const channel = await guild.channels.fetch(channelId).catch(() => null);
   if (!channel?.isTextBased?.()) return;
 
+  const impaired = codes.some((c) => IMPAIRED.includes(c));
   const roleIds = approverRoles.list(guild.id);
+
   const embed = new EmbedBuilder()
-    .setColor(tampering ? 0x992d22 : 0xed4245)
+    .setColor(tampering ? 0x992d22 : (impaired ? 0xed4245 : 0xd29922))
     .setTitle(tampering
-    ? 'BotApprove has been weakened'
-    : 'BotApprove cannot fully protect this server')
+      ? 'BotApprove has been weakened'
+      : (impaired
+        ? 'BotApprove cannot fully protect this server'
+        : 'BotApprove is not finished being set up'))
     .setDescription(
-      `${problems.map((p) => `• ${p}`).join('\n')}\n\n` +
+      problems.map((p) => `• ${p}`).join('\n\n') +
       (tampering
-        ? '**Someone reduced BotApprove\'s power after it was working.** Treat this as an ' +
-          'in-progress attack: check the audit log for who changed roles or permissions.'
-        : 'Grant Kick Members + View Audit Log and drag BotApprove\'s role above where new ' +
-          'bots land.'),
+        ? '\n\n**Someone reduced BotApprove\'s power after it was working.** Treat this as an '
+          + 'in-progress attack: check the audit log for who changed roles or permissions.'
+        : ''),
     )
+    .setFooter({
+      text: tampering
+        ? 'Repeats every 15 minutes until it is resolved.'
+        : 'Said once. It will not repeat unless something changes.',
+    })
     .setTimestamp(new Date());
+
+  if (!tampering) {
+    embed.addFields({
+      name: 'Fix it on the dashboard',
+      value: `${config.web.baseUrl}/g/${guild.id}/setup`,
+    });
+  }
 
   await channel.send({
     content: roleIds.length ? roleIds.map((id) => `<@&${id}>`).join(' ') : undefined,
