@@ -259,7 +259,13 @@ export function buildApprovalMessage({
 export async function deliverApprovalPrompt({ guild, pendingId, payload }) {
   const cfg = guildConfig.get(guild.id);
   const roleIds = approverRoles.list(guild.id);
-  const content = roleIds.length ? roleIds.map((id) => `<@&${id}>`).join(' ') : undefined;
+  const ownerFallback = !roleIds.length ? guild.ownerId : null;
+  const content = roleIds.length
+    ? roleIds.map((id) => `<@&${id}>`).join(' ')
+    : (ownerFallback ? `<@${ownerFallback}>` : undefined);
+  const mentions = roleIds.length
+    ? { roles: roleIds }
+    : { users: ownerFallback ? [ownerFallback] : [] };
 
   let delivered = false;
 
@@ -274,7 +280,7 @@ export async function deliverApprovalPrompt({ guild, pendingId, payload }) {
       const msg = await channel.send({
         ...payload,
         content,
-        allowedMentions: { roles: roleIds },
+        allowedMentions: mentions,
       }).catch((err) => {
         log.error('approval prompt send failed', { guildId: guild.id, err: err.message });
         return null;

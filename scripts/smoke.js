@@ -13,7 +13,8 @@ for (const suffix of ['', '-wal', '-shm']) {
 fs.mkdirSync(path.dirname(config.db.path), { recursive: true });
 
 const { whitelist, keywords, reinviteTokens, guildConfig, securityLog, nukeRegistry,
-        knownNukeBots, nukeIncidents } = await import('../src/db/queries.js');
+        knownNukeBots, nukeIncidents, pendingApprovals,
+        approverRoles } = await import('../src/db/queries.js');
 const { matchKeyword, seedDefaultKeywords, addToWhitelist, issueReinviteToken, consumeReinviteToken } =
   await import('../src/services/securityService.js');
 const { resolveEntitlement, generateLicenseKey, redeemLicenseKey, markBillingLapse } =
@@ -274,6 +275,58 @@ for (const a of ['whitelist_add', 'token_issue', 'token_consume', 'token_expired
   'known_nuke_bot_added', 'known_nuke_bot_removed', 'bot_permission_drift']) {
   check(`logged: ${a}`, actions.has(a), true);
 }
+
+console.log('\n- a card nobody is pinged for is the same as no card -');
+const { deliverApprovalPrompt } = await import('../src/services/approvalService.js');
+
+let sentAs = null;
+const cardGuild = (id, ownerId) => {
+  guildConfig.ensure(id);
+  guildConfig.set(id, { notify_channel_id: 'c1' });
+  return {
+    id,
+    ownerId,
+    name: 'Card Test',
+    members: { me: { permissions: { has: () => true } } },
+    channels: {
+      cache: new Map([['c1', {
+        id: 'c1',
+        type: 0,
+        isTextBased: () => true,
+        permissionsFor: () => new PermissionsBitField([
+          'ViewChannel', 'SendMessages', 'EmbedLinks', 'AttachFiles',
+        ]),
+        send: async (p) => {
+          sentAs = { content: p.content, mentions: p.allowedMentions };
+          return { id: 'm1' };
+        },
+      }]]),
+      fetch: async (cid) => cardGuildChannel(cid),
+    },
+  };
+};
+const cardGuildChannel = () => null;
+
+const NOROLE = '888888888888888888';
+const OWNER_OF = '999999999999999999';
+const g1 = cardGuild(NOROLE, OWNER_OF);
+g1.channels.fetch = async () => g1.channels.cache.get('c1');
+
+const p1 = pendingApprovals.create({ guildId: NOROLE, botId: '1', botTag: 'x#1' });
+await deliverApprovalPrompt({
+  guild: g1, pendingId: Number(p1.lastInsertRowid), payload: { embeds: [] },
+});
+check('with no approver roles the owner is pinged', sentAs.content, '<@' + OWNER_OF + '>');
+check('and only they can be mentioned', sentAs.mentions, { users: [OWNER_OF] });
+
+approverRoles.add(NOROLE, 'role-1');
+sentAs = null;
+const p2 = pendingApprovals.create({ guildId: NOROLE, botId: '2', botTag: 'y#2' });
+await deliverApprovalPrompt({
+  guild: g1, pendingId: Number(p2.lastInsertRowid), payload: { embeds: [] },
+});
+check('once approvers exist they are pinged instead', sentAs.content, '<@&role-1>');
+check('and the owner is not', sentAs.mentions, { roles: ['role-1'] });
 
 console.log(`\n${failures ? `${failures} check(s) failed` : 'all checks passed'}\n`);
 process.exit(failures ? 1 : 0);

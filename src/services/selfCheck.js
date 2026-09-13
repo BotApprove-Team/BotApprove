@@ -120,6 +120,15 @@ export async function checkGuild(guild, { reason = 'periodic' } = {}) {
     problems.push('No approval channel is set, so nobody is notified when a bot is held. ' +
       'Use /config notify-channel.');
   }
+
+  if (!approverRoles.list(guild.id).length) {
+    problems.push(
+      'No approver roles are set, so the approval card is posted with nobody mentioned. It is '
+      + 'the same as not being told: anyone with Manage Server can still press the buttons, but '
+      + 'nothing points them at it. Use /approvers add. Until then the server owner is pinged '
+      + 'instead, as a stand-in.',
+    );
+  }
   const logCh = await checkChannel(guild, cfg.log_channel_id);
   if (cfg.log_channel_id && !logCh.ok) {
     notes.push(`${describeChannelProblem(logCh, cfg.log_channel_id)} ` +
