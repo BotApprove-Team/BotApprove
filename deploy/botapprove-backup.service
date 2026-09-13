@@ -6,6 +6,8 @@ Documentation=https://botapprove.mikuuu.xyz
 After=botapprove.service
 
 [Service]
+User=botapprove
+Group=botapprove
 Type=oneshot
 WorkingDirectory=/opt/botapprove
 ExecStart=/usr/bin/node scripts/backup.js
@@ -15,7 +17,16 @@ StandardOutput=journal
 StandardError=journal
 SyslogIdentifier=botapprove-backup
 
+UMask=0077
 NoNewPrivileges=true
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictNamespaces=true
+RestrictSUIDSGID=true
+LockPersonality=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
 PrivateTmp=true
 ProtectSystem=full
 ProtectHome=true

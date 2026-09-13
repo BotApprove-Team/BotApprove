@@ -9,6 +9,8 @@ StartLimitIntervalSec=120
 StartLimitBurst=5
 
 [Service]
+User=botapprove
+Group=botapprove
 Type=simple
 WorkingDirectory=/opt/botapprove
 ExecStart=/usr/bin/node src/index.js
@@ -20,13 +22,26 @@ StandardOutput=journal
 StandardError=journal
 SyslogIdentifier=botapprove
 
+UMask=0077
 NoNewPrivileges=true
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictNamespaces=true
+RestrictSUIDSGID=true
+LockPersonality=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
 PrivateTmp=true
-ProtectSystem=full
+ProtectSystem=strict
 ProtectHome=true
 # Must already exist: the mount namespace is set up before any Exec* runs, so
 # a missing directory fails the unit with 226/NAMESPACE rather than creating it.
+# The account is read by systemd, not by the app, so .env stays root-owned and
+# the service user never gets to read the token off disk.
+#   useradd --system --no-create-home --shell /usr/sbin/nologin botapprove
 #   mkdir -p /opt/botapprove/data
+#   chown -R botapprove:botapprove /opt/botapprove/data
 ReadWritePaths=/opt/botapprove/data
 
 [Install]
