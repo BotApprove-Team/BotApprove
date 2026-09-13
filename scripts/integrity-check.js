@@ -45,9 +45,11 @@ try {
   check('the bot source is in it', 'src/bot/client.js' in a.files, true);
   check('the gate is in it', 'src/services/botJoinPipeline.js' in a.files, true);
   check('so are the views', Object.keys(a.files).some((f) => f.endsWith('.ejs')), true);
-  check('and the lockfile', 'package-lock.json' in a.files, true);
+  check('and package.json', 'package.json' in a.files, true);
   check('the backup script is in it too, it reads the whole database',
     'scripts/backup.js' in a.files, true);
+  check('the lockfile is deliberately not, npm rewrites it per machine and it is '
+    + 'not what runs', 'package-lock.json' in a.files, false);
   check('the data directory is not', Object.keys(a.files).some((f) => f.startsWith('data/')), false);
 
   console.log('\n- spotting a difference -');

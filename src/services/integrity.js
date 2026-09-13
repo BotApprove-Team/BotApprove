@@ -31,10 +31,8 @@ export function measure() {
       files[path.relative(ROOT, full).split(path.sep).join('/')] = hashFile(full);
     }
   }
-  for (const extra of ['package.json', 'package-lock.json']) {
-    const full = path.join(ROOT, extra);
-    if (fs.existsSync(full)) files[extra] = hashFile(full);
-  }
+  const pkg = path.join(ROOT, 'package.json');
+  if (fs.existsSync(pkg)) files['package.json'] = hashFile(pkg);
 
   const root = crypto.createHash('sha256')
     .update(Object.entries(files).map(([f, h]) => `${f}:${h}`).join('\n'))
