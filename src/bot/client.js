@@ -18,6 +18,7 @@ import { onExternalAppMessage, fromUserInstalledApp } from '../services/external
 import { sendSetupGuide } from '../services/welcome.js';
 import { announceIfOpened } from '../services/billingOpened.js';
 import { drawDue, inviteNewGuild } from '../services/giveawayService.js';
+import { enforceIntegrity } from '../services/integrityWatch.js';
 import { handleInteraction } from './commands/index.js';
 
 const log = createLogger('bot');
@@ -87,6 +88,8 @@ export function createClient() {
       checkDriftAll(c, { reason: 'periodic' }).catch(() => {});
       enforceEntitlements(c).catch(() => {});
       drawDue().catch((err) => log.error('giveaway draw sweep failed', { err: err.message }));
+      enforceIntegrity('periodic').catch((err) =>
+        log.error('integrity sweep failed', { err: err.message }));
     }, SWEEP_INTERVAL_MS).unref?.();
   });
 

@@ -13,3 +13,6 @@ Thumbs.db
 stripe.md
 promo-license.md
 promo-license.pdf
+
+# Generated at deploy time by scripts/seal.js, specific to what is on that box.
+integrity.json

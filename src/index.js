@@ -1,11 +1,14 @@
 import { config, assertConfig } from './config.js';
 import { logger } from './logger.js';
 import { startBot } from './bot/client.js';
+import { enforceIntegrity } from './services/integrityWatch.js';
 
 const noWeb = process.argv.includes('--no-web');
 const webEnabled = config.web.enabled && !noWeb;
 
 assertConfig({ requireWeb: webEnabled });
+
+await enforceIntegrity('startup');
 
 let client = null;
 let webServer = null;
