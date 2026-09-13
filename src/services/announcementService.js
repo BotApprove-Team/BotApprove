@@ -3,6 +3,7 @@ import { guildConfig, announcements } from '../db/queries.js';
 import { checkChannel } from './channelCheck.js';
 import { record } from './securityService.js';
 import { createLogger } from '../logger.js';
+import { blocked as isBlocked } from './safeMode.js';
 
 const log = createLogger('announce');
 
@@ -37,6 +38,8 @@ export function preview(client) {
 export async function broadcast(client, {
   title, body, everyone, sentBy, guildIds = null, pingOwner = false,
 }) {
+  if (isBlocked('broadcast', { fn: 'broadcast' })) return { ok: false, reason: 'safe_mode' };
+
   const valid = validate({ title, body });
   if (!valid.ok) return { ok: false, reason: valid.reason };
 

@@ -33,6 +33,15 @@
   </div>
 <% } %>
 
+<% if (safeMode) { %>
+  <div class="notice warn">
+    <strong>BotApprove is running in safe mode</strong>
+    <p>Screening is unaffected. Bots that join are still kicked and held for your approval, and
+      the buttons still work. Everything that can act on a person, message every server, or lock
+      a server down is switched off until the operator turns it back on.</p>
+  </div>
+<% } %>
+
 <% if (selfCheck && !selfCheck.ok) { %>
   <% const impaired = (selfCheck.codes || []).some((c) =>
        ['perms', 'demoted', 'unreachable', 'channel_broken'].includes(c)); %>

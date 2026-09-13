@@ -4,6 +4,7 @@ import { config } from '../config.js';
 import { isEnabled as stripeEnabled, availablePlans } from './stripeService.js';
 import { record } from './securityService.js';
 import { createLogger } from '../logger.js';
+import { blocked as isBlocked } from './safeMode.js';
 
 const log = createLogger('billing-opened');
 
@@ -94,6 +95,7 @@ async function findChannel(guild) {
  * rather than the mechanism.
  */
 export async function announceIfOpened(client) {
+  if (isBlocked('broadcast', { fn: 'announceIfOpened' })) return { ok: false, reason: 'safe_mode' };
   const state = transition();
 
   if (!state.opened) {

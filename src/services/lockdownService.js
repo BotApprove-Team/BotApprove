@@ -2,6 +2,7 @@ import { PermissionsBitField } from 'discord.js';
 import { lockdown } from '../db/queries.js';
 import { record } from './securityService.js';
 import { createLogger } from '../logger.js';
+import { blocked } from './safeMode.js';
 
 const log = createLogger('lockdown');
 
@@ -12,6 +13,9 @@ const targets = (guild) => [...guild.channels.cache.values()]
   .slice(0, MAX_CHANNELS);
 
 export async function start(guild, actorId) {
+  if (blocked('lockdown', { guildId: guild.id, actorId })) {
+    return { ok: false, reason: 'safe_mode' };
+  }
   const me = guild.members.me;
   if (!me?.permissions.has(PermissionsBitField.Flags.ManageChannels)) {
     return { ok: false, reason: 'no_manage_channels' };

@@ -168,6 +168,8 @@ export const securityLog = {
            detail ? JSON.stringify(detail) : null, Date.now()),
   recent: (guildId, limit = 100) =>
     q('SELECT * FROM security_log WHERE guild_id = ? ORDER BY id DESC LIMIT ?').all(guildId, limit),
+  instance: (limit = 100) =>
+    q('SELECT * FROM security_log WHERE guild_id IS NULL ORDER BY id DESC LIMIT ?').all(limit),
 };
 
 export const selfCheckState = {

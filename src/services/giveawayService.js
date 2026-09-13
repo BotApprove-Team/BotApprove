@@ -10,6 +10,7 @@ import { resolveEntitlement, grantEntitlement } from './entitlementService.js';
 import { record } from './securityService.js';
 import { getClient } from '../bot/clientRef.js';
 import { createLogger } from '../logger.js';
+import { blocked } from './safeMode.js';
 
 const log = createLogger('giveaway');
 
@@ -157,6 +158,7 @@ async function sendTo(guild, embed, components) {
 }
 
 export async function inviteNewGuild(guild) {
+  if (blocked('broadcast', { fn: 'inviteNewGuild', guildId: guild.id })) return { sent: 0 };
   const open = giveaways.open();
   if (!open.length) return { sent: 0 };
 
@@ -176,6 +178,9 @@ export async function inviteNewGuild(guild) {
 }
 
 export async function announce(giveawayId) {
+  if (blocked('broadcast', { fn: 'announce', giveawayId })) {
+    return { ok: false, reason: 'safe_mode' };
+  }
   const row = giveaways.byId(giveawayId);
   if (!row) return { ok: false, reason: 'no_such_giveaway' };
   if (row.status !== 'draft') return { ok: false, reason: 'already_announced' };

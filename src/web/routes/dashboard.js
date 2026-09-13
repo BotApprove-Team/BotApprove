@@ -76,6 +76,9 @@ import {
   attemptUnlock, lock, isAdminUnlocked, unlockRemaining, isConfigured,
   currentStage, requireUnlocked,
 } from '../adminAuth.js';
+import {
+  state as safeModeState, enter as enterSafeMode, leave as leaveSafeMode, WITHHELD, KEPT,
+} from '../../services/safeMode.js';
 import { broadcast, preview, validate } from '../../services/announcementService.js';
 import {
   validate as validatePost, uniqueSlug, render as renderPost,
@@ -297,6 +300,7 @@ router.get('/g/:guildId/:tab', requireGuildAccess('approve'), async (req, res, n
     cfg,
     nickname: guild.members.me?.nickname ?? null,
     selfCheck,
+    safeMode: safeModeState(),
     textChannels,
     roles,
     pending,
@@ -862,8 +866,26 @@ router.get('/admin', requireOwner, requireUnlocked, (req, res) => {
       pendingRequests: nukeDbRequests.pendingCount(),
     },
     paywall: config.paywall,
+    safeMode: safeModeState(),
+    safeModeWithheld: WITHHELD,
+    safeModeKept: KEPT,
+    instanceLog: securityLog.instance(40),
     flash: takeFlash(req),
   });
+});
+
+router.post('/admin/safe-mode', requireOwner, requireUnlocked, async (req, res) => {
+  const actorId = req.session?.user?.id ?? null;
+  if (String(req.body.action) === 'enter') {
+    const result = await enterSafeMode({ reason: String(req.body.reason || '').slice(0, 300), actorId });
+    flash(req, result.ok ? 'ok' : 'err', result.ok
+      ? 'Safe mode on. The approval gate is untouched; everything that acts on a person is refused.'
+      : 'Safe mode was already on.');
+  } else {
+    const result = await leaveSafeMode(actorId);
+    flash(req, result.ok ? 'ok' : 'err', result.ok ? 'Safe mode off.' : 'Safe mode was not on.');
+  }
+  return res.redirect('/admin');
 });
 
 router.post('/admin/requests', requireOwner, requireUnlocked, async (req, res) => {

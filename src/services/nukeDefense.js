@@ -14,6 +14,7 @@ import {
 } from '../db/queries.js';
 import { record } from './securityService.js';
 import { hasFeature } from './featureService.js';
+import { blocked } from './safeMode.js';
 import { createLogger } from '../logger.js';
 
 const log = createLogger('nuke-defense');
@@ -142,6 +143,9 @@ export async function reviewNukeRequest({ id, decision, reviewerId, note }) {
 
 async function inviterEligibility(guild, userId, action) {
   if (action === 'none') return { allowed: false, reason: 'action_disabled' };
+  if (blocked('act_on_member', { guildId: guild.id, action })) {
+    return { allowed: false, reason: 'safe_mode' };
+  }
   if (!userId) return { allowed: false, reason: 'inviter_unknown' };
   if (userId === guild.client.user.id) return { allowed: false, reason: 'target_is_self' };
   if (userId === guild.ownerId) return { allowed: false, reason: 'target_is_guild_owner' };

@@ -26,6 +26,70 @@
 
 <section class="block">
   <div class="block-head">
+    <h2>Safe mode</h2>
+    <span class="count <%= safeMode ? 'live' : '' %>"><%= safeMode ? 'ON' : 'off' %></span>
+  </div>
+
+  <% if (safeMode) { %>
+    <div class="notice danger">
+      <strong>Safe mode has been on since <%= ts(safeMode.since) %></strong>
+      <p>Reason given: <%= safeMode.reason %></p>
+      <ul>
+        <% Object.keys(safeModeWithheld).forEach((k) => { %>
+          <li>Refused: <%= safeModeWithheld[k] %></li>
+        <% }) %>
+      </ul>
+    </div>
+    <form method="post" action="/admin/safe-mode">
+      <input type="hidden" name="action" value="leave">
+      <button class="btn" type="submit">Turn safe mode off</button>
+    </form>
+  <% } else { %>
+    <p class="hint" style="margin-top:0">
+      Drops every power that can act on a person, message every server, or lock one down, and
+      keeps the approval gate running. Use it when you do not trust this instance's state.
+      It costs nothing to turn on and survives a restart.
+    </p>
+    <ul class="hint">
+      <% safeModeKept.forEach((k) => { %><li><%= k %></li><% }) %>
+    </ul>
+    <form method="post" action="/admin/safe-mode" class="frow">
+      <input type="hidden" name="action" value="enter">
+      <input type="text" name="reason" maxlength="300" placeholder="Why, for the record">
+      <button class="btn danger" type="submit">Turn safe mode on</button>
+    </form>
+  <% } %>
+</section>
+
+<section class="block">
+  <div class="block-head">
+    <h2>Instance events</h2>
+    <span class="count">last <%= instanceLog.length %></span>
+  </div>
+  <p class="hint" style="margin-top:0">
+    Things that happened to this instance rather than to any one server: safe mode, giveaways,
+    announcements, threat list changes.
+  </p>
+  <div class="log">
+    <table>
+      <tr><th>Time</th><th>Action</th><th>Actor</th><th>Detail</th></tr>
+      <% instanceLog.forEach((l) => { %>
+        <tr>
+          <td class="faint" style="white-space:nowrap"><%= ts(l.created_at) %></td>
+          <td class="sev-<%= l.severity %>"><%= l.action %></td>
+          <td class="faint"><%= l.actor_id || '' %></td>
+          <td class="faint"><%= l.detail ? String(l.detail).slice(0, 140) : '' %></td>
+        </tr>
+      <% }) %>
+      <% if (!instanceLog.length) { %>
+        <tr><td colspan="4" class="empty">Nothing logged yet.</td></tr>
+      <% } %>
+    </table>
+  </div>
+</section>
+
+<section class="block">
+  <div class="block-head">
     <h2>Submissions awaiting review</h2>
     <span class="count <%= pendingRequests.length ? 'live' : '' %>"><%= pendingRequests.length %></span>
   </div>

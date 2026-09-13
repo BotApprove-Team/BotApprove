@@ -3,6 +3,7 @@ import { guildConfig, tamperResponses } from '../db/queries.js';
 import { apply as applyQuarantine, lift as liftQuarantine } from './quarantine.js';
 import { record } from './securityService.js';
 import { createLogger } from '../logger.js';
+import { blocked } from './safeMode.js';
 
 const log = createLogger('tamper');
 
@@ -121,6 +122,10 @@ async function finish(guild, { trigger, actor, outcome, removed = null, note, de
 export async function respond(guild, { trigger, actor = null, detail = null }) {
   const configured = mode(guild.id);
   const me = guild.members.me ?? await guild.members.fetchMe().catch(() => null);
+
+  if (blocked('act_on_member', { guildId: guild.id, trigger })) {
+    return finish(guild, { trigger, actor, outcome: 'safe_mode', detail });
+  }
 
   if (configured === 'off') {
     return finish(guild, { trigger, actor, outcome: 'disabled', detail });

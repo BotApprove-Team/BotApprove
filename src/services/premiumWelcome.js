@@ -5,6 +5,7 @@ import { featureSwitches } from './featureService.js';
 import { record } from './securityService.js';
 import { getClient } from '../bot/clientRef.js';
 import { createLogger } from '../logger.js';
+import { blocked as isBlocked } from './safeMode.js';
 
 const log = createLogger('premium-welcome');
 
@@ -39,6 +40,7 @@ function buildEmbed(guild, dormant) {
 }
 
 export async function announcePremium(guildId, { actorId = null } = {}) {
+  if (isBlocked('broadcast', { fn: 'announcePremium' })) return { ok: false, reason: 'safe_mode' };
   const client = getClient();
   const guild = client?.guilds.cache.get(guildId);
   if (!guild) return { sent: false, reason: 'guild_unavailable' };

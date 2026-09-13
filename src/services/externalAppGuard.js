@@ -2,6 +2,7 @@ import { EmbedBuilder, PermissionsBitField } from 'discord.js';
 import { guildConfig, externalAppEvents, externalAppRules } from '../db/queries.js';
 import { record } from './securityService.js';
 import { createLogger } from '../logger.js';
+import { blocked } from './safeMode.js';
 
 const log = createLogger('external-app');
 
@@ -134,7 +135,9 @@ export async function onExternalAppMessage(message) {
   let outcome = deleted ? 'deleted' : 'reported';
 
   if (HITS_PERSON.includes(effective)) {
-    if (actorId === guild.ownerId) {
+    if (blocked('act_on_member', { guildId: guild.id, effective })) {
+      outcome = deleted ? 'deleted' : 'safe_mode';
+    } else if (actorId === guild.ownerId) {
       outcome = 'owner_exempt';
     } else if (externalAppEvents.actedSince(guild.id, Date.now() - BREAKER_WINDOW_MS) >= BREAKER_MAX) {
       outcome = 'breaker_open';
