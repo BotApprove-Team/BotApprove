@@ -50,7 +50,7 @@ function makeGuild({ id, position = 7, perms = REQUIRED, bots = [], channel = 'c
   };
 
   const members = new Collection([['me', me]]);
-  bots.forEach((b, i) => {
+  bots.filter((b) => !b.late).forEach((b, i) => {
     const r = b.shares ? mine : role(`r-b${i}`, `Bot role ${i}`, b.position ?? position + 1);
     if (!b.shares) roles.set(r.id, r);
     members.set(`b${i}`, {
@@ -64,11 +64,28 @@ function makeGuild({ id, position = 7, perms = REQUIRED, bots = [], channel = 'c
   guildConfig.ensure(id);
   guildConfig.set(id, { notify_channel_id: channel, log_channel_id: channel });
 
+  const late = [];
+  bots.filter((b) => b.late).forEach((b, i) => {
+    const r = role(`r-l${i}`, `Late role ${i}`, position + 1);
+    roles.set(r.id, r);
+    late.push([`l${i}`, {
+      id: `l${i}`,
+      user: { bot: true, tag: b.tag ?? `late${i}#0000` },
+      permissions: new PermissionsBitField([]),
+      roles: { highest: r, cache: new Collection([[r.id, r]]) },
+    }]);
+  });
+
   return {
     id,
     ownerId: 'owner-1',
+    memberCount: members.size + late.length,
     roles: { cache: roles, everyone: { permissions: new PermissionsBitField([]) } },
-    members: { me, cache: members },
+    members: {
+      me,
+      cache: members,
+      fetch: async () => { for (const [k, v] of late) members.set(k, v); return members; },
+    },
     channels: {
       fetch: async (wanted) => (wanted === channel && channel ? {
         isTextBased: () => true,
@@ -206,6 +223,15 @@ posted = [];
 const urgent = await checkGuild(late, { reason: 'role_update' });
 check('a demotion two minutes later still gets through', posted.length, 1);
 check('and is treated as tampering', urgent.tampering, true);
+
+console.log('\n- a half filled member cache does not earn a clean bill of health -');
+const cold = makeGuild({ id: 'g-cold', bots: [{ tag: 'sleeper#1', late: true }] });
+approverRoles.add('g-cold', 'r-approve');
+posted = [];
+const booted = await checkGuild(cold, { reason: 'startup' });
+check('the bot nobody had cached yet is still found', booted.codes, ['unreachable']);
+check('so the sweep ten minutes later has nothing new to say',
+  (await checkGuild(cold, { reason: 'periodic' })) && posted.length, 1);
 
 console.log('\n- a standing gap is renagged weekly, not every sweep -');
 const old = makeGuild({ id: 'g-old' });

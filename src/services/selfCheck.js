@@ -39,6 +39,11 @@ export async function checkGuild(guild, { reason = 'periodic', announce = true }
     return { ok: false, reason: 'self_member_unavailable' };
   }
 
+  if (guild.memberCount && guild.members.cache.size < guild.memberCount) {
+    await guild.members.fetch().catch((err) =>
+      log.warn('member list incomplete', { guildId: guild.id, err: err.message }));
+  }
+
   const missing = REQUIRED.filter((p) => !me.permissions.has(PermissionsBitField.Flags[p]));
   const position = me.roles.highest.position;
 
