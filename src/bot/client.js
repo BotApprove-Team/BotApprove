@@ -17,7 +17,7 @@ import { onWebhookCreated } from '../services/webhookGuard.js';
 import { onExternalAppMessage, fromUserInstalledApp } from '../services/externalAppGuard.js';
 import { sendSetupGuide } from '../services/welcome.js';
 import { announceIfOpened } from '../services/billingOpened.js';
-import { drawDue } from '../services/giveawayService.js';
+import { drawDue, inviteNewGuild } from '../services/giveawayService.js';
 import { handleInteraction } from './commands/index.js';
 
 const log = createLogger('bot');
@@ -129,6 +129,9 @@ export function createClient() {
     // sits rather than guessing.
     await sendSetupGuide(guild).catch((err) =>
       log.warn('setup guide failed', { guildId: guild.id, err: err.message }));
+
+    await inviteNewGuild(guild).catch((err) =>
+      log.warn('giveaway invite failed', { guildId: guild.id, err: err.message }));
 
     await record({
       guildId: guild.id,

@@ -133,6 +133,48 @@ async function reachFor(guild) {
   return null;
 }
 
+async function sendTo(guild, embed, components) {
+  if (!eligible(guild.id)) return 'skipped';
+
+  const channel = await reachFor(guild).catch(() => null);
+  const ownerId = guild.ownerId;
+
+  if (channel) {
+    const ok = await channel.send({
+      content: ownerId ? `<@${ownerId}>` : undefined,
+      embeds: [embed],
+      components,
+      allowedMentions: ownerId ? { users: [ownerId] } : { parse: [] },
+    }).then(() => true).catch(() => false);
+    if (ok) return 'channel';
+  }
+
+  const owner = await guild.fetchOwner().catch(() => null);
+  if (!owner) return 'failed';
+  const sent = await owner.send({ embeds: [embed], components })
+    .then(() => true).catch(() => false);
+  return sent ? 'dm' : 'failed';
+}
+
+export async function inviteNewGuild(guild) {
+  const open = giveaways.open();
+  if (!open.length) return { sent: 0 };
+
+  let sent = 0;
+  for (const row of open) {
+    if (giveawayEntries.has(row.id, guild.id)) continue;
+    const how = await sendTo(guild, buildEmbed(row), [entryRow(row.id)]).catch(() => 'failed');
+    if (how === 'channel' || how === 'dm') {
+      sent += 1;
+      log.info('open giveaway offered to a new guild', {
+        giveawayId: row.id, guildId: guild.id, how,
+      });
+    }
+    await sleep(GAP_MS);
+  }
+  return { sent };
+}
+
 export async function announce(giveawayId) {
   const row = giveaways.byId(giveawayId);
   if (!row) return { ok: false, reason: 'no_such_giveaway' };
@@ -150,26 +192,11 @@ export async function announce(giveawayId) {
   let failed = 0;
 
   for (const [, guild] of client.guilds.cache) {
-    if (!eligible(guild.id)) { skipped += 1; continue; }
-
-    const channel = await reachFor(guild).catch(() => null);
-    const ownerId = guild.ownerId;
-
-    if (channel) {
-      const ok = await channel.send({
-        content: ownerId ? `<@${ownerId}>` : undefined,
-        embeds: [embed],
-        components,
-        allowedMentions: ownerId ? { users: [ownerId] } : { parse: [] },
-      }).then(() => true).catch(() => false);
-      if (ok) { inChannel += 1; await sleep(GAP_MS); continue; }
-    }
-
-    const owner = await guild.fetchOwner().catch(() => null);
-    if (!owner) { failed += 1; continue; }
-    const sent = await owner.send({ embeds: [embed], components })
-      .then(() => true).catch(() => false);
-    if (sent) byDm += 1; else failed += 1;
+    const one = await sendTo(guild, embed, components);
+    if (one === 'skipped') { skipped += 1; continue; }
+    if (one === 'channel') inChannel += 1;
+    else if (one === 'dm') byDm += 1;
+    else failed += 1;
     await sleep(GAP_MS);
   }
 

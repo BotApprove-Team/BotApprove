@@ -17,7 +17,7 @@ const {
   giveaways, giveawayEntries, guildConfig, approverRoles, entitlements,
 } = await import('../src/db/queries.js');
 const {
-  enter, weighFor, drawFrom, eligible, prizeLabel, draw,
+  enter, weighFor, drawFrom, eligible, prizeLabel, draw, inviteNewGuild,
 } = await import('../src/services/giveawayService.js');
 const { PermissionsBitField } = await import('discord.js');
 
@@ -193,6 +193,50 @@ check('an unreachable-bots server is told which bots',
   unreachable.missing.some((m) => m.why.includes('Cannot remove')), true);
 
 check('entering reports the gaps too', (await enter(gid, bare, OWNER)).missing.length, 3);
+
+console.log('\n- a server that joins while one is open hears about it -');
+let offered = [];
+const joining = (id, licensed = false) => {
+  const g = makeGuild({ id });
+  if (licensed) {
+    entitlements.upsert(id, { tier: 'pro', status: 'active', expiresAt: null, source: 'manual' });
+  }
+  g.channels.fetch = async () => ({
+    isTextBased: () => true,
+    permissionsFor: () => new PermissionsBitField(['ViewChannel', 'SendMessages']),
+    send: async () => { offered.push(id); },
+  });
+  guildConfig.set(id, { notify_channel_id: 'c1' });
+  return g;
+};
+
+for (const g of giveaways.open()) giveaways.markDrawn(g.id);
+
+const live = giveaways.create({
+  title: 'Running', tier: 'pro', durationDays: 30, winners: 1,
+  closesAt: Date.now() + 3600_000, createdBy: 'op',
+});
+giveaways.markAnnounced(Number(live.lastInsertRowid), {});
+
+offered = [];
+await inviteNewGuild(joining('g-new'));
+check('a new unlicensed server is told', offered, ['g-new']);
+
+offered = [];
+await inviteNewGuild(joining('g-new-paid', true));
+check('one that already has premium is not', offered, []);
+
+offered = [];
+const back = joining('g-entered');
+await enter(Number(live.lastInsertRowid), back, OWNER);
+offered = [];
+await inviteNewGuild(back);
+check('a server that already entered is not told twice', offered, []);
+
+giveaways.markDrawn(Number(live.lastInsertRowid));
+offered = [];
+await inviteNewGuild(joining('g-late'));
+check('nothing is sent once the giveaway has closed', offered, []);
 
 console.log(`\n${failures ? `${failures} check(s) failed` : 'all checks passed'}\n`);
 process.exit(failures ? 1 : 0);
