@@ -120,7 +120,8 @@ export function createApp() {
     res.locals.baseUrl = config.web.baseUrl;
     // Public pages should be findable now the project is announced. Anything
     // behind a login stays out of the index.
-    res.locals.indexable = ['/', '/pricing', '/blog', '/terms', '/privacy']
+    res.locals.indexable = ['/', '/pricing', '/blog', '/terms', '/privacy',
+      '/raidprotector/terms', '/raidprotector/privacy']
       .includes(req.path) || req.path.startsWith('/blog/');
     res.locals.flash = null;
     next();
@@ -221,6 +222,21 @@ export function createApp() {
     res.render('terms', { title: 'Terms of Service', ...legal, inviteUrl: config.inviteUrl }));
   app.get('/privacy', (_req, res) =>
     res.render('privacy', { title: 'Privacy Policy', ...legal, inviteUrl: config.inviteUrl }));
+
+  app.get('/raidprotector/terms', (_req, res) =>
+    res.render('rp-terms', {
+      title: 'RaidProtector Terms of Service',
+      cardTitle: 'RaidProtector Terms of Service',
+      cardDescription: 'The rules for using RaidProtector, currently in closed beta.',
+      ...legal,
+    }));
+  app.get('/raidprotector/privacy', (_req, res) =>
+    res.render('rp-privacy', {
+      title: 'RaidProtector Privacy Policy',
+      cardTitle: 'RaidProtector Privacy Policy',
+      cardDescription: 'What RaidProtector reads, what it keeps, and for how long.',
+      ...legal,
+    }));
 
   app.use(authRouter);
 

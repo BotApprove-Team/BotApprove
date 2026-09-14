@@ -1,0 +1,164 @@
+<%- include('partials/head') %>
+
+<div class="page-head">
+  <h1>RaidProtector Terms of Service</h1>
+  <div class="meta">The rules for using RaidProtector</div>
+</div>
+
+<div class="prose">
+  <p class="updated">Last updated <%= updated %>. Operated by <%= operator %>.</p>
+
+  <div class="callout">
+    <p>
+      <strong>RaidProtector is in closed beta.</strong> It is offered to servers with a Protection
+      Suite licence, it is incomplete, and it will change. During the beta it is configured to
+      report what it would have done rather than to act, and you have to turn acting on yourself.
+    </p>
+  </div>
+
+  <p>
+    RaidProtector is a Discord bot that detects raids and coordinated abuse, and can respond to
+    them. It is operated by the same person as BotApprove and shares that project's dashboard and
+    licence. By adding it to a server, signing in to the dashboard, or using a Protection Suite
+    licence, you agree to these terms. If you do not agree, remove the bot.
+  </p>
+
+  <h2>Who can use it</h2>
+  <p>
+    You must meet Discord's own minimum age requirement for your country and follow the
+    <a href="https://discord.com/terms" rel="noopener noreferrer" target="_blank">Discord Terms of
+    Service</a>. To add RaidProtector to a server you must have the Manage Server permission there,
+    which means you are authorised to make that decision for that community.
+  </p>
+  <p>
+    RaidProtector is an independent project. It is not affiliated with, endorsed by, or operated
+    by Discord.
+  </p>
+
+  <h2>What it does, and what it does not promise</h2>
+  <p>
+    RaidProtector watches for the patterns that accompany a raid: bursts of joins from young
+    accounts, the same message repeated across many channels, many accounts posting in unison. It
+    is a safety tool, not a guarantee. It is provided <strong>as is</strong>, without warranty of
+    any kind. In particular:
+  </p>
+  <ul>
+    <li>Detection is based on heuristics and thresholds. It will produce false positives and it
+      will miss real attacks.</li>
+    <li>It cannot act on anyone whose top role sits at or above its own, and it cannot act on the
+      server owner at all.</li>
+    <li>It depends on Discord's API and gateway, which can be slow, rate limited, or
+      unavailable.</li>
+    <li>A sufficiently patient attacker who stays under your thresholds will not trigger it.</li>
+    <li>It is not a substitute for Discord's own verification levels, AutoMod, or having awake
+      moderators.</li>
+  </ul>
+  <p>
+    You remain responsible for your server's security and for its moderation decisions. Do not
+    treat RaidProtector as your only safeguard.
+  </p>
+
+  <h2>You are responsible for what it does in your server</h2>
+  <p>
+    RaidProtector can be configured to time out, kick or ban members. Those settings are yours.
+    When it acts, it acts as a moderator of your server, on thresholds you chose, and the
+    consequences for the people affected are your responsibility as the server's operator.
+  </p>
+  <ul>
+    <li>Every automated action is written to your audit trail with the reason and the signal that
+      triggered it.</li>
+    <li>A circuit breaker stands the feature down after repeated actions in a short window, so a
+      misconfiguration cannot run away with your member list.</li>
+    <li>Anything taken away can be given back, and the notification tells you how.</li>
+  </ul>
+  <p>
+    If you are unsure, leave it in report-only mode. That is the default and it is a legitimate
+    way to run the bot permanently.
+  </p>
+
+  <h2>Acceptable use</h2>
+  <p>Do not:</p>
+  <ul>
+    <li>Use the automated actions to target individuals for reasons unrelated to genuine raid or
+      abuse activity, including personal disputes, or membership of a protected group.</li>
+    <li>Configure thresholds designed to catch a specific person rather than a pattern of abuse.</li>
+    <li>Use the bot to collect information about members for any purpose other than moderating
+      your own server.</li>
+    <li>Resell, sublicense or rebrand the service.</li>
+    <li>Attempt to overwhelm, reverse engineer for attack purposes, or interfere with the service
+      or the infrastructure it runs on.</li>
+    <li>Deliberately trigger the bot in someone else's server to get members punished.</li>
+  </ul>
+  <p>
+    Access can be withdrawn from a server or a person for any of the above, without a refund where
+    the breach is deliberate.
+  </p>
+
+  <h2>Licensing and payment</h2>
+  <p>
+    RaidProtector's paid features are covered by <strong>Protection Suite</strong>, the same
+    licence that covers BotApprove's premium features. One purchase covers both bots for the
+    server it was bought for. There is no separate RaidProtector subscription and no separate
+    charge.
+  </p>
+  <p>
+    Paid features are switched off until you turn them on, even when the licence is active,
+    because several of them change how your server behaves.
+  </p>
+  <p>
+    Payment, renewal, refunds and cancellation are handled under the
+    <a href="/terms">BotApprove Terms of Service</a>, which govern the licence itself. If the two
+    documents disagree about billing, that one wins.
+  </p>
+
+  <h2>Beta</h2>
+  <p>
+    During the beta, features may be added, changed or removed without notice, data may be reset,
+    and the bot may be unavailable for periods at a time. Default behaviour may change when the
+    beta ends; any change that would cause the bot to act where it previously only reported will
+    be announced before it takes effect, and will not be applied to your server without you
+    switching it on.
+  </p>
+
+  <h2>Availability</h2>
+  <p>
+    There is no uptime guarantee. The service may be interrupted for maintenance, by a Discord
+    outage, or because something broke. Where a paid licence is affected by a prolonged outage,
+    get in touch.
+  </p>
+
+  <h2>Liability</h2>
+  <p>
+    To the maximum extent permitted by law, the operator is not liable for indirect or
+    consequential loss, for damage resulting from a raid the bot failed to stop, or for damage
+    resulting from an automated action the bot took under settings you chose. Total liability for
+    any claim is limited to what you paid in the twelve months before it arose. Nothing here
+    excludes liability that cannot lawfully be excluded.
+  </p>
+
+  <h2>Ending it</h2>
+  <p>
+    You can stop at any time by removing the bot from your server. The operator may suspend or
+    withdraw access for a breach of these terms, or discontinue the service. If the service is
+    discontinued while you hold a paid licence, you will be told, and the licence will be dealt
+    with fairly.
+  </p>
+
+  <h2>Changes</h2>
+  <p>
+    These terms may change. Material changes will be noted by the date at the top of this page,
+    and announced in the dashboard.
+  </p>
+
+  <h2>Contact</h2>
+  <p>
+    Questions go through
+    <a href="<%= contactUrl %>" rel="noopener noreferrer" target="_blank">GitHub</a>.
+  </p>
+
+  <p class="updated">
+    See also the <a href="/raidprotector/privacy">RaidProtector Privacy Policy</a>.
+  </p>
+</div>
+
+<%- include('partials/foot') %>

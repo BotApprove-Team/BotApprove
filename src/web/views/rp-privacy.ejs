@@ -1,0 +1,183 @@
+<%- include('partials/head') %>
+
+<div class="page-head">
+  <h1>RaidProtector Privacy Policy</h1>
+  <div class="meta">What RaidProtector reads, what it keeps, and for how long</div>
+</div>
+
+<div class="prose">
+  <p class="updated">Last updated <%= updated %>. Operated by <%= operator %>.</p>
+
+  <p>
+    RaidProtector detects raids, which means that unlike its sibling BotApprove it does read
+    message content. This page says exactly what it does with it. It is written against what the
+    bot actually does rather than in general terms.
+  </p>
+
+  <h2>Message content</h2>
+  <div class="callout">
+    <p>
+      <strong>RaidProtector reads messages in memory and does not write them down.</strong> It
+      holds the Message Content intent because detecting a raid means noticing the same text
+      posted by many accounts at once. Message text is used to compute a short fingerprint and is
+      then discarded. The text itself is never written to the database, never logged, and never
+      leaves the process.
+    </p>
+  </div>
+  <p>
+    What survives a message is a one-way hash of its content, the channel and author IDs, and a
+    timestamp. That is enough to tell that fifteen accounts posted the same thing in nine channels
+    inside four seconds, which is what raid detection needs. It is not enough to reconstruct what
+    was said, and neither the operator nor your moderators can read your messages through this
+    bot.
+  </p>
+  <p>
+    The practical consequence, stated plainly: when RaidProtector reports a raid, your moderators
+    see the pattern, not a transcript. If you need the messages themselves, read them in Discord
+    before they are deleted.
+  </p>
+  <p>Direct messages are not read at all. The bot only sees channels in servers it has been added to.</p>
+
+  <h2>What is stored</h2>
+
+  <h3>About servers</h3>
+  <ul>
+    <li>Server ID and name.</li>
+    <li>Your settings: thresholds, which response is enabled, exempt roles and channels, and the
+      log channel.</li>
+    <li>Licence state, which is shared with BotApprove under the Protection Suite licence.</li>
+  </ul>
+
+  <h3>About people</h3>
+  <ul>
+    <li><strong>Discord user IDs</strong> of accounts involved in a detected raid, and of anyone
+      who changes a setting or reverses an action.</li>
+    <li>The username of an account named in a raid incident, so your moderators know who to look
+      at.</li>
+    <li>Account creation date and server join time, because the gap between them is one of the
+      signals.</li>
+    <li>Your Discord ID, username and avatar hash when you sign in to the dashboard, held in a
+      server-side session.</li>
+  </ul>
+  <div class="callout">
+    <p>
+      Some of this is about people who never chose to use this bot. If an account takes part in
+      something RaidProtector flags, its ID is recorded in that server's audit trail. That is the
+      point of the tool: a server owner needs to know who was involved.
+    </p>
+  </div>
+
+  <h3>About what happened</h3>
+  <ul>
+    <li>Message fingerprints, channel IDs and timestamps, as described above. These are kept only
+      as long as the detection window needs them and are then discarded.</li>
+    <li>Join timestamps and counts, for detecting join floods.</li>
+    <li>For each incident: when it started, which signal fired, how many accounts were involved,
+      what response was configured, what was actually done, and whether it was reversed.</li>
+  </ul>
+
+  <h2>What is not stored</h2>
+  <ul>
+    <li><strong>Message content.</strong> Read in memory, fingerprinted, discarded. Never written
+      to disk.</li>
+    <li><strong>Attachments, images, embeds or links</strong> are not downloaded or kept.</li>
+    <li><strong>Direct messages.</strong> The bot does not read them.</li>
+    <li><strong>Member lists</strong>, beyond the specific accounts named in an incident.</li>
+    <li><strong>Voice data</strong>, presence, or activity.</li>
+    <li><strong>Your Discord OAuth token.</strong> Used once at sign-in to read your identity and
+      server list, then discarded. Never written to disk.</li>
+    <li>Payment card details. Payment is handled by a payment provider, not by this service.</li>
+  </ul>
+
+  <h2>Why it is stored</h2>
+  <p>
+    To detect raids, to give server owners an audit trail of what was done to their members and
+    why, and to let an automated action be reviewed and reversed. Where a lawful basis is
+    required, it is legitimate interest in protecting a Discord community from coordinated abuse,
+    and contract performance for licensed features.
+  </p>
+
+  <h2>Who it is shared with</h2>
+  <p>
+    Nobody. Data is not sold, rented, or given to advertisers or analytics services. There are no
+    third-party trackers on this site. Incident records stay in the server they belong to and are
+    not pooled across servers or published.
+  </p>
+
+  <h2>Where it lives</h2>
+  <p>
+    In a SQLite database on a private server, reachable only over an encrypted connection, running
+    under an account with access to nothing else on the machine. Sessions are stored server-side
+    so signing out actually invalidates them.
+  </p>
+
+  <h2>How long it is kept</h2>
+  <ul>
+    <li><strong>Message fingerprints and join counts:</strong> minutes. They exist only for the
+      length of the detection window and are then dropped.</li>
+    <li><strong>Settings:</strong> until you change them, or you ask for the server's data to be
+      deleted. Kept if the bot is removed, so re-adding it restores your configuration.</li>
+    <li><strong>Incident records and the audit trail:</strong> kept, because that is what a server
+      owner relies on after an attack. Deleted on request.</li>
+    <li><strong>Sessions:</strong> up to 7 days, or until you sign out.</li>
+  </ul>
+
+  <h2>Automated decisions</h2>
+  <p>
+    This matters more here than for most bots, so it is spelled out. If a server enables it,
+    RaidProtector can time out, kick or ban an account automatically, without a human looking
+    first. That decision is made by software, from thresholds the server owner chose.
+  </p>
+  <ul>
+    <li>During the beta the default is to report and not act. Acting has to be switched on.</li>
+    <li>The server owner is never acted against, and neither is anyone whose top role is at or
+      above the bot's.</li>
+    <li>A circuit breaker stands the response down after repeated actions in a short window.</li>
+    <li>Every action is logged with its reason and the signal that caused it, and the notification
+      carries a way to reverse it.</li>
+  </ul>
+  <p>
+    If you were affected by an automated action and want it reviewed, contact the owner or
+    moderators of that server first. They control the thresholds, they control the ban, and they
+    can lift it. The operator of RaidProtector cannot undo a moderation action in someone else's
+    server.
+  </p>
+
+  <h2>Your rights</h2>
+  <p>
+    You can ask what is held about you, ask for it to be corrected, or ask for it to be deleted.
+    Depending on where you live you may also have the right to object to processing, or to
+    complain to a data protection authority. Requests go through the contact link below.
+  </p>
+  <p>
+    A server owner can have their whole server's record erased. Where deleting a specific entry
+    would break an audit trail that a server owner depends on, that will be explained rather than
+    silently refused.
+  </p>
+
+  <h2>Children</h2>
+  <p>
+    The service is not directed at anyone below Discord's minimum age for their country. If you
+    believe a child's data is held here, get in touch and it will be removed.
+  </p>
+
+  <h2>Changes</h2>
+  <p>
+    This policy may change, and during the beta it is more likely to than most. Material changes
+    will be noted by the date at the top of this page. If the bot ever begins storing message
+    content, that would be a material change and it would be announced before it happened, not
+    after.
+  </p>
+
+  <h2>Contact</h2>
+  <p>
+    Privacy requests go through
+    <a href="<%= contactUrl %>" rel="noopener noreferrer" target="_blank">GitHub</a>.
+  </p>
+
+  <p class="updated">
+    See also the <a href="/raidprotector/terms">RaidProtector Terms of Service</a>.
+  </p>
+</div>
+
+<%- include('partials/foot') %>
