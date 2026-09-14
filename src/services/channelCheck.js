@@ -1,4 +1,4 @@
-import { PermissionsBitField } from 'discord.js';
+import { ChannelType, PermissionsBitField } from 'discord.js';
 
 export const REQUIRED_CHANNEL_PERMS = [
   'ViewChannel',
@@ -47,4 +47,41 @@ export function describeChannelProblem(result, channelId) {
         : '');
   }
   return `BotApprove cannot post in <#${channelId}>.`;
+}
+
+export async function resolveDeliveryChannel(guild, preferred = []) {
+  for (const id of preferred) {
+    if (!id) continue;
+    const health = await checkChannel(guild, id);
+    if (health.ok) return { channel: health.channel, picked: false, problem: null };
+  }
+
+  const firstProblem = await (async () => {
+    for (const id of preferred) {
+      if (!id) continue;
+      const health = await checkChannel(guild, id);
+      if (!health.ok) return describeChannelProblem(health, id);
+    }
+    return null;
+  })();
+
+  const me = guild.members.me ?? await guild.members.fetchMe().catch(() => null);
+  if (!me) return { channel: null, picked: false, problem: firstProblem };
+
+  const ordered = [...guild.channels.cache.values()]
+    .filter((c) => c.type === ChannelType.GuildText || c.type === ChannelType.GuildAnnouncement)
+    .sort((a, b) => a.rawPosition - b.rawPosition);
+
+  const candidates = [guild.systemChannel, guild.publicUpdatesChannel, ...ordered];
+
+  for (const channel of candidates) {
+    if (!channel?.isTextBased?.()) continue;
+    const perms = channel.permissionsFor(me);
+    if (!perms) continue;
+    if (REQUIRED_CHANNEL_PERMS.every((p) => perms.has(PermissionsBitField.Flags[p]))) {
+      return { channel, picked: true, problem: firstProblem };
+    }
+  }
+
+  return { channel: null, picked: false, problem: firstProblem };
 }

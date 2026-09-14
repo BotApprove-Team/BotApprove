@@ -21,7 +21,7 @@ import {
 import { probeUserAssets } from './imageProbe.js';
 import { hasFeature } from './featureService.js';
 import { describe as describeImpersonation } from './impersonation.js';
-import { checkChannel, describeChannelProblem } from './channelCheck.js';
+import { resolveDeliveryChannel } from './channelCheck.js';
 import { confirmNukeBot, banNukeInviter } from './nukeDefense.js';
 import { config } from '../config.js';
 import { createLogger } from '../logger.js';
@@ -256,6 +256,25 @@ export function buildApprovalMessage({
   return { embeds: [embed], files, components: [row] };
 }
 
+function withGuidance(embeds, { picked, noApprovers }) {
+  const notes = [];
+  if (picked) {
+    notes.push('No approval channel is set, so this went to the first channel BotApprove can '
+      + 'post in. Use `/config notify-channel` to choose where these land.');
+  }
+  if (noApprovers) {
+    notes.push('No approver roles are set, so **anyone with Manage Server** can decide this. '
+      + 'Use `/approvers add` to name the roles that should be pinged instead.');
+  }
+  if (!notes.length || !embeds?.length) return embeds;
+
+  const first = embeds[0];
+  if (typeof first?.addFields === 'function') {
+    first.addFields({ name: 'Worth setting up', value: notes.join('\n\n') });
+  }
+  return embeds;
+}
+
 export async function deliverApprovalPrompt({ guild, pendingId, payload }) {
   const cfg = guildConfig.get(guild.id);
   const roleIds = approverRoles.list(guild.id);
@@ -269,33 +288,39 @@ export async function deliverApprovalPrompt({ guild, pendingId, payload }) {
 
   let delivered = false;
 
-  let deliveryProblem = null;
+  const target = await resolveDeliveryChannel(guild, [cfg.notify_channel_id, cfg.log_channel_id]);
+  const deliveryProblem = target.problem
+    ?? (cfg.notify_channel_id ? null : 'No approval channel is configured.');
 
-  if (cfg.notify_channel_id) {
-    const health = await checkChannel(guild, cfg.notify_channel_id);
-    if (!health.ok) deliveryProblem = describeChannelProblem(health, cfg.notify_channel_id);
+  if (target.channel) {
+    const body = { ...payload };
+    if (target.picked || !roleIds.length) body.embeds = withGuidance(body.embeds, {
+      picked: target.picked,
+      channelId: target.channel.id,
+      noApprovers: !roleIds.length,
+    });
 
-    const channel = health.ok ? health.channel : null;
-    if (channel?.isTextBased?.()) {
-      const msg = await channel.send({
-        ...payload,
-        content,
-        allowedMentions: mentions,
-      }).catch((err) => {
-        log.error('approval prompt send failed', { guildId: guild.id, err: err.message });
-        return null;
-      });
-      if (msg) {
-        pendingApprovals.attachMessage(pendingId, channel.id, msg.id);
-        delivered = true;
+    const msg = await target.channel.send({
+      ...body,
+      content,
+      allowedMentions: mentions,
+    }).catch((err) => {
+      log.error('approval prompt send failed', { guildId: guild.id, err: err.message });
+      return null;
+    });
+    if (msg) {
+      pendingApprovals.attachMessage(pendingId, target.channel.id, msg.id);
+      delivered = true;
+      if (target.picked) {
+        log.info('approval prompt posted to a channel we chose', {
+          guildId: guild.id, channelId: target.channel.id,
+        });
       }
-    } else {
-      log.warn('notify channel unusable', {
-        guildId: guild.id, channelId: cfg.notify_channel_id, problem: deliveryProblem,
-      });
     }
   } else {
-    deliveryProblem = 'No approval channel is configured.';
+    log.warn('nowhere to deliver the approval prompt', {
+      guildId: guild.id, problem: deliveryProblem,
+    });
   }
 
   if (cfg.notify_via_dm && roleIds.length && hasFeature(guild.id, 'dm_alerts')) {

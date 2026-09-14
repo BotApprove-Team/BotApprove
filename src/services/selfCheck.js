@@ -3,7 +3,7 @@ import { EmbedBuilder, PermissionsBitField } from 'discord.js';
 import { selfCheckState, approverRoles, guildConfig } from '../db/queries.js';
 import { config } from '../config.js';
 import { record } from './securityService.js';
-import { checkChannel, describeChannelProblem } from './channelCheck.js';
+import { checkChannel, describeChannelProblem, resolveDeliveryChannel } from './channelCheck.js';
 import { createLogger } from '../logger.js';
 
 const log = createLogger('self-check');
@@ -148,8 +148,16 @@ export async function checkGuild(guild, { reason = 'periodic', announce = true }
   if (cfg.notify_channel_id && !notify.ok) {
     problem('channel_broken', describeChannelProblem(notify, cfg.notify_channel_id));
   } else if (!cfg.notify_channel_id) {
-    problem('no_channel', 'No approval channel is set, so nobody is notified when a bot is '
-      + 'held. Use /config notify-channel.');
+    const target = await resolveDeliveryChannel(guild, []).catch(() => ({ channel: null }));
+    if (target.channel) {
+      notes.push(`No approval channel is set, so cards go to <#${target.channel.id}>, the first `
+        + 'one BotApprove can post in. That works, but pick one with /config notify-channel so '
+        + 'they land where your moderators actually look.');
+    } else {
+      problem('no_channel', 'No approval channel is set and BotApprove cannot post in any '
+        + 'channel here, so nobody is told when a bot is held. Give it View Channel, Send '
+        + 'Messages, Embed Links and Attach Files somewhere, then use /config notify-channel.');
+    }
   }
 
   if (!approverRoles.list(guild.id).length) {
