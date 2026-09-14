@@ -275,7 +275,55 @@ function withGuidance(embeds, { picked, noApprovers }) {
   return embeds;
 }
 
-export async function deliverApprovalPrompt({ guild, pendingId, payload }) {
+const invitersTold = new Map();
+const INVITER_QUIET_MS = 60 * 60_000;
+
+async function tellInviter(guild, inviter, botTag, delivered, channelId) {
+  if (!inviter?.known || !inviter.id) return false;
+  if (inviter.id === guild.ownerId && delivered) return false;
+
+  const key = `${guild.id}:${inviter.id}`;
+  const last = invitersTold.get(key) ?? 0;
+  if (Date.now() - last < INVITER_QUIET_MS) return false;
+  invitersTold.set(key, Date.now());
+
+  const member = guild.members.cache.get(inviter.id)
+    ?? await guild.members.fetch(inviter.id).catch(() => null);
+  if (!member) return false;
+
+  const embed = new EmbedBuilder()
+    .setColor(0xfee75c)
+    .setTitle(`Your bot was held for approval in ${guild.name}`)
+    .setDescription(
+      `**${botTag}** was removed the moment it joined. That is not an error and it is not `
+      + 'about you: BotApprove removes **every** bot on sight and holds it until a human '
+      + 'approves it, including bots the server owner invites. Nothing is trusted by default.',
+    )
+    .addFields(
+      {
+        name: 'How to get it back in',
+        value: delivered && channelId
+          ? `An approval card was posted in <#${channelId}>. Anyone with Manage Server, or an `
+            + 'approver role, can press Approve. Once approved you re-invite the bot yourself, '
+            + 'it is not added back automatically.'
+          : 'Ask someone with Manage Server to approve it, either from the approval card in '
+            + `this server or on the dashboard at ${config.web.baseUrl}. Once approved you `
+            + 're-invite the bot yourself.',
+      },
+      {
+        name: 'If this server is yours',
+        value: 'Run `/config notify-channel` to choose where approval cards appear, and '
+          + '`/approvers add` to say who can approve. Without a channel the gate still works '
+          + 'but nobody is told when it fires.',
+      },
+    )
+    .setFooter({ text: `BotApprove • ${config.supportUrl}` })
+    .setTimestamp(new Date());
+
+  return member.send({ embeds: [embed] }).then(() => true).catch(() => false);
+}
+
+export async function deliverApprovalPrompt({ guild, pendingId, payload, inviter, botTag }) {
   const cfg = guildConfig.get(guild.id);
   const roleIds = approverRoles.list(guild.id);
   const ownerFallback = !roleIds.length ? guild.ownerId : null;
@@ -337,6 +385,10 @@ export async function deliverApprovalPrompt({ guild, pendingId, payload }) {
     }
   }
 
+  const toldInviter = await tellInviter(
+    guild, inviter, botTag ?? 'The bot', delivered, target.channel?.id ?? null,
+  ).catch(() => false);
+
   if (!delivered) {
     await record({
       guildId: guild.id,
@@ -346,7 +398,7 @@ export async function deliverApprovalPrompt({ guild, pendingId, payload }) {
       description:
         `${deliveryProblem ?? 'Delivery failed.'} The bot was still kicked, because protection ` +
         'never depends on delivery, but no approver was notified in Discord.',
-      detail: { pending_id: pendingId, problem: deliveryProblem },
+      detail: { pending_id: pendingId, problem: deliveryProblem, told_inviter: toldInviter },
       mirror: false,
     });
   }

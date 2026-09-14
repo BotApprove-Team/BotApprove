@@ -44,17 +44,28 @@ function makeChannel(id, name, position, perms = FULL, type = ChannelType.GuildT
   };
 }
 
+let dms = [];
+
 function makeGuild({ id, channels, systemChannel = null, notify = null, log = null }) {
   guildConfig.ensure(id);
   guildConfig.set(id, { notify_channel_id: notify, log_channel_id: log });
   const cache = new Collection(channels.map((c) => [c.id, c]));
+  const member = (uid) => ({
+    id: uid,
+    send: async (payload) => { dms.push({ to: uid, payload }); },
+  });
   return {
     id,
     name: 'Server',
     ownerId: 'owner-1',
     systemChannel,
     publicUpdatesChannel: null,
-    members: { me: { id: 'me' }, fetchMe: async () => ({ id: 'me' }) },
+    members: {
+      me: { id: 'me' },
+      fetchMe: async () => ({ id: 'me' }),
+      cache: new Collection(),
+      fetch: async (uid) => member(uid),
+    },
     channels: { cache, fetch: async (wanted) => cache.get(wanted) ?? null },
   };
 }
@@ -168,6 +179,61 @@ check('delivery fails honestly', d9, false);
 check('nothing was sent', sent.length, 0);
 check('and it is on the audit trail',
   securityLog.recent('g9', 20).some((r) => r.action === 'approval_undelivered'), true);
+
+console.log('\n- the person who added the bot is told what happened -');
+const g10 = makeGuild({ id: 'g10', channels: [makeChannel('c-g', 'general', 0)] });
+const p10 = Number(pendingApprovals.create({
+  guildId: 'g10', botId: 'b5', botTag: 'cool#5', addedBy: 'inviter-1',
+}).lastInsertRowid);
+sent = []; dms = [];
+await deliverApprovalPrompt({
+  guild: g10,
+  pendingId: p10,
+  payload: payload(),
+  inviter: { known: true, id: 'inviter-1', tag: 'someone#0001' },
+  botTag: 'cool#5',
+});
+check('the inviter got a DM', dms.length, 1);
+check('addressed to them', dms[0].to, 'inviter-1');
+const dm = dms[0].payload.embeds[0].data;
+check('it names the bot in the title', dm.title.includes('held for approval'), true);
+check('it says this is not an error', dm.description.includes('not an error'), true);
+check('and that every bot is treated the same way', dm.description.includes('every'), true);
+check('it points at the channel the card went to',
+  JSON.stringify(dm.fields).includes('c-g'), true);
+check('and warns the bot is not re-added automatically',
+  JSON.stringify(dm.fields).includes('re-invite the bot yourself'), true);
+
+console.log('\n- but it does not become its own spam -');
+dms = [];
+const p11 = Number(pendingApprovals.create({
+  guildId: 'g10', botId: 'b6', botTag: 'cool#6', addedBy: 'inviter-1',
+}).lastInsertRowid);
+await deliverApprovalPrompt({
+  guild: g10, pendingId: p11, payload: payload(),
+  inviter: { known: true, id: 'inviter-1', tag: 'someone#0001' }, botTag: 'cool#6',
+});
+check('a second bot from the same person is quiet', dms.length, 0);
+
+dms = [];
+const p12 = Number(pendingApprovals.create({
+  guildId: 'g10', botId: 'b7', botTag: 'cool#7', addedBy: 'inviter-2',
+}).lastInsertRowid);
+await deliverApprovalPrompt({
+  guild: g10, pendingId: p12, payload: payload(),
+  inviter: { known: true, id: 'inviter-2', tag: 'other#0002' }, botTag: 'cool#7',
+});
+check('but a different person is still told', dms.length, 1);
+
+dms = [];
+const p13 = Number(pendingApprovals.create({
+  guildId: 'g10', botId: 'b8', botTag: 'cool#8', addedBy: null,
+}).lastInsertRowid);
+await deliverApprovalPrompt({
+  guild: g10, pendingId: p13, payload: payload(),
+  inviter: { known: false, reason: 'audit_log_unavailable' }, botTag: 'cool#8',
+});
+check('an unknown inviter is nobody to DM', dms.length, 0);
 
 console.log(`\n${failures ? `${failures} check(s) failed` : 'all checks passed'}\n`);
 process.exit(failures ? 1 : 0);

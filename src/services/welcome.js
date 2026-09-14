@@ -184,12 +184,6 @@ function buildEmbed(guild, standing) {
 
 /** Somewhere the owner will actually see it. */
 async function deliver(guild, embed) {
-  const owner = await guild.fetchOwner().catch(() => null);
-  if (owner) {
-    const sent = await owner.send({ embeds: [embed] }).then(() => true).catch(() => false);
-    if (sent) return { via: 'dm', to: owner.id };
-  }
-
   const me = guild.members.me;
   const postable = (c) => c?.isTextBased?.()
     && c.permissionsFor(me)?.has(PermissionsBitField.Flags.SendMessages)
@@ -200,13 +194,20 @@ async function deliver(guild, embed) {
     ...guild.channels.cache.filter(postable).sort((a, b) => a.rawPosition - b.rawPosition).values(),
   ];
 
+  let channelId = null;
   for (const channel of candidates) {
     if (!postable(channel)) continue;
     const sent = await channel.send({ embeds: [embed] }).then(() => true).catch(() => false);
-    if (sent) return { via: 'channel', to: channel.id };
+    if (sent) { channelId = channel.id; break; }
   }
 
-  return { via: 'nowhere' };
+  const owner = await guild.fetchOwner().catch(() => null);
+  const dmed = owner
+    ? await owner.send({ embeds: [embed] }).then(() => true).catch(() => false)
+    : false;
+
+  const via = channelId && dmed ? 'channel+dm' : (channelId ? 'channel' : (dmed ? 'dm' : 'nowhere'));
+  return { via, to: channelId ?? (dmed ? owner.id : null), channelId, dmed };
 }
 
 export async function sendSetupGuide(guild) {

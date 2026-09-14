@@ -243,7 +243,9 @@ async function openApproval({
     quorumRequired: hasFeature(guildId, 'approval_quorum') ? (cfg.quorum_required ?? 0) : 0,
   });
 
-  await deliverApprovalPrompt({ guild, pendingId, payload });
+  await deliverApprovalPrompt({
+    guild, pendingId, payload, inviter, botTag: member.user.tag,
+  });
   return pendingId;
 }
 
