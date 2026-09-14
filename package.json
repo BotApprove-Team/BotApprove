@@ -29,5 +29,8 @@
     "express-session": "^1.18.1",
     "image-size": "^1.1.1",
     "stripe": "^22.6.1"
+  },
+  "overrides": {
+    "qs": "^6.16.0"
   }
 }
