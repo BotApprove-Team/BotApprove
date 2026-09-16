@@ -117,6 +117,26 @@ export function createApp() {
     // Every view can ask which product it is rendering. Routes override it;
     // the default keeps partials working on pages that never think about it.
     res.locals.product = 'botapprove';
+
+    // Where the product switch goes from here. It used to always point at the
+    // marketing pages, so switching product from inside the dashboard threw
+    // you out to the homepage. Signed in, it moves between the two views of
+    // whatever you are already looking at.
+    const guildPage = req.path.match(/^\/g\/(\d{5,25})(?:\/|$)/);
+    if (guildPage) {
+      res.locals.switchTo = {
+        botapprove: `/g/${guildPage[1]}/overview`,
+        raidprotector: `/g/${guildPage[1]}/raidprotector`,
+      };
+    } else if (req.path === '/guilds') {
+      res.locals.switchTo = { botapprove: '/guilds', raidprotector: '/guilds?product=raidprotector' };
+    } else if (req.session?.user && req.path === '/') {
+      // Signed in, / bounces to /guilds, so point straight there rather than
+      // through a redirect that makes the switch look broken.
+      res.locals.switchTo = { botapprove: '/guilds', raidprotector: '/raidprotector' };
+    } else {
+      res.locals.switchTo = { botapprove: '/', raidprotector: '/raidprotector' };
+    }
     res.locals.cssVersion = cssVersion;
     res.locals.supportUrl = config.supportUrl;
     res.locals.repoUrl = config.repoUrl;

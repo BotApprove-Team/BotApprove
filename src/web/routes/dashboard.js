@@ -211,9 +211,21 @@ router.post('/subscribe', async (req, res) => {
   return res.redirect(303, result.url);
 });
 
-router.get('/guilds', (req, res) => {
+router.get('/guilds', async (req, res) => {
   const client = getClient();
   const present = new Set(client ? [...client.guilds.cache.keys()] : []);
+
+  // The same list, seen through whichever bot you asked about. Raid protection
+  // is a separate install, so it is asked where it actually is rather than
+  // assumed to match.
+  const asRp = req.query.product === 'raidprotector';
+  let rpPresent = null;
+  let rpProblem = null;
+  if (asRp) {
+    const listed = await raidprotector.guildIds();
+    if (listed.ok) rpPresent = new Set(listed.body?.ids ?? []);
+    else rpProblem = raidprotector.WHY[listed.reason] ?? 'RaidProtector could not be reached.';
+  }
 
   const candidates = (req.session.guilds ?? []).map((g) => ({
     ...g,
@@ -227,10 +239,19 @@ router.get('/guilds', (req, res) => {
       .map((g) => ({ id: g.id, name: g.name, icon: g.icon, botPresent: true, manageable: true, viaOwner: true }))
     : [];
 
-  res.render('guilds', {
+  const rows = [...candidates, ...owned].map((g) => ({
+    ...g,
+    rpPresent: rpPresent ? rpPresent.has(g.id) : null,
+  }));
+
+  return res.render('guilds', {
     title: 'Your servers',
-    guilds: [...candidates, ...owned].sort((a, b) => Number(b.botPresent) - Number(a.botPresent)),
+    product: asRp ? 'raidprotector' : 'botapprove',
+    asRp,
+    rpProblem,
+    guilds: rows.sort((a, b) => Number(b.botPresent) - Number(a.botPresent)),
     inviteUrl: config.inviteUrl,
+    rpInviteUrl: config.raidProtector.inviteUrl,
     flash: takeFlash(req),
   });
 });
@@ -302,6 +323,7 @@ router.get('/g/:guildId/:tab', requireGuildAccess('approve'), async (req, res, n
 
   return res.render('guild', {
     title: guild.name,
+    product: tab === 'raidprotector' ? 'raidprotector' : 'botapprove',
     tab,
     tabs,
     guild: { id: guildId, name: guild.name, icon: guild.icon, memberCount: guild.memberCount },

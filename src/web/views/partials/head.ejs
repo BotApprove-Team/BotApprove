@@ -71,9 +71,11 @@
       </svg>
       <span><% if (prod === 'raidprotector') { %>raid<b>protector</b><% } else { %>bot<b>approve</b><% } %></span>
     </a>
+<% const goTo = (typeof switchTo !== 'undefined' && switchTo)
+     ? switchTo : { botapprove: '/', raidprotector: '/raidprotector' }; %>
     <div class="prodpick" role="group" aria-label="Choose a product">
-      <a href="/"<% if (prod !== 'raidprotector') { %> aria-current="page"<% } %>>BotApprove</a>
-      <a href="/raidprotector"<% if (prod === 'raidprotector') { %> aria-current="page"<% } %>>RaidProtector</a>
+      <a href="<%= goTo.botapprove %>"<% if (prod !== 'raidprotector') { %> aria-current="page"<% } %>>BotApprove</a>
+      <a href="<%= goTo.raidprotector %>"<% if (prod === 'raidprotector') { %> aria-current="page"<% } %>>RaidProtector</a>
     </div>
     <nav>
       <% if (user) { %>

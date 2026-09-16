@@ -51,6 +51,7 @@ async function call(method, path, body) {
 }
 
 export const health = () => call('GET', '/v1/health');
+export const guildIds = () => call('GET', '/v1/guilds');
 export const guildState = (guildId) => call('GET', `/v1/guild/${guildId}`);
 export const updateSettings = (guildId, patch) => call('PATCH', `/v1/guild/${guildId}`, patch);
 export const undoIncident = (incidentId, actorId) =>

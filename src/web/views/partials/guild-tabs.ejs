@@ -5,7 +5,9 @@
     <div class="gmeta">
       <%= guild.memberCount.toLocaleString('en-US') %> members, <%= whitelisted.length %> bots
     </div>
-    <div class="gmeta"><a href="/guilds">all servers</a></div>
+    <div class="gmeta">
+      <a href="/guilds<%= tab === 'raidprotector' ? '?product=raidprotector' : '' %>">all servers</a>
+    </div>
     <% if (!canConfigure) { %>
       <div class="gmeta gro">read only, you are an approver not a manager</div>
     <% } %>

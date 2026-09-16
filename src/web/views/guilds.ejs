@@ -2,8 +2,18 @@
 
 <div class="page-head">
   <h1>Servers</h1>
-  <div class="meta"><%= guilds.length %> visible to you</div>
+  <div class="meta">
+    <%= guilds.length %> visible to you<% if (asRp) { %>, showing where RaidProtector is<% } %>
+  </div>
 </div>
+
+<% if (asRp && rpProblem) { %>
+  <div class="notice warn">
+    <strong>RaidProtector is not answering</strong>
+    <p><%= rpProblem %> The list below still shows your servers, it just cannot say which of them
+      have raid protection running.</p>
+  </div>
+<% } %>
 
 <% if (flash) { %>
   <div class="notice <%= flash.type === 'error' ? 'danger' : 'ok' %>"><%= flash.message %></div>
@@ -23,7 +33,22 @@
           <div class="id"><%= g.id %></div>
         </div>
         <div class="right">
-          <% if (!g.botPresent) { %>
+          <% if (asRp) { %>
+            <% if (g.rpPresent === false) { %>
+              <span class="st off">not installed</span>
+              <% if (g.manageable && rpInviteUrl) { %>
+                <a class="btn sm" href="<%= rpInviteUrl %>&guild_id=<%= g.id %>">Add</a>
+              <% } %>
+            <% } else if (g.rpPresent) { %>
+              <span class="st ok">protected</span>
+              <a class="btn sm" href="/g/<%= g.id %>/raidprotector">Open</a>
+            <% } else { %>
+              <span class="st off">unknown</span>
+              <% if (g.botPresent) { %>
+                <a class="btn sm" href="/g/<%= g.id %>/raidprotector">Open</a>
+              <% } %>
+            <% } %>
+          <% } else if (!g.botPresent) { %>
             <span class="st off">not installed</span>
             <% if (g.manageable) { %>
               <a class="btn sm" href="<%= inviteUrl %>&guild_id=<%= g.id %>">Add</a>
@@ -42,12 +67,25 @@
 
 <section class="block" style="margin-top:32px">
   <div class="block-head"><h2>Adding it to a server</h2></div>
-  <p class="lede">
-    BotApprove needs <code>Kick Members</code>, <code>Ban Members</code>,
-    <code>View Audit Log</code> and <code>Change Nickname</code>. Its role must sit above where
-    new bots land, and it needs <code>View Channel</code> in whichever channel you point it at.
-  </p>
-  <a class="btn primary" href="<%= inviteUrl %>">Invite BotApprove</a>
+  <% if (asRp) { %>
+    <p class="lede">
+      RaidProtector needs <code>Moderate Members</code> to time people out, and
+      <code>Ban Members</code> only if you turn bans on. Its role must sit above the people it
+      may act on. It is a separate install from BotApprove and starts in report mode, acting on
+      nobody until you say otherwise.
+    </p>
+    <% if (rpInviteUrl) { %>
+      <a class="btn primary" href="<%= rpInviteUrl %>">Invite RaidProtector</a>
+    <% } %>
+    <a class="btn" href="/raidprotector">What it does</a>
+  <% } else { %>
+    <p class="lede">
+      BotApprove needs <code>Kick Members</code>, <code>Ban Members</code>,
+      <code>View Audit Log</code> and <code>Change Nickname</code>. Its role must sit above where
+      new bots land, and it needs <code>View Channel</code> in whichever channel you point it at.
+    </p>
+    <a class="btn primary" href="<%= inviteUrl %>">Invite BotApprove</a>
+  <% } %>
 </section>
 
 <%- include('partials/foot') %>
