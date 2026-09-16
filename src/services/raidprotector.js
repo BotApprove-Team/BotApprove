@@ -52,6 +52,27 @@ async function call(method, path, body) {
 
 export const health = () => call('GET', '/v1/health');
 export const guildIds = () => call('GET', '/v1/guilds');
+export const pushAccess = (allowed) => call('PUT', '/v1/access', { allowed, source: 'botapprove' });
+
+/**
+ * Tell RaidProtector which servers may use it during the beta.
+ *
+ * The whole list goes every time rather than a diff: a push that fails is
+ * repaired by the next one instead of leaving a server wrongly on or off until
+ * somebody notices. Licences live here, so this is the side that knows.
+ */
+export async function syncAccess(client, isLicensed) {
+  if (!configured()) return { ok: false, reason: 'not_configured' };
+  const ids = [...(client?.guilds?.cache?.keys() ?? [])].filter((id) => isLicensed(id));
+  const result = await pushAccess(ids);
+  if (result.ok) {
+    const { granted = [], revoked = [] } = result.body ?? {};
+    if (granted.length || revoked.length) {
+      log.info('beta access synced', { allowed: ids.length, granted: granted.length, revoked: revoked.length });
+    }
+  }
+  return result;
+}
 export const guildState = (guildId) => call('GET', `/v1/guild/${guildId}`);
 export const updateSettings = (guildId, patch) => call('PATCH', `/v1/guild/${guildId}`, patch);
 export const undoIncident = (incidentId, actorId) =>

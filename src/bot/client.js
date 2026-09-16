@@ -9,6 +9,7 @@ import { checkGuild, checkAllGuilds } from '../services/selfCheck.js';
 import { seedDefaultKeywords, record } from '../services/securityService.js';
 import { applyNickname } from '../services/nicknameService.js';
 import { enforceEntitlements, startTrial, resolveEntitlement } from '../services/entitlementService.js';
+import { syncAccess as syncRaidProtectorAccess } from '../services/raidprotector.js';
 import { reinviteTokens, guildConfig, selfCheckState, botPermissions } from '../db/queries.js';
 import { rememberGuild, rememberAll, onMemberRemoved, onGuildRemoved } from '../services/removalWatch.js';
 import { checkAll as checkDriftAll, checkBot as checkDriftBot } from '../services/driftWatch.js';
@@ -24,6 +25,11 @@ import { handleInteraction } from './commands/index.js';
 const log = createLogger('bot');
 
 const SWEEP_INTERVAL_MS = 5 * 60_000;
+
+// Licences live in this bot's database, so this is the side that knows which
+// servers may use RaidProtector while its beta runs.
+const syncBetaAccess = (client) =>
+  syncRaidProtectorAccess(client, (guildId) => resolveEntitlement(guildId).licensed);
 
 function setPresence(client) {
   try {
@@ -76,6 +82,12 @@ export function createClient() {
     await enforceEntitlements(c).catch((err) =>
       log.error('entitlement sweep failed', { err: err.message }));
 
+    // RaidProtector gates its beta on a licence it cannot see, so it is told.
+    // Pushed on the same sweep as entitlements, and once at startup so a
+    // restart of either process settles the two back into agreement.
+    await syncBetaAccess(c).catch((err) =>
+      log.error('beta access sync failed', { err: err.message }));
+
     // Only does anything the first time the instance boots with card payment
     // switched on after having been without it.
     await announceIfOpened(c).catch((err) =>
@@ -87,6 +99,7 @@ export function createClient() {
       checkAllGuilds(c, { reason: 'periodic' }).catch(() => {});
       checkDriftAll(c, { reason: 'periodic' }).catch(() => {});
       enforceEntitlements(c).catch(() => {});
+      syncBetaAccess(c).catch(() => {});
       drawDue().catch((err) => log.error('giveaway draw sweep failed', { err: err.message }));
       enforceIntegrity('periodic').catch((err) =>
         log.error('integrity sweep failed', { err: err.message }));
