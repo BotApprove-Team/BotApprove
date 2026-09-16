@@ -151,7 +151,8 @@
           </form>
           <span class="hint" style="margin:0;align-self:center">
             Update your card or cancel. Cancelling stops future charges and keeps premium
-            until the period ends.<% if (portalUrl) { %>
+            until the period ends. Charges already taken are not refunded, and the gate keeps
+            running for free either way.<% if (portalUrl) { %>
             Locked out of this dashboard?
             <a href="<%= portalUrl %>" rel="noopener noreferrer" target="_blank">Sign in by email</a>.<% } %>
           </span>
