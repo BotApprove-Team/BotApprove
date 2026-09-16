@@ -167,14 +167,7 @@
   <% } %>
 </section>
 
-<section class="block">
-  <div class="block-head"><h2>Pricing</h2></div>
-  <p class="lede">
-    The approval gate is free forever, with no trial countdown. Premium adds threat intelligence
-    and automation for <%= price.symbol %><%= price.amount %> per month, per server.
-  </p>
-  <a class="btn" href="/pricing">See what premium adds</a>
-</section>
+<%- include('partials/suite') %>
 
 <section class="block">
   <div class="block-head"><h2>Add it</h2></div>

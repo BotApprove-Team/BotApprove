@@ -3,10 +3,11 @@
 <div class="page-head">
   <h1>Pricing</h1>
   <div class="meta">
-    Screening is free forever. Premium is <%= price.symbol %><%= price.amount %> a month per
-    server<% if (plans.includes('yearly')) { %>, <%= price.symbol %><%= prices.yearly %> a year<% } %><%
+    Screening is free forever. Protection Suite is <%= price.symbol %><%= price.amount %> a month
+    per server<% if (plans.includes('yearly')) { %>, <%= price.symbol %><%= prices.yearly %> a year<% } %><%
       if (plans.includes('lifetime')) { %>, or <%= price.symbol %><%= prices.lifetime %> once<% } %><%
       if (trial.offered) { %>, with the first <%= trial.days %> days free<% } %>.
+    One licence covers both BotApprove and RaidProtector in that server.
   </div>
 </div>
 
@@ -45,7 +46,7 @@
 
     <div class="plan featured">
       <div class="plan-head">
-        <h3>Premium</h3>
+        <h3>Protection Suite</h3>
         <% if (!plans.includes('yearly') && !plans.includes('lifetime')) { %>
           <div class="price">
             <span class="amount"><%= price.symbol %><%= price.amount %></span>
@@ -96,6 +97,7 @@
       <p class="plan-note">Everything in Free, plus:</p>
       <ul class="plan-list">
         <% premiumFeatures.forEach((f) => { %><li><%= f.name %></li><% }) %>
+        <li>RaidProtector, while the beta runs</li>
       </ul>
 
       <% if (plans.length) { %>
@@ -144,6 +146,8 @@
   </dl>
 </section>
 
+<%- include('partials/suite') %>
+
 <section class="block">
   <div class="block-head"><h2>Questions worth answering upfront</h2></div>
   <div class="cols two">
@@ -184,6 +188,17 @@
       <p class="a">
         Redeem a licence key with <code>/license redeem</code> in your server, or paste it into
         the licence field on your server's dashboard page.
+      </p>
+
+      <h3 class="q">Is there a separate RaidProtector subscription?</h3>
+      <p class="a">
+        No, and there will not be. One purchase, one checkout, both bots. Two billing systems is
+        two ways for money to go wrong.
+      </p>
+
+      <h3 class="q">Does buying it twice cover two servers?</h3>
+      <p class="a">
+        Yes. A licence covers one server, and both bots in it.
       </p>
 
       <h3 class="q">Does the free tier expire?</h3>

@@ -92,6 +92,7 @@ import {
   TITLE as TERMS_TITLE, INTRO as TERMS_INTRO, SECTIONS as TERMS_SECTIONS,
 } from '../../services/promoTerms.js';
 import { getClient } from '../../bot/clientRef.js';
+import * as raidprotector from '../../services/raidprotector.js';
 import { config } from '../../config.js';
 import { createLogger } from '../../logger.js';
 
@@ -234,7 +235,7 @@ router.get('/guilds', (req, res) => {
   });
 });
 
-const GUILD_TABS = ['overview', 'setup', 'protection', 'bots', 'threats', 'log', 'licence'];
+const GUILD_TABS = ['overview', 'setup', 'protection', 'raidprotector', 'bots', 'threats', 'log', 'licence'];
 
 router.get('/g/:guildId', requireGuildAccess('approve'), (req, res) =>
   res.redirect(`/g/${req.params.guildId}/overview`));
@@ -249,6 +250,12 @@ router.get('/g/:guildId/:tab', requireGuildAccess('approve'), async (req, res, n
   const selfCheck = await checkGuild(guild, { reason: 'dashboard', announce: false }).catch((err) => ({
     ok: false, problems: [err.message],
   }));
+
+  // Only on its own tab. It is a call to another process, and no other page
+  // should pay for it.
+  const rp = tab === 'raidprotector'
+    ? await raidprotector.guildState(guildId)
+    : null;
 
   const textChannels = guild.channels.cache
     .filter((c) => c.type === ChannelType.GuildText)
@@ -279,12 +286,14 @@ router.get('/g/:guildId/:tab', requireGuildAccess('approve'), async (req, res, n
     threats: icon('M12 2 1 21h22L12 2Zm-1 7h2v5h-2V9Zm0 7h2v2h-2v-2Z', ' fill-rule="evenodd"'),
     log: icon('M4 4h16v2H4V4Zm0 5h16v2H4V9Zm0 5h10v2H4v-2Zm0 5h10v2H4v-2Z'),
     licence: icon('M20 6H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2ZM8 15a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5Zm11-1h-6v-1.5h6V14Zm0-3h-6V9.5h6V11Z'),
+    raidprotector: icon('M7 7 3 8.6v3.9c0 2.9 1.7 5 4 5.9 2.3-.9 4-3 4-5.9V8.6L7 7Zm10 0-4 1.6v3.9c0 2.9 1.7 5 4 5.9 2.3-.9 4-3 4-5.9V8.6L17 7Zm-5-4L7.2 4.9v4.7c0 3.5 2 6.1 4.8 7.2 2.8-1.1 4.8-3.7 4.8-7.2V4.9L12 3Z'),
   };
 
   const tabs = [
     { key: 'overview', label: 'Overview', count: pending.length, urgent: pending.length > 0 },
     { key: 'setup', label: 'Setup', count: setupTodo, urgent: setupTodo > 0 },
     { key: 'protection', label: 'Protection', count: dormant, urgent: false },
+    { key: 'raidprotector', label: 'RaidProtector' },
     { key: 'bots', label: 'Bots', count: whitelist.list(guildId).length, urgent: false },
     { key: 'threats', label: 'Threats', count: incidentRows.length, urgent: incidentRows.length > 0 },
     { key: 'log', label: 'Log' },
@@ -311,6 +320,10 @@ router.get('/g/:guildId/:tab', requireGuildAccess('approve'), async (req, res, n
     tokens: reinviteTokens.listLive(guildId),
     logs: securityLog.recent(guildId, 60),
     entitlement: resolveEntitlement(guildId),
+    rp: rp?.ok ? rp.body : null,
+    rpProblem: rp && !rp.ok ? (raidprotector.WHY[rp.reason] ?? 'RaidProtector could not be reached.') : null,
+    rpConfigured: raidprotector.configured(),
+    rpInviteUrl: config.raidProtector.inviteUrl,
     features: featureState(guildId),
     nukes: nukeRegistry.list(guildId),
     incidents: incidentRows,
@@ -607,6 +620,76 @@ router.post('/g/:guildId/config', requireGuildAccess('configure'), async (req, r
   }
 
   res.redirect(`/g/${guildId}`);
+});
+
+// The three writes the RaidProtector tab can make. Each one is handed straight
+// to the other process, which validates it again before touching anything: this
+// side decides who may ask, that side decides what is a legal answer.
+router.post('/g/:guildId/raidprotector', requireGuildAccess('configure'), async (req, res) => {
+  const guildId = req.params.guildId;
+  const patch = {};
+  for (const key of ['mode', 'ban_mode']) {
+    if (req.body[key] !== undefined) patch[key] = String(req.body[key]);
+  }
+  for (const key of ['timeout_minutes', 'tenure_days', 'join_burst', 'join_window_s',
+    'duplicate_min', 'duplicate_window_s', 'ban_delay_s', 'ban_min_signals']) {
+    if (req.body[key] !== undefined && req.body[key] !== '') patch[key] = Number(req.body[key]);
+  }
+  if (req.body.log_channel_id !== undefined) {
+    patch.log_channel_id = String(req.body.log_channel_id) || null;
+  }
+
+  const result = await raidprotector.updateSettings(guildId, patch);
+  if (result.ok) {
+    const changed = result.body?.changed ?? [];
+    const rejected = result.body?.rejected ?? [];
+    flash(req, rejected.length ? 'warn' : 'ok',
+      `RaidProtector updated: ${changed.join(', ') || 'nothing'}.`
+      + (rejected.length ? ` Refused: ${rejected.join(', ')}.` : ''));
+  } else {
+    flash(req, 'error', result.body?.rejected?.length
+      ? `RaidProtector refused: ${result.body.rejected.join(', ')}.`
+      : (raidprotector.WHY[result.reason] ?? 'RaidProtector could not be reached.'));
+  }
+  res.redirect(`/g/${guildId}/raidprotector`);
+});
+
+router.post('/g/:guildId/raidprotector/undo', requireGuildAccess('configure'), async (req, res) => {
+  const guildId = req.params.guildId;
+  const incidentId = Number(req.body.incident_id);
+  if (!Number.isInteger(incidentId)) {
+    flash(req, 'error', 'That is not an incident number.');
+    return res.redirect(`/g/${guildId}/raidprotector`);
+  }
+  const result = await raidprotector.undoIncident(incidentId, req.session.user.id);
+  if (result.ok) {
+    const { reversed = 0, failed = 0 } = result.body ?? {};
+    flash(req, failed ? 'warn' : 'ok',
+      `Incident #${incidentId}: ${reversed} put back`
+      + (failed ? `, ${failed} could not be undone.` : '.'));
+  } else {
+    flash(req, 'error', raidprotector.WHY[result.reason] ?? 'RaidProtector could not be reached.');
+  }
+  return res.redirect(`/g/${guildId}/raidprotector`);
+});
+
+router.post('/g/:guildId/raidprotector/cancel-bans', requireGuildAccess('configure'), async (req, res) => {
+  const guildId = req.params.guildId;
+  const incidentId = Number(req.body.incident_id);
+  if (!Number.isInteger(incidentId)) {
+    flash(req, 'error', 'That is not an incident number.');
+    return res.redirect(`/g/${guildId}/raidprotector`);
+  }
+  const result = await raidprotector.cancelBans(incidentId, req.session.user.id);
+  if (result.ok) {
+    const n = result.body?.cancelled ?? 0;
+    flash(req, 'ok', n
+      ? `${n} queued ban(s) cancelled on incident #${incidentId}.`
+      : 'Nothing was queued on that incident.');
+  } else {
+    flash(req, 'error', raidprotector.WHY[result.reason] ?? 'RaidProtector could not be reached.');
+  }
+  return res.redirect(`/g/${guildId}/raidprotector`);
 });
 
 router.post('/g/:guildId/nuke', requireGuildAccess('approve'), async (req, res) => {

@@ -114,6 +114,9 @@ export function createApp() {
     res.locals.isOwner = req.session?.user ? isInstanceOwner(req.session.user.id) : false;
     res.locals.paywallEnabled = config.paywall.enabled;
     res.locals.path = req.path;
+    // Every view can ask which product it is rendering. Routes override it;
+    // the default keeps partials working on pages that never think about it.
+    res.locals.product = 'botapprove';
     res.locals.cssVersion = cssVersion;
     res.locals.supportUrl = config.supportUrl;
     res.locals.repoUrl = config.repoUrl;
@@ -121,7 +124,7 @@ export function createApp() {
     // Public pages should be findable now the project is announced. Anything
     // behind a login stays out of the index.
     res.locals.indexable = ['/', '/pricing', '/blog', '/terms', '/privacy',
-      '/raidprotector/terms', '/raidprotector/privacy']
+      '/raidprotector', '/raidprotector/terms', '/raidprotector/privacy']
       .includes(req.path) || req.path.startsWith('/blog/');
     res.locals.flash = null;
     next();
@@ -181,6 +184,18 @@ export function createApp() {
       ...plans(),
     });
   });
+
+  // A page of its own rather than a tab the homepage toggles with script: it is
+  // a separate product with its own terms, and it needs a link people can send.
+  app.get('/raidprotector', (_req, res) => res.render('rp-landing', {
+    title: 'RaidProtector',
+    product: 'raidprotector',
+    cardTitle: 'RaidProtector, stops raids with something you can take back',
+    cardDescription: 'Raid detection that needs two independent signals before it touches '
+      + 'anyone, times people out instead of banning them, and reverses a whole incident in '
+      + 'one press.',
+    ...plans(),
+  }));
 
   app.get('/healthz', (_req, res) => res.json({ ok: true, uptime: process.uptime() }));
 

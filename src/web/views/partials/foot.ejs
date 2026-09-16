@@ -23,10 +23,20 @@
       <% } %>
       <a href="/blog">Blog</a>
       <a href="/pricing">Pricing</a>
-      <a href="/terms">Terms</a>
-      <a href="/privacy">Privacy</a>
+      <% if ((typeof product !== 'undefined' ? product : '') === 'raidprotector') { %>
+        <a href="/raidprotector/terms">Terms</a>
+        <a href="/raidprotector/privacy">Privacy</a>
+        <a href="/">BotApprove</a>
+      <% } else { %>
+        <a href="/terms">Terms</a>
+        <a href="/privacy">Privacy</a>
+        <a href="/raidprotector">RaidProtector</a>
+      <% } %>
     </div>
     <div class="right">botapprove.mikuuu.xyz</div>
+    <div class="disclaim">
+      Independent project. Not affiliated with, endorsed by, or operated by Discord.
+    </div>
   </div>
 </footer>
 </body>

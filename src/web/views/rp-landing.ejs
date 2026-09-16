@@ -1,0 +1,151 @@
+<%- include('partials/head') %>
+
+<div class="hero">
+  <h1>Stops raids with something you can take back.</h1>
+  <p>
+    A raid bot wrongly banned the person who built this, because it could not tell a crowd
+    arriving from a crowd attacking. Everything here is built to avoid making that mistake
+    again.
+  </p>
+  <p class="stat beta">
+    <span class="live" aria-hidden="true"></span>
+    Closed beta, open to <strong>Protection Suite</strong> servers
+  </p>
+  <div class="cta">
+    <a class="btn primary" href="/pricing">Join the beta</a>
+    <a class="btn" href="/raidprotector/privacy">What it stores</a>
+  </div>
+  <p class="hint">
+    Report mode is the default. A new install watches and acts on nobody until you say otherwise.
+  </p>
+</div>
+
+<section class="block">
+  <div class="block-head"><h2>What happens during a raid</h2></div>
+  <ol class="steps">
+    <li>
+      <div>
+        <strong>Signals fire, measured against your server</strong>
+        <span>A join burst above what is normal here. Ten joins a minute is an emergency in one
+          server and a Tuesday in another, so the threshold is learned rather than set.</span>
+      </div>
+    </li>
+    <li>
+      <div>
+        <strong>Two independent signals before anyone is touched</strong>
+        <span>Joining during a burst is one. Posting the same text as fifteen others is another.
+          One alone is not enough, because being present is not taking part.</span>
+      </div>
+    </li>
+    <li>
+      <div>
+        <strong>Timeouts, not bans</strong>
+        <span>A timeout stops a raid just as dead and expires by itself. Bans are off by default,
+          and when they are on they wait behind a delay anyone can cancel.</span>
+      </div>
+    </li>
+    <li>
+      <div>
+        <strong>One button undoes all of it</strong>
+        <span>Every action is recorded with what was there beforehand, so the whole incident
+          reverses in one press. If part of it cannot be undone, it names that part.</span>
+      </div>
+    </li>
+  </ol>
+</section>
+
+<section class="block">
+  <div class="block-head"><h2>How it fails</h2></div>
+  <p class="lede">
+    The failure it is built to avoid is banning a real member. Every path resolves toward doing
+    less.
+  </p>
+  <dl class="modes">
+    <div class="mode safe">
+      <span class="dot"></span>
+      <div>
+        <dt>It is not sure</dt>
+        <dd>It does nothing irreversible. Unclear is a real answer, and the timeout that already
+          stopped the raid expires on its own.</dd>
+      </div>
+    </div>
+    <div class="mode safe">
+      <span class="dot"></span>
+      <div>
+        <dt>A long-standing member is caught up in it</dt>
+        <dd>Anyone who has been here for weeks is reported to you, never auto-punished. Raiders
+          can fake an account's age. They cannot fake a month in your server.</dd>
+      </div>
+    </div>
+    <div class="mode safe">
+      <span class="dot"></span>
+      <div>
+        <dt>Your server gets popular overnight</dt>
+        <dd>Two hundred people arriving from a video look identical to a raid in the numbers. It
+          reads what they wrote, so a rush of "hi" does not come out the same as two hundred
+          identical slurs.</dd>
+      </div>
+    </div>
+    <div class="mode alert">
+      <span class="dot"></span>
+      <div>
+        <dt>It fires repeatedly in a short time</dt>
+        <dd>A circuit breaker stands it down. Several separate incidents in ten minutes means the
+          configuration is wrong, not that the server is under sustained attack.</dd>
+      </div>
+    </div>
+    <div class="mode alert">
+      <span class="dot"></span>
+      <div>
+        <dt>It has just been added</dt>
+        <dd>It will not act until it can see your member list, because until then a long-standing
+          member looks like a stranger.</dd>
+      </div>
+    </div>
+    <div class="mode crit">
+      <span class="dot"></span>
+      <div>
+        <dt>Its own code has been changed</dt>
+        <dd>It checks itself against a record of what was deployed. If anything differs it stops
+          acting on people everywhere at once and keeps reporting, rather than enforcing rules
+          nobody wrote.</dd>
+      </div>
+    </div>
+  </dl>
+</section>
+
+<section class="block">
+  <div class="block-head"><h2>What it cannot do</h2></div>
+  <dl class="modes">
+    <div class="mode alert">
+      <span class="dot"></span>
+      <div>
+        <dt>Work without reading messages</dt>
+        <dd>Telling a video shout-out apart from a raid cannot be done by counting, so unlike
+          BotApprove this one does hold the Message Content intent. Text is reduced to a
+          fingerprint in memory and never written to disk. The
+          <a href="/raidprotector/privacy">privacy policy</a> says exactly what is kept.</dd>
+      </div>
+    </div>
+    <div class="mode alert">
+      <span class="dot"></span>
+      <div>
+        <dt>Catch a patient attacker</dt>
+        <dd>Detection is thresholds and fingerprints. Someone who stays under yours and varies
+          their wording will not trip it.</dd>
+      </div>
+    </div>
+    <div class="mode crit">
+      <span class="dot"></span>
+      <div>
+        <dt>Act on the server owner</dt>
+        <dd>Never, under any evidence. A bot that can depose an owner is a worse weapon than the
+          one it defends against.</dd>
+      </div>
+    </div>
+  </dl>
+</section>
+
+<%- include('partials/suite') %>
+
+<%- include('partials/foot') %>

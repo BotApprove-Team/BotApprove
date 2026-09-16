@@ -96,11 +96,19 @@ export const config = {
     stageTtlMs: int(process.env.ADMIN_STAGE_SECONDS, 120) * 1000,
   },
 
+  // The sibling bot. It runs as its own service with its own database, and the
+  // dashboard reaches it over loopback rather than opening its files.
+  raidProtector: {
+    url: process.env.RAIDPROTECTOR_URL || '',
+    token: process.env.RAIDPROTECTOR_TOKEN || '',
+    inviteUrl: process.env.RAIDPROTECTOR_INVITE_URL || '',
+  },
+
   legal: {
     operator: process.env.LEGAL_OPERATOR || 'hs.ypp',
     contactUrl: process.env.LEGAL_CONTACT_URL || 'https://github.com/cfm-miku-en',
     contactEmail: process.env.LEGAL_CONTACT_EMAIL || 'miku@mikuuu.xyz',
-    updated: process.env.LEGAL_UPDATED || '5 September 2026',
+    updated: process.env.LEGAL_UPDATED || '15 September 2026',
   },
 
   defaults: {

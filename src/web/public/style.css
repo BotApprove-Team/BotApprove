@@ -1020,3 +1020,104 @@ footer.site .right {
 .with-icon { display: inline-flex; align-items: center; gap: 6px; }
 .with-icon svg { flex: none; opacity: .85; }
 .with-icon:hover svg { opacity: 1; }
+
+/* Protection Suite
+   Two products share this stylesheet. --accent is redefined per product rather
+   than per component, so every rule already built on it follows for free.
+   These blocks sit at the end deliberately: they carry the same specificity as
+   the theme blocks near the top, so they have to come later to win. */
+:root { --accent-ba: #0b62d6; --accent-rp: #0b95d6; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) { --accent-ba: #5e9bff; --accent-rp: #4ec2f0; }
+}
+:root[data-theme="light"] { --accent-ba: #0b62d6; --accent-rp: #0b95d6; }
+:root[data-theme="dark"] { --accent-ba: #5e9bff; --accent-rp: #4ec2f0; }
+
+:root[data-product="raidprotector"] {
+  --accent: var(--accent-rp);
+  --tint-accent: rgba(11, 149, 214, .10);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"])[data-product="raidprotector"] {
+    --tint-accent: rgba(78, 194, 240, .13);
+  }
+}
+:root[data-theme="dark"][data-product="raidprotector"] {
+  --tint-accent: rgba(78, 194, 240, .13);
+}
+
+/* The mark swaps in CSS, not script. `hidden` is an HTMLElement property, so
+   assigning it to an SVG group sets a stray JS field that never reaches the
+   attribute and the mark silently never changes. */
+:root[data-product="raidprotector"] .mark-one { display: none; }
+:root:not([data-product="raidprotector"]) .mark-wall { display: none; }
+
+.prodpick {
+  display: inline-flex;
+  padding: 3px;
+  gap: 2px;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: var(--pill);
+}
+.prodpick a {
+  font: 500 12.5px/1.2 var(--sans);
+  color: var(--text-dim);
+  padding: 6px 13px;
+  border-radius: var(--pill);
+  white-space: nowrap;
+  transition: background-color var(--dur) var(--ease), color var(--dur) var(--ease);
+}
+.prodpick a:hover { color: var(--text); text-decoration: none; }
+.prodpick a[aria-current="page"] {
+  background: var(--accent);
+  color: var(--on-accent);
+  font-weight: 600;
+}
+.prodpick a:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--tint-accent); }
+
+.pair { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.prod {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  transition: border-color var(--dur) var(--ease);
+}
+.prod:hover { border-color: var(--line-strong); }
+.prod .top { display: flex; align-items: center; gap: 8px; }
+.prod .top svg { flex: none; border-radius: 22%; }
+.prod b { font-size: 13.5px; font-weight: 600; }
+.prod .tag {
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--text-faint);
+  border: 1px solid var(--line);
+  border-radius: var(--pill);
+  padding: 0 7px;
+}
+.prod p { margin: 0; font-size: 13px; color: var(--text-dim); line-height: 1.5; }
+
+.stat.beta .live { background: var(--warn); }
+
+footer.site .disclaim {
+  flex-basis: 100%;
+  font-size: 12px;
+  color: var(--text-faint);
+}
+
+@media (max-width: 620px) {
+  .pair { grid-template-columns: 1fr; }
+  .prodpick a { padding: 6px 10px; font-size: 12px; }
+}
+
+/* The masthead carries a product switch as well as the nav now, so it wraps
+   rather than overflowing once the viewport gets narrow. */
+header.top .wrap { height: auto; min-height: 52px; flex-wrap: wrap; row-gap: 8px; }
+@media (max-width: 620px) {
+  header.top .wrap { padding-block: 10px; }
+  header.top nav { gap: 12px; flex-wrap: wrap; }
+}

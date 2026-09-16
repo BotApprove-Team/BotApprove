@@ -1,0 +1,58 @@
+<section class="block">
+  <div class="block-head">
+    <h2>Protection Suite</h2>
+    <span class="count">one licence</span>
+  </div>
+  <p class="lede">
+    Buying premium for a server covers it in both bots. There is no second subscription and no
+    second checkout, because two billing systems is two ways for money to go wrong.
+  </p>
+
+  <div class="pair">
+    <div class="prod">
+      <div class="top">
+        <svg viewBox="0 0 32 32" width="17" height="17" aria-hidden="true">
+          <rect width="32" height="32" rx="7" fill="var(--accent-ba)"/>
+          <path d="M16 5.5l8.5 3.2v7.1c0 5.3-3.6 9.1-8.5 10.7-4.9-1.6-8.5-5.4-8.5-10.7V8.7L16 5.5z"
+                fill="#fff"/>
+          <path d="M11.8 16.1l3 3 5.4-5.7" fill="none" stroke="var(--accent-ba)" stroke-width="2.6"
+                stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <b>BotApprove</b><span class="tag">Live</span>
+      </div>
+      <p>
+        The gate, keyword blocking, the audit trail, tamper detection and the dashboard are free
+        forever. Premium adds threat intelligence and automation.
+      </p>
+    </div>
+    <div class="prod">
+      <div class="top">
+        <svg viewBox="0 0 32 32" width="17" height="17" aria-hidden="true">
+          <rect width="32" height="32" rx="7" fill="var(--accent-rp)"/>
+          <path d="M9.4 9.2l4.8 2.1v4.65c0 3.45-2.02 6-4.8 7.05c-2.78-1.05-4.8-3.6-4.8-7.05V11.3L9.4 9.2z"
+                fill="#fff" opacity=".5"/>
+          <path d="M22.6 9.2l4.8 2.1v4.65c0 3.45-2.02 6-4.8 7.05c-2.78-1.05-4.8-3.6-4.8-7.05V11.3L22.6 9.2z"
+                fill="#fff" opacity=".5"/>
+          <path d="M16 7.4l5.8 2.52v5.58c0 4.14-2.44 7.2-5.8 8.46c-3.36-1.26-5.8-4.32-5.8-8.46V9.92L16 7.4z"
+                fill="#fff"/>
+        </svg>
+        <b>RaidProtector</b><span class="tag">Beta</span>
+      </div>
+      <p>
+        Raid detection, the reversible response and the incident record. Open to servers holding a
+        licence while the beta runs.
+      </p>
+    </div>
+  </div>
+
+  <p class="hint">
+    <% if (typeof price !== 'undefined' && price) { %>
+      Premium is <%= price.symbol %><%= price.amount %> a month per server and covers both bots.
+    <% } %>
+    Nothing that protects a server is ever behind the paywall. Premium is extras, and the
+    dashboard says which is which.
+  </p>
+  <div class="actions">
+    <a class="btn primary" href="/pricing">See what premium adds</a>
+  </div>
+</section>
