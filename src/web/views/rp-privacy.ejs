@@ -25,11 +25,11 @@
     </p>
   </div>
   <p>
-    What survives a message is a one-way hash of its content, the channel and author IDs, and a
-    timestamp. That is enough to tell that fifteen accounts posted the same thing in nine channels
-    inside four seconds, which is what raid detection needs. It is not enough to reconstruct what
-    was said, and neither the operator nor your moderators can read your messages through this
-    bot.
+    What survives a message is a one-way hash of its content, the channel and author IDs, a
+    timestamp, and how many accounts or roles it mentioned. That is enough to tell that fifteen
+    accounts posted the same thing in nine channels inside four seconds, which is what raid
+    detection needs. It is not enough to reconstruct what was said, and neither the operator nor
+    your moderators can read your messages through this bot.
   </p>
   <p>
     The practical consequence, stated plainly: when RaidProtector reports a raid, your moderators
@@ -132,7 +132,9 @@
     <li>During the beta the default is to report and not act. Acting has to be switched on.</li>
     <li>The server owner is never acted against, and neither is anyone whose top role is at or
       above the bot's.</li>
-    <li>A circuit breaker stands the response down after repeated actions in a short window.</li>
+    <li>A circuit breaker stands the response down after several separate incidents in a short
+      window. It counts incidents rather than actions, so one large raid does not switch it off
+      partway through.</li>
     <li>Every action is logged with its reason and the signal that caused it, and the notification
       carries a way to reverse it.</li>
   </ul>

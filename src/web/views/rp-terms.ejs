@@ -67,8 +67,10 @@
   <ul>
     <li>Every automated action is written to your audit trail with the reason and the signal that
       triggered it.</li>
-    <li>A circuit breaker stands the feature down after repeated actions in a short window, so a
-      misconfiguration cannot run away with your member list.</li>
+    <li>A circuit breaker stands the feature down after several separate incidents in a short
+      window, so a misconfiguration cannot run away with your member list. It counts incidents
+      rather than actions, because timing out a hundred accounts during one real raid is the
+      correct outcome.</li>
     <li>Anything taken away can be given back, and the notification tells you how.</li>
   </ul>
   <p>
