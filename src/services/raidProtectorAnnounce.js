@@ -66,7 +66,7 @@ export function buildEmbed() {
     .setTimestamp(new Date());
 }
 
-async function findChannel(guild) {
+export async function findChannel(guild) {
   const cfg = guildConfig.get(guild.id);
   const me = guild.members.me;
 

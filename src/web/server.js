@@ -117,6 +117,9 @@ export function createApp() {
     // Every view can ask which product it is rendering. Routes override it;
     // the default keeps partials working on pages that never think about it.
     res.locals.product = 'botapprove';
+    res.locals.legalNotice = config.legal.noticeVersion
+      ? { version: config.legal.noticeVersion, date: config.legal.noticeDate }
+      : null;
 
     // Where the product switch goes from here. It used to always point at the
     // marketing pages, so switching product from inside the dashboard threw
@@ -226,6 +229,10 @@ export function createApp() {
     operator: config.legal.operator,
     contactUrl: config.legal.contactUrl,
   };
+  const legalFor = (doc) => ({
+    ...legal,
+    updated: config.legal.updatedByDoc?.[doc] ?? config.legal.updated,
+  });
   app.get('/pricing', (_req, res) => res.render('pricing', {
     title: 'Pricing',
     cardTitle: 'BotApprove pricing',
@@ -254,23 +261,23 @@ export function createApp() {
     });
   });
   app.get('/terms', (_req, res) =>
-    res.render('terms', { title: 'Terms of Service', ...legal, inviteUrl: config.inviteUrl }));
+    res.render('terms', { title: 'Terms of Service', ...legalFor('terms'), inviteUrl: config.inviteUrl }));
   app.get('/privacy', (_req, res) =>
-    res.render('privacy', { title: 'Privacy Policy', ...legal, inviteUrl: config.inviteUrl }));
+    res.render('privacy', { title: 'Privacy Policy', ...legalFor('privacy'), inviteUrl: config.inviteUrl }));
 
   app.get('/raidprotector/terms', (_req, res) =>
     res.render('rp-terms', {
       title: 'RaidProtector Terms of Service',
       cardTitle: 'RaidProtector Terms of Service',
       cardDescription: 'The rules for using RaidProtector, currently in closed beta.',
-      ...legal,
+      ...legalFor('rp-terms'),
     }));
   app.get('/raidprotector/privacy', (_req, res) =>
     res.render('rp-privacy', {
       title: 'RaidProtector Privacy Policy',
       cardTitle: 'RaidProtector Privacy Policy',
       cardDescription: 'What RaidProtector reads, what it keeps, and for how long.',
-      ...legal,
+      ...legalFor('rp-privacy'),
     }));
 
   app.use(authRouter);

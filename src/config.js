@@ -109,6 +109,16 @@ export const config = {
     contactUrl: process.env.LEGAL_CONTACT_URL || 'https://github.com/cfm-miku-en',
     contactEmail: process.env.LEGAL_CONTACT_EMAIL || 'miku@mikuuu.xyz',
     updated: process.env.LEGAL_UPDATED || '15 September 2026',
+    // Per document. Changing one policy should not restate the other three as
+    // freshly reviewed when nobody touched them.
+    updatedByDoc: {
+      'rp-privacy': '17 September 2026',
+    },
+    // Set while a change is recent enough to be worth telling people about.
+    // The date doubles as the version a reader dismissed, so the next change
+    // shows the notice again rather than staying hidden forever.
+    noticeVersion: process.env.LEGAL_NOTICE_VERSION || '2026-09-17',
+    noticeDate: process.env.LEGAL_NOTICE_DATE || '17 September 2026',
   },
 
   defaults: {
