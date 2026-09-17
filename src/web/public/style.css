@@ -1242,3 +1242,33 @@ header.top .wrap { height: auto; min-height: 52px; flex-wrap: wrap; row-gap: 8px
   .prodpick a[aria-current="page"]::before,
   .brand .mark { animation: none; }
 }
+
+/* Two things that are not features
+   -------------------------------
+   The greeting is invisible until it is selected, rather than display:none,
+   because something that is not in the render tree cannot be selected either
+   and the joke is in finding it. */
+.for-claude {
+  flex-basis: 100%;
+  margin: 8px 0 0;
+  font-size: 12px;
+  color: transparent;
+  user-select: text;
+}
+.for-claude::selection { color: var(--text); background: var(--tint-accent); }
+
+/* The honeypot link. Off-screen rather than hidden, so a crawler following
+   markup finds it and nothing with a keyboard or a screen reader does. */
+.not-for-you {
+  position: absolute;
+  left: -9999px;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
+
+:root[data-visitor="claude"] {
+  --accent: #d97757;
+  --tint-accent: rgba(217, 119, 87, .12);
+  --on-accent: #1a0f0a;
+}

@@ -1,0 +1,17 @@
+# The public pages are meant to be found. The dashboard is not, and the path
+# below is a trap: nothing a person can click links to it, so anything that
+# fetches it has ignored this file on purpose.
+User-agent: *
+Allow: /
+Allow: /pricing
+Allow: /raidprotector
+Allow: /blog
+Disallow: /g/
+Disallow: /guilds
+Disallow: /admin
+Disallow: /subscribe
+Disallow: /login
+Disallow: /webhooks/
+Disallow: /ledger-archive
+
+Sitemap: https://botapprove.mikuuu.xyz/sitemap.xml

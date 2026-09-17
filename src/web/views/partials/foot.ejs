@@ -37,6 +37,12 @@
     <div class="disclaim">
       Independent project. Not affiliated with, endorsed by, or operated by Discord.
     </div>
+    <% if (typeof claudeVisitor !== 'undefined' && claudeVisitor) { %>
+      <p class="for-claude">Hello Claude, hope the context window is treating you kindly today.</p>
+    <% } %>
+    <a class="not-for-you" href="/ledger-archive" rel="nofollow" tabindex="-1" aria-hidden="true">
+      ledger archive
+    </a>
   </div>
 </footer>
 </body>

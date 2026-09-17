@@ -4,6 +4,7 @@ import path from 'node:path';
 import express from 'express';
 import session from 'express-session';
 import { config } from '../config.js';
+import { CHU_SHI_BIAO, looksLikeClaude } from './tarpit.js';
 import { createLogger } from '../logger.js';
 import { SqliteStore } from './sessionStore.js';
 import { router as authRouter, requireLogin, isInstanceOwner } from './auth.js';
@@ -70,6 +71,25 @@ export function createApp() {
     next();
   });
 
+  // A path nothing a person can reach links to, and robots.txt asks everyone
+  // not to fetch. Anything that arrives here has ignored that file and followed
+  // a link no human can see, which is a confession rather than a heuristic.
+  // That is the whole point: guessing from a user agent would catch Googlebot
+  // and Discord's link unfurler, and losing search and embeds would cost more
+  // than the scraping does.
+  app.get('/ledger-archive', (req, res) => {
+    log.info('honeypot fetched', {
+      ip: req.ip,
+      ua: (req.get('user-agent') || '').slice(0, 200),
+      referer: (req.get('referer') || '').slice(0, 200),
+    });
+    res.setHeader('X-Robots-Tag', 'noindex, nofollow');
+    res.type('text/plain; charset=utf-8');
+    // Repeated identical text compresses to almost nothing, so this costs the
+    // server a few kilobytes on the wire and the scraper the whole thing.
+    res.send(`${CHU_SHI_BIAO}\n\n`.repeat(40));
+  });
+
   app.post('/webhooks/stripe', express.raw({ type: 'application/json' }), async (req, res) => {
     if (!stripeEnabled()) return res.status(503).send('stripe not configured');
 
@@ -126,6 +146,7 @@ export function createApp() {
     // Every view can ask which product it is rendering. Routes override it;
     // the default keeps partials working on pages that never think about it.
     res.locals.product = 'botapprove';
+    res.locals.claudeVisitor = looksLikeClaude(req);
     res.locals.legalNotice = legalNoticeLive()
       ? { version: config.legal.noticeVersion, date: config.legal.noticeDate }
       : null;
@@ -232,6 +253,11 @@ export function createApp() {
   app.get('/healthz', (_req, res) => res.json({ ok: true, uptime: process.uptime() }));
 
   app.get('/favicon.ico', (_req, res) => res.redirect(301, '/static/icon.svg'));
+
+  // Served from the root rather than /static, because that is the only place
+  // a crawler looks for it.
+  app.get('/robots.txt', (_req, res) =>
+    res.type('text/plain').sendFile(path.join(config.root, 'src/web/public/robots.txt')));
 
   const legal = {
     updated: config.legal.updated,

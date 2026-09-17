@@ -1,6 +1,7 @@
 <% const prod = (typeof product !== 'undefined' && product) ? product : 'botapprove'; %>
 <!doctype html>
-<html lang="en"<% if (prod === 'raidprotector') { %> data-product="raidprotector"<% } %>>
+<html lang="en"<% if (prod === 'raidprotector') { %> data-product="raidprotector"<% } %><%
+  if (typeof claudeVisitor !== 'undefined' && claudeVisitor) { %> data-visitor="claude"<% } %>>
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
