@@ -1192,11 +1192,16 @@ header.top .wrap { height: auto; min-height: 52px; flex-wrap: wrap; row-gap: 8px
 .prodpick a:active { transform: scale(.97); }
 
 @media (prefers-reduced-motion: reduce) {
-  /* Cut the whole thing rather than shortening it. Somebody who asked for no
-     motion did not ask for faster motion. */
-  @view-transition { navigation: none; }
+  /* No second @view-transition rule here, however much it reads like the right
+     place for one. The navigation descriptor resolves to the LAST such rule in
+     the stylesheet whether or not its media query matches, so a nested
+     navigation:none switches the whole thing off for everybody. Measured, not
+     guessed: with it present, pageswap reported no transition at all.
+
+     Reduced motion is honoured by making every part of it instant instead,
+     which is the same outcome and cannot leak out of the media query. */
   ::view-transition-group(*),
   ::view-transition-old(*),
-  ::view-transition-new(*) { animation: none !important; }
+  ::view-transition-new(*) { animation-duration: 1ms !important; }
   .prodpick a:active { transform: none; }
 }
