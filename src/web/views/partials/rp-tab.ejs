@@ -191,6 +191,35 @@
       </div>
 
       <div class="field">
+        <label for="rpai">Second opinion on bans</label>
+        <select id="rpai" name="ai_review" <%= ro %>>
+          <option value="off" <%= rp.settings.ai_review === 'off' ? 'selected' : '' %>>
+            Off (default)
+          </option>
+          <option value="shadow" <%= rp.settings.ai_review === 'shadow' ? 'selected' : '' %>>
+            Ask, record the answer, change nothing
+          </option>
+        </select>
+        <p class="hint">
+          <strong>This sends recent messages from the affected channel to a third party.</strong>
+          It runs only where a ban was queued, never on ordinary detection, and what comes back
+          decides nothing: the response is settled by the rules either way. It exists to build a
+          record of whether the model is any good at this before anyone considers giving it a
+          say. <a href="/raidprotector/privacy#second-opinion">What it sends</a>.
+          <% if (rp.aiUsage) { %>
+            Used <strong><%= rp.aiUsage.calls %></strong> of
+            <%= rp.settings.ai_monthly_cap %> this month.
+          <% } %>
+        </p>
+      </div>
+
+      <div class="field">
+        <label for="rpaicap">Second opinions a month, at most</label>
+        <input type="number" id="rpaicap" name="ai_monthly_cap" min="0" max="500"
+               value="<%= rp.settings.ai_monthly_cap %>" <%= ro %>>
+      </div>
+
+      <div class="field">
         <label for="rpping">Ping spam from a single account</label>
         <select id="rpping" name="ping_guard" <%= ro %>>
           <option value="off" <%= rp.settings.ping_guard === 'off' ? 'selected' : '' %>>

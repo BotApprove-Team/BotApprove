@@ -20,8 +20,15 @@
       <strong>RaidProtector reads messages in memory and does not write them down.</strong> It
       holds the Message Content intent because detecting a raid means noticing the same text
       posted by many accounts at once. Message text is used to compute a short fingerprint and is
-      then discarded. The text itself is never written to the database, never logged, and never
-      leaves the process.
+      then discarded. The text itself is never written to the database and never logged.
+    </p>
+    <p>
+      There is one exception, and it is off unless a server turns it on. A server may enable a
+      <strong>second opinion</strong> on the rarest decisions, which sends recent messages from
+      the affected channel to a language model run by a third party. It applies only where a ban
+      was queued, never to ordinary detection, and it is capped per month. What the model says is
+      recorded and acted on by nobody: the response is decided by the rules either way. Read
+      <a href="#second-opinion">what that involves</a> before switching it on.
     </p>
   </div>
   <p>
@@ -79,7 +86,9 @@
   <h2>What is not stored</h2>
   <ul>
     <li><strong>Message content.</strong> Read in memory, fingerprinted, discarded. Never written
-      to disk.</li>
+      to disk. If a server has switched on the second opinion described below, recent messages
+      from the affected channel are sent to a third party at the moment a ban is queued, and are
+      still not stored here.</li>
     <li><strong>Attachments, images, embeds or links</strong> are not downloaded or kept.</li>
     <li><strong>Direct messages.</strong> The bot does not read them.</li>
     <li><strong>Member lists</strong>, beyond the specific accounts named in an incident.</li>
@@ -95,6 +104,33 @@
     why, and to let an automated action be reviewed and reversed. Where a lawful basis is
     required, it is legitimate interest in protecting a Discord community from coordinated abuse,
     and contract performance for licensed features.
+  </p>
+
+  <h2 id="second-opinion">The second opinion, and what it sends</h2>
+  <p>
+    Off unless a server switches it on, and off for every server by default.
+  </p>
+  <ul>
+    <li><strong>When it runs.</strong> Only at the moment a ban is queued, which needs bans to be
+      switched on, three separate signals, and an account with no tenure. It never runs on
+      ordinary detection, on timeouts, or on an incident that was held.</li>
+    <li><strong>What is sent.</strong> Recent messages from the channel the activity is loudest
+      in, with the account names and ages already in the incident. Sent at that moment, read from
+      Discord rather than from anything stored here.</li>
+    <li><strong>Who receives it.</strong> OpenRouter, which passes it to the language model named
+      in the operator's configuration. Their handling is governed by their own terms, not this
+      policy.</li>
+    <li><strong>What comes back.</strong> A verdict, a confidence and a short reason. It is
+      recorded against the incident and shown in the report.</li>
+    <li><strong>What it decides.</strong> Nothing. The response is decided by the rules whether
+      the model agrees or not, and every report carrying a verdict says so on its face. It exists
+      to build a record of whether the model is any good at this before anyone considers giving
+      it a say.</li>
+    <li><strong>How much of it.</strong> Capped per server per month, twenty calls by default.</li>
+  </ul>
+  <p>
+    If you would rather none of this happened, leave it off, which it is. Nothing else in
+    RaidProtector depends on it.
   </p>
 
   <h2>Who it is shared with</h2>

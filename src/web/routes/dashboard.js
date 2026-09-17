@@ -650,12 +650,12 @@ router.post('/g/:guildId/config', requireGuildAccess('configure'), async (req, r
 router.post('/g/:guildId/raidprotector', requireGuildAccess('configure'), async (req, res) => {
   const guildId = req.params.guildId;
   const patch = {};
-  for (const key of ['mode', 'ban_mode', 'ping_guard']) {
+  for (const key of ['mode', 'ban_mode', 'ping_guard', 'ai_review']) {
     if (req.body[key] !== undefined) patch[key] = String(req.body[key]);
   }
   for (const key of ['timeout_minutes', 'tenure_days', 'join_burst', 'join_window_s',
     'duplicate_min', 'duplicate_window_s', 'ban_delay_s', 'ban_min_signals',
-    'ping_window_s', 'ping_limit', 'ping_mentions']) {
+    'ping_window_s', 'ping_limit', 'ping_mentions', 'ai_monthly_cap']) {
     if (req.body[key] !== undefined && req.body[key] !== '') patch[key] = Number(req.body[key]);
   }
   if (req.body.log_channel_id !== undefined) {
