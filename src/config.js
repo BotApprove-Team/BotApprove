@@ -119,6 +119,10 @@ export const config = {
     // shows the notice again rather than staying hidden forever.
     noticeVersion: process.env.LEGAL_NOTICE_VERSION || '2026-09-17',
     noticeDate: process.env.LEGAL_NOTICE_DATE || '17 September 2026',
+    // Shown until the start of this day, UTC, so the last day it appears is the
+    // 18th. A banner nobody can get rid of stops being read and starts being
+    // scrolled past, which is worse than not having one.
+    noticeUntil: process.env.LEGAL_NOTICE_UNTIL || '2026-09-19',
   },
 
   defaults: {

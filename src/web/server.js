@@ -19,6 +19,15 @@ import {
 
 const log = createLogger('web');
 
+// Whether the "we changed the documents" bar is still worth showing. Checked
+// per request rather than at boot, so it goes away on its own without anyone
+// having to remember to restart or edit anything.
+export function legalNoticeLive(now = Date.now()) {
+  if (!config.legal.noticeVersion) return false;
+  const until = Date.parse(config.legal.noticeUntil ?? '');
+  return Number.isNaN(until) ? true : now < until;
+}
+
 function assetVersion() {
   try {
     const dir = path.join(config.root, 'src/web/public');
@@ -117,7 +126,7 @@ export function createApp() {
     // Every view can ask which product it is rendering. Routes override it;
     // the default keeps partials working on pages that never think about it.
     res.locals.product = 'botapprove';
-    res.locals.legalNotice = config.legal.noticeVersion
+    res.locals.legalNotice = legalNoticeLive()
       ? { version: config.legal.noticeVersion, date: config.legal.noticeDate }
       : null;
 
