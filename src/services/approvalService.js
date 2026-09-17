@@ -176,10 +176,12 @@ export function buildApprovalMessage({
 
   if (firstParty) {
     embed.addFields({
-      name: `This is ${firstParty}, from the same operator as this bot`,
-      value: 'It is still kicked and still needs approving, because an exception for our '
-        + 'own software is exactly the exception this bot exists to refuse. Approve it if '
-        + 'you meant to add it, then invite it again.',
+      name: `First-party bot, from ${config.legal.operator}`,
+      value: `**${firstParty}** is made by the same person as this bot.`
+        + '\n\nIt was still kicked and the name filter still fired anyway, because there are'
+        + ' no exceptions in this pipeline: not for the server owner, not for a verified badge,'
+        + ' and not for our own software. That is the whole point of it.'
+        + '\n\nApprove it if you meant to add it, then invite it again.',
     });
   }
 
