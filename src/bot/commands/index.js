@@ -606,6 +606,17 @@ async function handleIncidentButton(interaction, choice, incidentId) {
 async function handleCommand(interaction) {
   if (!interaction.inGuild()) return fail(interaction, 'Use this in a server.');
   const guildId = interaction.guildId;
+
+  // inGuild() is true for a command carried in by a user who installed the app
+  // to their own account, even in a server this bot has never joined. Every
+  // handler below reads or writes that server's configuration, and the
+  // permission gate on these commands is the server's, which does not apply to
+  // an app the server never installed. So membership is checked rather than
+  // assumed.
+  if (!interaction.client.guilds.cache.has(guildId)) {
+    return fail(interaction, 'BotApprove is not in this server, so there is nothing here to '
+      + 'configure or inspect. Add it to the server first.');
+  }
   const sub = interaction.options.getSubcommand(false);
 
   switch (interaction.commandName) {
