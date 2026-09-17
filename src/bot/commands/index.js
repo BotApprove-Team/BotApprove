@@ -6,6 +6,8 @@ import {
   MessageFlags,
   PermissionFlagsBits,
   PermissionsBitField,
+  ApplicationIntegrationType,
+  InteractionContextType,
   SlashCommandBuilder,
   EmbedBuilder,
 } from 'discord.js';
@@ -270,6 +272,24 @@ export const commandDefinitions = [
     .setDescription("Verify BotApprove's own permissions and role position")
     .setDefaultMemberPermissions(MANAGE)
     .setDMPermission(false),
+
+  // The one command that works wherever it is run, including for somebody who
+  // installed the app to their own account. There is no way to reach those
+  // people otherwise: Discord reports how many there are and never who, and
+  // messaging them unasked would be against the developer policy anyway. So
+  // this waits for them to ask.
+  new SlashCommandBuilder()
+    .setName('info')
+    .setDescription('What BotApprove is, and why installing it to your account does nothing')
+    .setIntegrationTypes(
+      ApplicationIntegrationType.GuildInstall,
+      ApplicationIntegrationType.UserInstall,
+    )
+    .setContexts(
+      InteractionContextType.Guild,
+      InteractionContextType.BotDM,
+      InteractionContextType.PrivateChannel,
+    ),
 ].map((c) => c.toJSON());
 
 export function isApprover(member) {
@@ -603,7 +623,64 @@ async function handleIncidentButton(interaction, choice, incidentId) {
   });
 }
 
+/**
+ * The only command that answers everywhere, including to somebody who added
+ * BotApprove to their own account rather than to a server.
+ *
+ * A user install gives a person the commands and nothing else: the bot is not
+ * in any server as a result, so it is not watching one, and there is nothing
+ * for the commands to act on. Worth saying plainly rather than letting it look
+ * broken.
+ */
+async function handleInfo(interaction) {
+  const userInstalled = !interaction.client.guilds.cache.has(interaction.guildId ?? '');
+  const base = config.web.baseUrl;
+
+  const embed = new EmbedBuilder()
+    .setColor(userInstalled ? 0xfee75c : 0x5865f2)
+    .setTitle('BotApprove')
+    .setDescription(
+      'Every bot that joins your server is kicked on sight and held for human approval, '
+      + 'whoever invited it. The owner gets no exception, because a compromised owner account '
+      + 'is exactly how servers get wiped.',
+    );
+
+  if (userInstalled) {
+    embed.addFields(
+      {
+        name: 'This is installed to your account, which does nothing',
+        value: 'A user install gives you the commands and nothing else. BotApprove is not in '
+          + 'any server because of it, so it is not screening anything, and the commands have '
+          + 'no server to act on. It is not broken; it is in the wrong place.',
+      },
+      {
+        name: 'What to do instead',
+        value: `Add it to a server you manage: ${base}\nIt needs Manage Server on your part, `
+          + 'and its own role has to sit above where new bots land.',
+      },
+      {
+        name: 'Removing the account install',
+        value: 'Discord Settings, then Authorized Apps, find BotApprove and deauthorise it. '
+          + 'You can also open its profile and remove the app from there. Doing so does not '
+          + 'affect any server that has BotApprove properly installed.',
+      },
+    );
+  } else {
+    embed.addFields(
+      { name: 'Dashboard', value: `${base}/g/${interaction.guildId}` },
+      { name: 'Commands', value: '`/config`, `/approvers`, `/keywords`, `/selfcheck`' },
+      { name: 'Pricing', value: `${base}/pricing` },
+    );
+  }
+
+  return interaction.reply({ embeds: [embed], ...ephemeral });
+}
+
 async function handleCommand(interaction) {
+  // Answered before every guard below, because the people who most need it are
+  // exactly the ones those guards turn away.
+  if (interaction.commandName === 'info') return handleInfo(interaction);
+
   if (!interaction.inGuild()) return fail(interaction, 'Use this in a server.');
   const guildId = interaction.guildId;
 
