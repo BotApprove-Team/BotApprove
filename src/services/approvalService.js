@@ -100,7 +100,11 @@ export function buildApprovalMessage({
   accountAge = null,
   quorumRequired = 0,
 }) {
-  const highRisk = !!keywordMatched && !tokenConsumed;
+  const firstParty = config.firstPartyBots?.[botUser.id] ?? null;
+  // A first-party bot is gated exactly like any other. What changes is only what
+  // the card says, because an owner who added it from their own dashboard thirty
+  // seconds ago should not be told a high-risk stranger appeared.
+  const highRisk = !!keywordMatched && !tokenConsumed && !firstParty;
   const embed = new EmbedBuilder()
     .setColor(highRisk ? 0xed4245 : 0xfee75c)
     .setTitle(highRisk ? '⛔ HIGH-RISK BOT BLOCKED, approval required' : 'Bot kicked, approval required')
@@ -170,9 +174,18 @@ export function buildApprovalMessage({
     value: permLines.join('\n').slice(0, 1024),
   });
 
+  if (firstParty) {
+    embed.addFields({
+      name: `This is ${firstParty}, from the same operator as this bot`,
+      value: 'It is still kicked and still needs approving, because an exception for our '
+        + 'own software is exactly the exception this bot exists to refuse. Approve it if '
+        + 'you meant to add it, then invite it again.',
+    });
+  }
+
   if (keywordMatched) {
     embed.addFields({
-      name: 'NAME MATCHES HIGH-RISK KEYWORD',
+      name: firstParty ? 'Why the name was flagged' : 'NAME MATCHES HIGH-RISK KEYWORD',
       value:
         `Username contains \`${keywordMatched}\`, a blocklisted term.\n` +
         (tokenConsumed

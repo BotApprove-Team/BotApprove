@@ -90,12 +90,44 @@ export function seedDefaultKeywords(guildId) {
   return true;
 }
 
+/**
+ * Split a name the way a person reads it: on punctuation, and at the seam in
+ * camelCase. "RaidProtector" is Raid and Protector, "anti-nuke_bot" is three.
+ */
+function tokenise(value) {
+  return String(value ?? '')
+    .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+    .toLowerCase()
+    .split(/[^a-z0-9]+/)
+    .filter(Boolean);
+}
+
+/**
+ * Does a blocklisted term appear in this name as a word, rather than anywhere
+ * in it at all?
+ *
+ * It used to be a plain substring test, which blocks "Braid" and "Afraid" for
+ * containing raid. That matters less than it sounds, because every bot is
+ * kicked either way and this only decides whether the whitelist is skipped and
+ * the alarm is raised, but a gate that cries wolf over a music bot gets its
+ * blocklist emptied by the owner, and then it is not protecting anything.
+ *
+ * A term still matches at the start of a word, so Raidbot and SecurityBot are
+ * caught. It no longer matches buried in the middle of an unrelated one.
+ */
 export function matchKeyword(guildId, username) {
-  const name = String(username ?? '').toLowerCase();
-  if (!name) return null;
+  const parts = tokenise(username);
+  if (!parts.length) return null;
 
   for (const keyword of keywords.list(guildId)) {
-    if (keyword && name.includes(keyword.toLowerCase())) return keyword;
+    const wanted = tokenise(keyword);
+    if (!wanted.length) continue;
+
+    for (let i = 0; i + wanted.length <= parts.length; i += 1) {
+      const head = wanted.slice(0, -1).every((w, j) => parts[i + j] === w);
+      const tail = parts[i + wanted.length - 1].startsWith(wanted[wanted.length - 1]);
+      if (head && tail) return keyword;
+    }
   }
   return null;
 }

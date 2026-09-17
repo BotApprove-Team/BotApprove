@@ -98,6 +98,16 @@ export const config = {
 
   // The sibling bot. It runs as its own service with its own database, and the
   // dashboard reaches it over loopback rather than opening its files.
+  // The operator's own bots. This grants nothing: they are kicked, reviewed and
+  // approved exactly like anything else. It only lets the card say which bot
+  // this is, so an owner who added RaidProtector from their dashboard a moment
+  // ago is not met with a red alarm about a high-risk stranger.
+  firstPartyBots: (process.env.FIRST_PARTY_BOTS || '1548844974693552179:RaidProtector')
+    .split(',').map((pair) => pair.split(':')).reduce((acc, [id, name]) => {
+      if (id && name) acc[id.trim()] = name.trim();
+      return acc;
+    }, {}),
+
   raidProtector: {
     url: process.env.RAIDPROTECTOR_URL || '',
     token: process.env.RAIDPROTECTOR_TOKEN || '',
