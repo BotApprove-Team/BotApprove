@@ -191,6 +191,43 @@
       </div>
 
       <div class="field">
+        <label for="rpping">Ping spam from a single account</label>
+        <select id="rpping" name="ping_guard" <%= ro %>>
+          <option value="off" <%= rp.settings.ping_guard === 'off' ? 'selected' : '' %>>
+            Off (default)
+          </option>
+          <option value="new_members" <%= rp.settings.ping_guard === 'new_members' ? 'selected' : '' %>>
+            On, but not for established members
+          </option>
+          <option value="everyone" <%= rp.settings.ping_guard === 'everyone' ? 'selected' : '' %>>
+            On for everyone except the owner
+          </option>
+        </select>
+        <p class="hint">The only rule here that acts on one signal. Everything else needs two,
+          because one piece of evidence that a raid is happening is not enough to act on a
+          person. Mass pinging is not evidence of an offence, it is the offence, which is why
+          it stands alone and why it is off until you turn it on.</p>
+      </div>
+
+      <div class="cols two">
+        <div class="field">
+          <label for="rppingn">Mentions that count as a blast</label>
+          <input type="number" id="rppingn" name="ping_mentions" min="3" max="50"
+                 value="<%= rp.settings.ping_mentions %>" <%= ro %>>
+        </div>
+        <div class="field">
+          <label for="rppingl">Blasts before it acts</label>
+          <input type="number" id="rppingl" name="ping_limit" min="2" max="50"
+                 value="<%= rp.settings.ping_limit %>" <%= ro %>>
+        </div>
+        <div class="field">
+          <label for="rppingw">Within, seconds</label>
+          <input type="number" id="rppingw" name="ping_window_s" min="5" max="300"
+                 value="<%= rp.settings.ping_window_s %>" <%= ro %>>
+        </div>
+      </div>
+
+      <div class="field">
         <label for="rplog">Where incident reports go</label>
         <select id="rplog" name="log_channel_id" <%= ro %>>
           <option value="">first channel it can post in</option>
