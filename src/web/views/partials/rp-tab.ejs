@@ -11,17 +11,33 @@
       right now. Nothing here has been changed.</p>
   </div>
 <% } else if (!rp || !rp.present) { %>
-  <div class="notice">
-    <strong>RaidProtector is not in this server</strong>
-    <p>It is a separate bot with its own invite. Adding it changes nothing about BotApprove, and
-      it starts in report mode, acting on nobody until you say otherwise.</p>
-    <div class="actions">
-      <% if (rpInviteUrl) { %>
-        <a class="btn primary" href="<%= rpInviteUrl %>">Add RaidProtector</a>
-      <% } %>
-      <a class="btn" href="/raidprotector">What it does</a>
+  <% if (entitlement.licensed) { %>
+    <div class="notice ok">
+      <strong>Your licence covers RaidProtector. It is not in this server yet.</strong>
+      <p>The Protection Suite licence on this server includes RaidProtector while its beta runs,
+        at no extra cost and with no second checkout. It is a separate bot with its own invite,
+        because it needs permissions BotApprove deliberately does not ask for.</p>
+      <p>It starts in <strong>report mode</strong>: it watches and tells you what it would have
+        done, and touches nobody until you say otherwise.</p>
+      <div class="actions">
+        <% if (rpInviteUrl) { %>
+          <a class="btn primary" href="<%= rpInviteUrl %>&guild_id=<%= guild.id %>">Add RaidProtector</a>
+        <% } %>
+        <a class="btn" href="/raidprotector">What it does</a>
+      </div>
     </div>
-  </div>
+  <% } else { %>
+    <div class="notice">
+      <strong>RaidProtector is in closed beta</strong>
+      <p>While the beta runs it is open to servers with a Protection Suite licence, which is the
+        same licence that unlocks premium here and covers both bots at once. Adding it without
+        one works, but it will sit quietly and say so rather than watching for raids.</p>
+      <div class="actions">
+        <a class="btn primary" href="/g/<%= guild.id %>/licence">See what premium adds</a>
+        <a class="btn" href="/raidprotector">What it does</a>
+      </div>
+    </div>
+  <% } %>
 <% } else { %>
 
   <% if (rp.settings.mode === 'report') { %>
