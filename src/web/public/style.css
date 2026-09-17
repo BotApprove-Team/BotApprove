@@ -1205,3 +1205,40 @@ header.top .wrap { height: auto; min-height: 52px; flex-wrap: wrap; row-gap: 8px
   ::view-transition-new(*) { animation-duration: 1ms !important; }
   .prodpick a:active { transform: none; }
 }
+
+/* The switch, for browsers without cross-document view transitions
+   ---------------------------------------------------------------
+   Firefox and Safari navigate plainly, so the pill would simply appear already
+   filled and the switch would feel like nothing happened. The fill is moved
+   onto a pseudo element so it can animate on load without dragging the label
+   with it, which gives every browser the sense that something was switched.
+   Chrome gets this and the cross-page slide on top. */
+.prodpick a { position: relative; z-index: 0; }
+.prodpick a[aria-current="page"] { background: transparent; }
+.prodpick a[aria-current="page"]::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: var(--pill);
+  background: var(--accent);
+  animation: pill-in 340ms var(--ease) both;
+  transform-origin: center;
+}
+@keyframes pill-in {
+  from { opacity: 0; transform: scaleX(.55); }
+  to { opacity: 1; transform: none; }
+}
+
+/* The glyph changes between one shield and three, so it fades rather than
+   cutting from one to the other. */
+.brand .mark { animation: mark-in 340ms var(--ease) both; }
+@keyframes mark-in {
+  from { opacity: 0; transform: scale(.82); }
+  to { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .prodpick a[aria-current="page"]::before,
+  .brand .mark { animation: none; }
+}
