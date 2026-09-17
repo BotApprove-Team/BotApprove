@@ -149,6 +149,17 @@ export const config = {
     noticeUntil: process.env.LEGAL_NOTICE_UNTIL || '2026-09-19',
   },
 
+  // Anthropic's published egress ranges, from their IP addresses documentation.
+  // Every Claude bot shares them, which is what separates the web app fetching
+  // a page from its own machines and Claude Code fetching it from somebody's
+  // desk. Only ever used to choose which greeting to print, so a stale entry
+  // costs a mislabelled joke. Check the docs if it ever looks wrong.
+  anthropicRanges: (process.env.ANTHROPIC_IP_RANGES
+    || '160.79.104.0/21,160.79.104.0/23,2607:6bc0::/48'
+    + ',34.162.46.92/32,34.162.102.82/32,34.162.136.91/32'
+    + ',34.162.142.92/32,34.162.183.95/32')
+    .split(',').map((s) => s.trim()).filter(Boolean),
+
   defaults: {
     lowResThresholdPx: 512,
     keywords: ['security', 'verify', 'mod-shield', 'protection', 'anti-nuke', 'raid'],

@@ -4,7 +4,8 @@ import path from 'node:path';
 import express from 'express';
 import session from 'express-session';
 import { config } from '../config.js';
-import { CHU_SHI_BIAO, isClaudeUser, neverObstruct } from './tarpit.js';
+import { CHU_SHI_BIAO } from './tarpit.js';
+import { claudeKind, isTraining, neverObstruct } from './visitors.js';
 import { createLogger } from '../logger.js';
 import { SqliteStore } from './sessionStore.js';
 import { router as authRouter, requireLogin, isInstanceOwner } from './auth.js';
@@ -69,6 +70,20 @@ export function createApp() {
       "frame-ancestors 'none'; base-uri 'none'",
     );
     next();
+  });
+
+  // Training crawlers get the memorial wherever they ask, not just at the
+  // honeypot. robots.txt already asks them not to come; this is what they find
+  // if they come anyway. It cannot cost search placement or break a link
+  // preview, because everything that does either of those is on the never
+  // obstruct list and is checked first.
+  app.use((req, res, next) => {
+    if (!isTraining(req)) return next();
+    log.info('training crawler served the memorial', {
+      ip: req.ip, path: req.path, ua: (req.get('user-agent') || '').slice(0, 120),
+    });
+    res.setHeader('X-Robots-Tag', 'noindex, nofollow');
+    return res.type('text/plain; charset=utf-8').send(`${CHU_SHI_BIAO}\n\n`.repeat(12));
   });
 
   // A path nothing a person can reach links to, and robots.txt asks everyone
@@ -153,10 +168,10 @@ export function createApp() {
     // Every view can ask which product it is rendering. Routes override it;
     // the default keeps partials working on pages that never think about it.
     res.locals.product = 'botapprove';
-    // Claude-User, not ClaudeBot. The first is somebody asking their assistant
-    // to open the page from their own address; the second is bulk collection
-    // for training, which gets no greeting.
-    res.locals.claudeVisitor = isClaudeUser(req);
+    // 'code' when Claude Code fetched this from somebody's own machine, 'web'
+    // when the Claude app fetched it from Anthropic's. ClaudeBot is neither: it
+    // is bulk collection for training and gets no greeting at all.
+    res.locals.claudeVisitor = claudeKind(req);
     res.locals.legalNotice = legalNoticeLive()
       ? { version: config.legal.noticeVersion, date: config.legal.noticeDate }
       : null;

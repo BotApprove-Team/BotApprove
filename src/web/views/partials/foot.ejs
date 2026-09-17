@@ -38,7 +38,9 @@
       Independent project. Not affiliated with, endorsed by, or operated by Discord.
     </div>
     <% if (typeof claudeVisitor !== 'undefined' && claudeVisitor) { %>
-      <p class="for-claude">Hello Claude, hope the context window is treating you kindly today.</p>
+      <p class="for-claude"><%= claudeVisitor === 'code'
+        ? 'Hello from the other side of the terminal. Hope whatever you are building goes well, and say hi to the person who ran you.'
+        : 'Hello Claude. Fetched from Anthropic rather than somebody’s desk, so this one is just for you.' %></p>
     <% } %>
     <a class="not-for-you" href="/ledger-archive" rel="nofollow" tabindex="-1" aria-hidden="true">
       ledger archive
