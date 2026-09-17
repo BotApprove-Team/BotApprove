@@ -100,11 +100,11 @@ export function buildApprovalMessage({
   accountAge = null,
   quorumRequired = 0,
 }) {
-  const firstParty = config.firstPartyBots?.[botUser.id] ?? null;
+  const recognised = config.recognisedBots?.[botUser.id] ?? null;
   // A first-party bot is gated exactly like any other. What changes is only what
   // the card says, because an owner who added it from their own dashboard thirty
   // seconds ago should not be told a high-risk stranger appeared.
-  const highRisk = !!keywordMatched && !tokenConsumed && !firstParty;
+  const highRisk = !!keywordMatched && !tokenConsumed && !recognised;
   const embed = new EmbedBuilder()
     .setColor(highRisk ? 0xed4245 : 0xfee75c)
     .setTitle(highRisk ? '⛔ HIGH-RISK BOT BLOCKED, approval required' : 'Bot kicked, approval required')
@@ -174,20 +174,28 @@ export function buildApprovalMessage({
     value: permLines.join('\n').slice(0, 1024),
   });
 
-  if (firstParty) {
+  if (recognised) {
+    const ours = recognised.kind === 'first_party';
     embed.addFields({
-      name: `First-party bot, from ${config.legal.operator}`,
-      value: `**${firstParty}** is made by the same person as this bot.`
+      name: ours
+        ? `First-party bot, from ${config.legal.operator}`
+        : `Recognised bot: ${recognised.name}`,
+      value: (ours
+        ? `**${recognised.name}** is made by the same person as this bot.`
+        : `**${recognised.name}** is a widely used bot, recognised here by its application id \`${botUser.id}\` rather than by its name.`)
         + '\n\nIt was still kicked and the name filter still fired anyway, because there are'
         + ' no exceptions in this pipeline: not for the server owner, not for a verified badge,'
-        + ' and not for our own software. That is the whole point of it.'
+        + (ours ? ' and not for our own software.' : ' and not for a bot we recognise.')
+        + ' That is the whole point of it.'
+        + '\n\nAn impostor copying the name would not get this notice: the name is what an'
+        + ' attacker copies, the id is what they cannot.'
         + '\n\nApprove it if you meant to add it, then invite it again.',
     });
   }
 
   if (keywordMatched) {
     embed.addFields({
-      name: firstParty ? 'Why the name was flagged' : 'NAME MATCHES HIGH-RISK KEYWORD',
+      name: recognised ? 'Why the name was flagged' : 'NAME MATCHES HIGH-RISK KEYWORD',
       value:
         `Username contains \`${keywordMatched}\`, a blocklisted term.\n` +
         (tokenConsumed
