@@ -87,8 +87,13 @@ export function fromAnthropic(req) {
  * the Claude app fetched it from Anthropic's, null for everyone else.
  */
 export function claudeKind(req) {
-  if (!/Claude-User|Claude-Web/i.test(ua(req))) return null;
-  return fromAnthropic(req) ? 'web' : 'code';
+  const agent = ua(req);
+  if (!/Claude-User|Claude-Web/i.test(agent)) return null;
+  // Claude Code names itself, which is worth more than any address check:
+  //   Claude-User (claude-code/2.1.270; +https://support.anthropic.com/)
+  // against the app's
+  //   Mozilla/5.0 ... compatible; Claude-User/1.0; +claude-user@anthropic.com
+  return /claude-code/i.test(agent) ? 'code' : 'web';
 }
 
 /**
@@ -110,5 +115,11 @@ export function claudeKind(req) {
  */
 export function servesMemorial(req) {
   if (neverObstruct(req)) return false;
-  return isTraining(req) || isUserTriggered(req);
+  if (isTraining(req)) return true;
+  // Claude Code is exempt again, this time because it says so in its user
+  // agent rather than because of a guess about which addresses it uses. It runs
+  // on the machine of somebody working on this site, and handing their own
+  // tooling a wall of classical Chinese instead of the page they are editing
+  // helps nobody.
+  return isUserTriggered(req) && claudeKind(req) !== 'code';
 }
