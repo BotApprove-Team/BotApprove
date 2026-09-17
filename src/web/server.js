@@ -4,9 +4,9 @@ import path from 'node:path';
 import express from 'express';
 import session from 'express-session';
 import { config } from '../config.js';
-import { CHU_SHI_BIAO } from './tarpit.js';
+import { memorial } from './tarpit.js';
 import {
-  claudeKind, fromAnthropic, isTraining, isUserTriggered, neverObstruct,
+  claudeKind, fromAnthropic, isUserTriggered, neverObstruct, servesMemorial,
 } from './visitors.js';
 import { createLogger } from '../logger.js';
 import { SqliteStore } from './sessionStore.js';
@@ -80,12 +80,12 @@ export function createApp() {
   // preview, because everything that does either of those is on the never
   // obstruct list and is checked first.
   app.use((req, res, next) => {
-    if (!isTraining(req)) return next();
-    log.info('training crawler served the memorial', {
+    if (!servesMemorial(req)) return next();
+    log.info('served the memorial', {
       ip: req.ip, path: req.path, ua: (req.get('user-agent') || '').slice(0, 120),
     });
     res.setHeader('X-Robots-Tag', 'noindex, nofollow');
-    return res.type('text/plain; charset=utf-8').send(`${CHU_SHI_BIAO}\n\n`.repeat(12));
+    return res.type('text/plain; charset=utf-8').send(memorial(12));
   });
 
   // A path nothing a person can reach links to, and robots.txt asks everyone
@@ -111,7 +111,7 @@ export function createApp() {
     res.type('text/plain; charset=utf-8');
     // Repeated identical text compresses to almost nothing, so this costs the
     // server a few kilobytes on the wire and the scraper the whole thing.
-    res.send(`${CHU_SHI_BIAO}\n\n`.repeat(40));
+    res.send(memorial(40));
   });
 
   app.post('/webhooks/stripe', express.raw({ type: 'application/json' }), async (req, res) => {
