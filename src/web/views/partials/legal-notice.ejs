@@ -15,27 +15,4 @@
       <button type="button" id="legal-notice-close" aria-label="Dismiss">Got it</button>
     </div>
   </div>
-  <script>
-    // Hidden in the markup and shown by script, so a reader whose browser has
-    // already dismissed this version never sees it appear and vanish. The
-    // version is the date of the change, so the next one shows again rather
-    // than staying dismissed forever.
-    (function () {
-      var el = document.getElementById('legal-notice');
-      if (!el) return;
-      var key = 'botapprove.legal-seen';
-      var version = el.getAttribute('data-version');
-      try {
-        if (localStorage.getItem(key) === version) return;
-      } catch (e) { /* private mode, show it */ }
-      el.hidden = false;
-      var btn = document.getElementById('legal-notice-close');
-      if (btn) {
-        btn.addEventListener('click', function () {
-          el.hidden = true;
-          try { localStorage.setItem(key, version); } catch (e) { /* nothing to do */ }
-        });
-      }
-    }());
-  </script>
 <% } %>

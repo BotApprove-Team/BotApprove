@@ -42,7 +42,28 @@
     btn.setAttribute('title', 'Switch to ' + next + ' theme');
   }
 
+  // The "we changed the documents" bar. It lives here rather than in a <script>
+  // tag on the page because the CSP is script-src 'self' with no unsafe-inline,
+  // so an inline block is silently blocked and the bar never appears.
+  function legalNotice() {
+    var el = document.getElementById('legal-notice');
+    if (!el) return;
+    var KEY = 'botapprove.legal-seen';
+    var version = el.getAttribute('data-version');
+    try {
+      if (localStorage.getItem(KEY) === version) return;
+    } catch (e) { /* private mode, show it */ }
+    el.hidden = false;
+    var close = document.getElementById('legal-notice-close');
+    if (!close) return;
+    close.addEventListener('click', function () {
+      el.hidden = true;
+      try { localStorage.setItem(KEY, version); } catch (e) { /* nothing to do */ }
+    });
+  }
+
   document.addEventListener('DOMContentLoaded', function () {
+    legalNotice();
     var btn = document.getElementById('theme-toggle');
     if (!btn) return;
 

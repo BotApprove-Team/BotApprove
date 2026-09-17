@@ -41,6 +41,7 @@
       </ul>
     </div>
     <form method="post" action="/admin/safe-mode">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
       <input type="hidden" name="action" value="leave">
       <button class="btn" type="submit">Turn safe mode off</button>
     </form>
@@ -54,6 +55,7 @@
       <% safeModeKept.forEach((k) => { %><li><%= k %></li><% }) %>
     </ul>
     <form method="post" action="/admin/safe-mode" class="frow">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
       <input type="hidden" name="action" value="enter">
       <input type="text" name="reason" maxlength="300" placeholder="Why, for the record">
       <button class="btn danger" type="submit">Turn safe mode on</button>

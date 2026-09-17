@@ -2,10 +2,54 @@ import crypto from 'node:crypto';
 import { config } from '../config.js';
 import { createLogger } from '../logger.js';
 import { record } from '../services/securityService.js';
+import { instanceState } from '../db/queries.js';
 
 const log = createLogger('admin-auth');
 
-const attempts = new Map();
+/**
+ * Failed attempts, kept in the database rather than in memory.
+ *
+ * A lockout that lives in a Map is cleared by anything that restarts the
+ * process, which includes every deploy and every crash, so the one control
+ * standing between a guessed password and the admin panel could be reset by
+ * whatever was making the process unstable in the first place.
+ */
+const STATE_KEY = 'admin_lockouts';
+
+function readAttempts() {
+  try {
+    const parsed = JSON.parse(instanceState.get(STATE_KEY) || '{}');
+    return parsed && typeof parsed === 'object' ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+function writeAttempts(all) {
+  // Expired entries are dropped on the way out, so the row cannot grow without
+  // bound from addresses that tried once a year ago.
+  const now = Date.now();
+  const kept = {};
+  for (const [key, rec] of Object.entries(all)) {
+    if (rec.until && rec.until <= now) continue;
+    kept[key] = rec;
+  }
+  instanceState.set(STATE_KEY, JSON.stringify(kept));
+}
+
+const attempts = {
+  get: (key) => readAttempts()[key],
+  set: (key, value) => {
+    const all = readAttempts();
+    all[key] = value;
+    writeAttempts(all);
+  },
+  delete: (key) => {
+    const all = readAttempts();
+    delete all[key];
+    writeAttempts(all);
+  },
+};
 const MAX_ATTEMPTS = 5;
 const LOCKOUT_MS = 15 * 60_000;
 

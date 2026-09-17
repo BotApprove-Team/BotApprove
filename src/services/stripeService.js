@@ -1,6 +1,6 @@
 import Stripe from 'stripe';
 import { config } from '../config.js';
-import { entitlements } from '../db/queries.js';
+import { entitlements, stripeEvents } from '../db/queries.js';
 import { grantEntitlement, markBillingLapse, resolveEntitlement } from './entitlementService.js';
 import { record } from './securityService.js';
 import { createLogger } from '../logger.js';
@@ -173,6 +173,14 @@ async function resolveGuildId(event) {
 const toMs = (sec) => (typeof sec === 'number' ? sec * 1000 : null);
 
 export async function handleEvent(event) {
+  // Before anything else, and before any lookup that costs a round trip.
+  // Stripe retries, so the same event arriving twice has to do nothing the
+  // second time whatever the handler below would have done with it.
+  if (event.id && !stripeEvents.firstSight(event.id, event.type)) {
+    log.info('stripe event already handled, ignoring the repeat', { type: event.type, id: event.id });
+    return { handled: false, reason: 'duplicate' };
+  }
+
   const guildId = await resolveGuildId(event);
   if (!guildId) {
     log.warn('event could not be matched to a guild', { type: event.type, id: event.id });

@@ -606,6 +606,17 @@ const MIGRATIONS = [
       ALTER TABLE self_check_state ADD COLUMN problems_hash TEXT;
     `,
   },
+  {
+    id: 22,
+    name: 'stripe_event_ids',
+    sql: `
+      CREATE TABLE stripe_events (
+        event_id TEXT PRIMARY KEY,
+        type     TEXT    NOT NULL,
+        seen_at  INTEGER NOT NULL
+      );
+    `,
+  },
 ];
 
 function migrate() {

@@ -71,7 +71,9 @@ import {
 } from '../../services/entitlementService.js';
 import { checkGuild } from '../../services/selfCheck.js';
 import { checkChannel, describeChannelProblem } from '../../services/channelCheck.js';
-import { requireGuildAccess, isInstanceOwner, resolveGuildAccess } from '../auth.js';
+import {
+  requireGuildAccess, requireLogin, isInstanceOwner, resolveGuildAccess,
+} from '../auth.js';
 import {
   attemptUnlock, lock, isAdminUnlocked, unlockRemaining, isConfigured,
   currentStage, requireUnlocked,
@@ -178,7 +180,7 @@ router.get('/subscribe', (req, res) => {
   });
 });
 
-router.post('/subscribe', async (req, res) => {
+router.post('/subscribe', requireLogin, async (req, res) => {
   const plan = String(req.body.plan ?? 'monthly');
   const guildId = String(req.body.guild_id ?? '');
 

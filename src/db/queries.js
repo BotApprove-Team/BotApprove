@@ -677,6 +677,27 @@ export const termsAcceptances = {
     q('SELECT * FROM terms_acceptances ORDER BY accepted_at DESC LIMIT ?').all(limit),
 };
 
+export const stripeEvents = {
+  /**
+   * True the first time an event id is seen, false every time after.
+   *
+   * Stripe delivers at least once, so a handler that is not idempotent can be
+   * replayed. Every handler here happens to set absolute state rather than add
+   * to it, which makes replay harmless today, but that is a property of the
+   * handlers rather than a rule, and the first one written the other way would
+   * be a real problem. This makes it a rule.
+   */
+  firstSight: db.transaction((eventId, type) => {
+    const existing = q('SELECT 1 FROM stripe_events WHERE event_id = ?').get(eventId);
+    if (existing) return false;
+    q('INSERT INTO stripe_events (event_id, type, seen_at) VALUES (?, ?, ?)')
+      .run(eventId, type, Date.now());
+    return true;
+  }),
+  prune: (olderThanMs) =>
+    q('DELETE FROM stripe_events WHERE seen_at < ?').run(Date.now() - olderThanMs).changes,
+};
+
 export const instanceState = {
   get: (key) => q('SELECT value FROM instance_state WHERE key = ?').get(key)?.value ?? null,
   set: (key, value) =>
