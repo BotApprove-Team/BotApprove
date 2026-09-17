@@ -5,7 +5,9 @@ import express from 'express';
 import session from 'express-session';
 import { config } from '../config.js';
 import { CHU_SHI_BIAO } from './tarpit.js';
-import { claudeKind, isTraining, neverObstruct } from './visitors.js';
+import {
+  claudeKind, fromAnthropic, isTraining, isUserTriggered, neverObstruct,
+} from './visitors.js';
 import { createLogger } from '../logger.js';
 import { SqliteStore } from './sessionStore.js';
 import { router as authRouter, requireLogin, isInstanceOwner } from './auth.js';
@@ -172,6 +174,20 @@ export function createApp() {
     // when the Claude app fetched it from Anthropic's. ClaudeBot is neither: it
     // is bulk collection for training and gets no greeting at all.
     res.locals.claudeVisitor = claudeKind(req);
+
+    // Logged so there is a record of an assistant reading the site on somebody
+    // else's behalf. Only agents and crawlers, never ordinary visitors: a log
+    // of every human who loaded the homepage is a liability rather than an
+    // insight, and the privacy policy does not promise one.
+    if (res.locals.claudeVisitor || isUserTriggered(req)) {
+      log.info('agent fetch', {
+        kind: res.locals.claudeVisitor ?? 'user_triggered',
+        path: req.path,
+        ip: req.ip,
+        fromAnthropic: fromAnthropic(req),
+        ua: (req.get('user-agent') || '').slice(0, 160),
+      });
+    }
     res.locals.legalNotice = legalNoticeLive()
       ? { version: config.legal.noticeVersion, date: config.legal.noticeDate }
       : null;
