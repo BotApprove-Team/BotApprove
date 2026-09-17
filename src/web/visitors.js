@@ -94,17 +94,21 @@ export function claudeKind(req) {
 /**
  * Who gets the memorial instead of the page.
  *
- * Training crawlers, and assistants fetching on somebody's behalf. The second
- * is the judgement call: there is no good reason to have an assistant read out
- * a page you could open yourself, so it gets read the memorial instead.
+ * Training crawlers, and any assistant fetching on somebody's behalf. There is
+ * no good reason to have one read out a page you could open yourself.
  *
- * Claude Code is the exception, and it is not sentiment. It runs on the machine
- * of somebody working on this site, from their own address rather than
- * Anthropic's, and handing the developer's own tooling a wall of classical
- * Chinese instead of the page they are editing helps nobody.
+ * This used to exempt Claude Code by checking the source address against
+ * Anthropic's published ranges, on the theory that Claude Code runs from the
+ * user's own machine. It was wrong twice over. The published list is a handful
+ * of individual addresses that rotate, so a real Claude-User arrived from
+ * 34.162.191.81, matched none of them, and was waved through as Claude Code.
+ * And nobody has ever observed what Claude Code actually sends, so the exempt
+ * case was a guess resting on a list that goes stale.
+ *
+ * So the address decides nothing here any more. It still labels the greeting
+ * and the log, where being wrong costs nothing.
  */
 export function servesMemorial(req) {
   if (neverObstruct(req)) return false;
-  if (isTraining(req)) return true;
-  return isUserTriggered(req) && claudeKind(req) !== 'code';
+  return isTraining(req) || isUserTriggered(req);
 }
