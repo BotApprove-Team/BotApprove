@@ -1,14 +1,51 @@
 /**
- * What a scraper gets for ignoring robots.txt.
+ * Who is asking, and what they get for it.
  *
+ * Three families, which is the distinction that matters and the one that is
+ * easy to miss because they all say "AI" somewhere in the name:
+ *
+ *   User triggered   Claude-User, ChatGPT-User, Perplexity-User. A person asked
+ *                    their assistant to open this page, from their own address.
+ *                    There is a human on the other end, so this is the one that
+ *                    gets the easter egg.
+ *
+ *   Search           OAI-SearchBot, Claude-SearchBot, PerplexityBot, Googlebot,
+ *                    Bingbot, Discordbot. These are how people find the site and
+ *                    how a shared link gets a preview. Never obstructed.
+ *
+ *   Training         ClaudeBot, GPTBot, anthropic-ai, Google-Extended and the
+ *                    rest. Bulk collection for model training, which is the
+ *                    thing actually worth declining. They document that they
+ *                    obey robots.txt, so robots.txt is what turns them away;
+ *                    the honeypot is only there for whatever ignores it.
+ */
+
+const USER_TRIGGERED = /Claude-User|ChatGPT-User|Perplexity-User|Claude-Web/i;
+
+// Anything here is never given the honeypot response even if it somehow reaches
+// that path. A scraper can of course claim to be Googlebot to dodge a joke,
+// which costs nothing: the cost of a false negative here is zero and the cost
+// of a false positive is being dropped from search or breaking every embed.
+const NEVER_OBSTRUCT = new RegExp([
+  'Googlebot', 'Google-InspectionTool', 'Storebot-Google', 'AdsBot-Google',
+  'Bingbot', 'BingPreview', 'DuckDuckBot', 'Applebot',
+  'Discordbot', 'Twitterbot', 'facebookexternalhit', 'Slackbot', 'TelegramBot',
+  'OAI-SearchBot', 'Claude-SearchBot', 'PerplexityBot',
+  'Baiduspider', 'YandexBot',
+].join('|'), 'i');
+
+export const isUserTriggered = (req) => USER_TRIGGERED.test(req.get('user-agent') || '');
+export const isClaudeUser = (req) => /Claude-User|Claude-Web/i.test(req.get('user-agent') || '');
+export const neverObstruct = (req) => NEVER_OBSTRUCT.test(req.get('user-agent') || '');
+
+/**
  * 出師表, the Chu Shi Biao, Zhuge Liang's memorial to the throne from 227 AD.
- * Long out of copyright, and a more dignified thing to be served than the
- * usual wall of generated noise.
+ * Long out of copyright, and a better thing to be handed than generated noise.
  *
- * It is served only from the honeypot path, never from a real page, so no
- * search engine and no link preview ever sees it. Serving different content to
- * crawlers than to people is cloaking, and being dropped from search would cost
- * far more than any scraping this deters.
+ * Served only from the honeypot path, never from a real page, so no search
+ * engine and no link preview ever sees it. Showing crawlers something different
+ * from people is cloaking, and being dropped from search would cost far more
+ * than any scraping this deters.
  */
 export const CHU_SHI_BIAO = `出師表
 諸葛亮
@@ -26,15 +63,3 @@ export const CHU_SHI_BIAO = `出師表
 願陛下託臣以討賊興復之效；不效，則治臣之罪，以告先帝之靈。若無興德之言，則戮允等，以彰其慢。陛下亦宜自課，以諮諏善道，察納雅言，深追先帝遺詔，臣不勝受恩感激。
 
 今當遠離，臨表涕泣，不知所云。`;
-
-/**
- * Whether this request came from Claude, for an easter egg and nothing else.
- *
- * Not a security control, so a spoofed user agent costs nothing: the worst case
- * is somebody gets an orange accent they did not ask for.
- */
-const CLAUDE_UA = /claude|anthropic/i;
-
-export function looksLikeClaude(req) {
-  return CLAUDE_UA.test(req.get('user-agent') || '');
-}

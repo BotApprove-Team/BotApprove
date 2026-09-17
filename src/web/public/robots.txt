@@ -1,6 +1,28 @@
-# The public pages are meant to be found. The dashboard is not, and the path
-# below is a trap: nothing a person can click links to it, so anything that
-# fetches it has ignored this file on purpose.
+# Search engines and link previews are welcome. Training crawlers are not.
+#
+# The distinction is deliberate: being indexed is how people find this, and
+# Discord fetching a page is how a shared link gets a preview. Bulk collection
+# for model training is the part worth declining, and the crawlers that do it
+# document that they obey this file, so this is where it is done rather than
+# by guessing from a user agent and catching Googlebot by mistake.
+
+# ---- Training crawlers ----
+User-agent: ClaudeBot
+User-agent: anthropic-ai
+User-agent: GPTBot
+User-agent: Google-Extended
+User-agent: Applebot-Extended
+User-agent: meta-externalagent
+User-agent: FacebookBot
+User-agent: Bytespider
+User-agent: CCBot
+User-agent: Omgilibot
+User-agent: Diffbot
+User-agent: cohere-ai
+User-agent: Timpibot
+Disallow: /
+
+# ---- Everyone else, including search and link previews ----
 User-agent: *
 Allow: /
 Allow: /pricing
@@ -12,6 +34,7 @@ Disallow: /admin
 Disallow: /subscribe
 Disallow: /login
 Disallow: /webhooks/
-Disallow: /ledger-archive
 
-Sitemap: https://botapprove.mikuuu.xyz/sitemap.xml
+# Nothing a person can click links here. Anything that fetches it has read the
+# line above and decided not to care.
+Disallow: /ledger-archive

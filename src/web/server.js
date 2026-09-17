@@ -4,7 +4,7 @@ import path from 'node:path';
 import express from 'express';
 import session from 'express-session';
 import { config } from '../config.js';
-import { CHU_SHI_BIAO, looksLikeClaude } from './tarpit.js';
+import { CHU_SHI_BIAO, isClaudeUser, neverObstruct } from './tarpit.js';
 import { createLogger } from '../logger.js';
 import { SqliteStore } from './sessionStore.js';
 import { router as authRouter, requireLogin, isInstanceOwner } from './auth.js';
@@ -84,6 +84,13 @@ export function createApp() {
       referer: (req.get('referer') || '').slice(0, 200),
     });
     res.setHeader('X-Robots-Tag', 'noindex, nofollow');
+
+    // Anything that gets the site found or draws a link preview walks away with
+    // a plain 404 even here. A scraper could claim to be Googlebot to dodge
+    // this, which costs nothing: missing one scraper is free, and breaking
+    // search or embeds is not.
+    if (neverObstruct(req)) return res.status(404).type('text/plain').send('Not found');
+
     res.type('text/plain; charset=utf-8');
     // Repeated identical text compresses to almost nothing, so this costs the
     // server a few kilobytes on the wire and the scraper the whole thing.
@@ -146,7 +153,10 @@ export function createApp() {
     // Every view can ask which product it is rendering. Routes override it;
     // the default keeps partials working on pages that never think about it.
     res.locals.product = 'botapprove';
-    res.locals.claudeVisitor = looksLikeClaude(req);
+    // Claude-User, not ClaudeBot. The first is somebody asking their assistant
+    // to open the page from their own address; the second is bulk collection
+    // for training, which gets no greeting.
+    res.locals.claudeVisitor = isClaudeUser(req);
     res.locals.legalNotice = legalNoticeLive()
       ? { version: config.legal.noticeVersion, date: config.legal.noticeDate }
       : null;
