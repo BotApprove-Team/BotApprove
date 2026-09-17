@@ -1150,3 +1150,53 @@ header.top .wrap { height: auto; min-height: 52px; flex-wrap: wrap; row-gap: 8px
   cursor: pointer;
 }
 .legal-notice button:hover { color: var(--text); border-color: var(--text-faint); }
+
+/* Animating the product switch
+   ----------------------------
+   The switch is two links, so moving between products is a real navigation and
+   there is nothing on the page to animate. Cross-document view transitions let
+   the browser tween between the two renders instead, which is the only way to
+   get continuity across a page load without turning the site into an app.
+
+   Pure CSS on purpose: the CSP is script-src 'self' and this has no business
+   needing script anyway. Browsers without support navigate exactly as before. */
+@view-transition { navigation: auto; }
+
+/* The filled pill is a different element on each page, so giving both the same
+   transition name is what makes the fill appear to slide across rather than
+   blink from one to the other. */
+.prodpick a[aria-current="page"] { view-transition-name: product-pill; }
+.brand .mark { view-transition-name: product-mark; }
+.hero h1 { view-transition-name: hero-line; }
+
+::view-transition-old(product-pill),
+::view-transition-new(product-pill) {
+  /* Height only, so the pill stretches between two different word widths
+     instead of the label squashing on the way. */
+  height: 100%;
+  animation-duration: 260ms;
+  animation-timing-function: var(--ease);
+}
+::view-transition-group(product-pill) { animation-duration: 260ms; }
+
+::view-transition-old(product-mark),
+::view-transition-new(product-mark) { animation-duration: 220ms; }
+
+::view-transition-old(hero-line) { animation: vt-line-out 180ms var(--ease) both; }
+::view-transition-new(hero-line) { animation: vt-line-in 300ms var(--ease) both; }
+
+@keyframes vt-line-out { to { opacity: 0; transform: translateY(-6px); } }
+@keyframes vt-line-in { from { opacity: 0; transform: translateY(8px); } }
+
+.prodpick a { transform: translateZ(0); }
+.prodpick a:active { transform: scale(.97); }
+
+@media (prefers-reduced-motion: reduce) {
+  /* Cut the whole thing rather than shortening it. Somebody who asked for no
+     motion did not ask for faster motion. */
+  @view-transition { navigation: none; }
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) { animation: none !important; }
+  .prodpick a:active { transform: none; }
+}
