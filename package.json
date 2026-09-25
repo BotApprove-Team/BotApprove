@@ -27,7 +27,7 @@
     "ejs": "^3.1.10",
     "express": "^4.21.2",
     "express-session": "^1.18.1",
-    "image-size": "^1.1.1",
+    "image-size": "^2.0.3",
     "stripe": "^22.6.1"
   },
   "overrides": {
