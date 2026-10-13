@@ -1,44 +1,53 @@
-<aside class="gside">
-<div class="gside-in">
-  <div class="gserver">
-    <div class="gname"><%= guild.name %></div>
-    <div class="gmeta">
-      <%= guild.memberCount.toLocaleString('en-US') %> members, <%= whitelisted.length %> bots
+<%
+  const URGENT = {
+    overview: (n) => `${n} waiting`,
+    setup: (n) => `${n} to fix`,
+    threats: (n) => `${n} incident${n === 1 ? '' : 's'}`,
+  };
+%>
+<aside class="side" aria-label="Server">
+  <div class="side-server">
+    <span class="server-icon" aria-hidden="true">
+      <% if (guild.icon) { %>
+        <img src="https://cdn.discordapp.com/icons/<%= guild.id %>/<%= guild.icon %>.png?size=64" alt="" width="40" height="40">
+      <% } else { %><%= guild.name.slice(0, 1).toUpperCase() %><% } %>
+    </span>
+    <div>
+      <p class="side-name"><%= guild.name %></p>
+      <p class="side-meta">
+        <%= guild.memberCount.toLocaleString('en-US') %> members,
+        <%= whitelisted.length %> bot<%= whitelisted.length === 1 ? '' : 's' %> approved
+      </p>
+      <% if (!canConfigure) { %>
+        <p class="side-meta ro">Read only: you approve here but do not manage it.</p>
+      <% } %>
+      <a class="side-back" href="/guilds<%= tab === 'raidprotector' ? '?product=raidprotector' : '' %>">All servers</a>
     </div>
-    <div class="gmeta">
-      <a href="/guilds<%= tab === 'raidprotector' ? '?product=raidprotector' : '' %>">all servers</a>
-    </div>
-    <% if (!canConfigure) { %>
-      <div class="gmeta gro">read only, you are an approver not a manager</div>
-    <% } %>
   </div>
 
-  <nav class="gnav" aria-label="Server sections">
+  <nav class="tabnav" id="tabnav" aria-label="Server sections">
     <% tabs.forEach((t) => { %>
-      <a class="gtab<%= t.key === tab ? ' on' : '' %>"
-         href="/g/<%= guild.id %>/<%= t.key %>"
-         <%= t.key === tab ? 'aria-current="page"' : '' %>>
-        <span class="gic" aria-hidden="true"><%- t.icon %></span>
-        <span class="glabel"><%= t.label %></span>
+      <% const urgentText = t.urgent && URGENT[t.key] ? URGENT[t.key](t.count) : ''; %>
+      <a href="/g/<%= guild.id %>/<%= t.key %>"<% if (t.key === tab) { %> aria-current="page"<% } %>
+         data-label="<%= t.label %>"<% if (urgentText) { %> data-urgent="<%= urgentText %>"<% } %>>
+        <%- t.icon %>
+        <span><%= t.label %></span>
         <% if (t.count) { %>
-          <span class="gcount<%= t.urgent ? ' urgent' : '' %>"><%= t.count %></span>
+          <span class="count<%= t.urgent ? ' urgent' : '' %>"><%= t.count %><% if (urgentText) { %><span class="sr-only">, needs attention</span><% } %></span>
         <% } %>
       </a>
     <% }) %>
   </nav>
 
-  <div class="gplan">
-    <div class="gplan-label">Current plan</div>
-    <div class="gplan-tier"><%= entitlement.licensed ? 'Premium' : 'Free' %></div>
-    <% if (entitlement.licensed) { %>
-      <% if (dormant) { %>
-        <a href="/g/<%= guild.id %>/protection"><%= dormant %> waiting to switch on &rarr;</a>
-      <% } else { %>
-        <a href="/g/<%= guild.id %>/licence">Manage licence &rarr;</a>
-      <% } %>
+  <div class="side-plan">
+    <p class="form-label">Plan</p>
+    <p class="side-plan-tier"><%= entitlement.licensed ? 'Protection Suite' : 'Free' %></p>
+    <% if (entitlement.licensed && dormant) { %>
+      <a href="/g/<%= guild.id %>/protection"><%= dormant %> extra<%= dormant === 1 ? '' : 's' %> switched off</a>
+    <% } else if (entitlement.licensed) { %>
+      <a href="/g/<%= guild.id %>/licence">Manage licence</a>
     <% } else { %>
-      <a href="/g/<%= guild.id %>/licence">See what premium adds &rarr;</a>
+      <a href="/g/<%= guild.id %>/licence">See what premium adds</a>
     <% } %>
   </div>
-</div>
 </aside>

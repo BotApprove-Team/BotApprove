@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>BotApprove banner</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400&family=IBM+Plex+Sans+Condensed:wght@600&family=IBM+Plex+Sans:wght@400;500;600;700&display=block">
+<style>
+  /* Sized in units of the canvas width, so one layout serves every export.
+     1u is one pixel at the 1024 wide cover. */
+  :root {
+    --bg: #0e0f11;
+    --text: #f4f5f6;
+    --text-2: #b4b9c0;
+    --muted: #979da6;
+    --line: #2a2d33;
+    --ink: #0b62d6;
+    --u: calc(100vw / 1024);
+  }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text); overflow: hidden; }
+  body {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-family: "IBM Plex Sans", sans-serif;
+    text-align: center;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .tile {
+    display: grid;
+    place-items: center;
+    width: calc(92 * var(--u));
+    height: calc(92 * var(--u));
+    border-radius: calc(12 * var(--u));
+    background: var(--ink);
+  }
+  .tile svg { width: 72%; height: 72%; }
+
+  .word {
+    margin: calc(26 * var(--u)) 0 0;
+    font-size: calc(74 * var(--u));
+    font-weight: 500;
+    line-height: 1;
+    letter-spacing: -.025em;
+  }
+  .word b { font-weight: 700; }
+
+  .claim {
+    margin: calc(30 * var(--u)) 0 0;
+    font-size: calc(30 * var(--u));
+    font-weight: 600;
+    letter-spacing: -.01em;
+  }
+  .sub {
+    margin: calc(12 * var(--u)) 0 0;
+    max-width: calc(700 * var(--u));
+    color: var(--text-2);
+    font-size: calc(18 * var(--u));
+    line-height: 1.5;
+    text-wrap: balance;
+  }
+
+  .facts {
+    display: flex;
+    margin: calc(30 * var(--u)) 0 0;
+    padding: 0;
+    list-style: none;
+    border-top: 1px solid var(--line);
+    border-bottom: 1px solid var(--line);
+  }
+  .facts li {
+    padding: calc(10 * var(--u)) calc(22 * var(--u));
+    color: var(--text-2);
+    font-family: "IBM Plex Sans Condensed", sans-serif;
+    font-size: calc(14 * var(--u));
+    font-weight: 600;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+  }
+  .facts li + li { border-left: 1px solid var(--line); }
+  .facts .x { display: none; }
+
+  .url {
+    margin: calc(26 * var(--u)) 0 0;
+    color: var(--muted);
+    font-family: "IBM Plex Mono", monospace;
+    font-size: calc(14 * var(--u));
+  }
+
+  /* Discord's profile strip: the avatar sits over the lower left, so it
+     carries only the mark, the name and the claim, held high. */
+  body.wide { --u: calc(100vw / 680); justify-content: flex-start; padding-top: calc(36 * var(--u)); }
+  body.wide .sub, body.wide .facts, body.wide .url { display: none; }
+  body.wide .tile { width: calc(40 * var(--u)); height: calc(40 * var(--u)); border-radius: calc(6 * var(--u)); }
+  body.wide .word { margin: calc(14 * var(--u)) 0 0; font-size: calc(46 * var(--u)); }
+  body.wide .claim { margin-top: calc(16 * var(--u)); font-size: calc(17 * var(--u)); font-weight: 500; color: var(--text-2); }
+
+  /* X's header: the profile photo covers the lower left, so the block sits
+     right of centre, where it was on the old header. */
+  body.x { --u: calc(100vw / 1500); align-items: flex-start; padding-left: calc(560 * var(--u)); text-align: left; }
+  body.x .sub { display: none; }
+  body.x .tile { width: calc(64 * var(--u)); height: calc(64 * var(--u)); border-radius: calc(9 * var(--u)); }
+  body.x .word { margin: calc(20 * var(--u)) 0 0; font-size: calc(96 * var(--u)); }
+  body.x .claim { margin-top: calc(18 * var(--u)); font-size: calc(30 * var(--u)); font-weight: 500; color: var(--text-2); }
+  body.x .facts { margin-top: calc(30 * var(--u)); }
+  body.x .facts li { padding: calc(12 * var(--u)) calc(22 * var(--u)); font-size: calc(18 * var(--u)); }
+  body.x .facts li:first-child { padding-left: 0; }
+  body.x .facts .x { display: list-item; }
+  body.x .facts .c { display: none; }
+  body.x .url { margin-top: calc(26 * var(--u)); font-size: calc(18 * var(--u)); }
+</style>
+</head>
+<body>
+  <div class="tile">
+    <svg viewBox="0 0 32 32" aria-hidden="true">
+      <path d="M16 5.5l8.5 3.2v7.1c0 5.3-3.6 9.1-8.5 10.7-4.9-1.6-8.5-5.4-8.5-10.7V8.7L16 5.5z" fill="#fff"/>
+      <path d="M11.8 16.1l3 3 5.4-5.7" fill="none" stroke="#0b62d6" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+  </div>
+  <p class="word">bot<b>approve</b></p>
+  <p class="claim">No bot gets in without a human saying yes.</p>
+  <p class="sub">
+    Every bot that joins is kicked on sight and held for approval. No exceptions, not even
+    for the owner.
+  </p>
+  <ul class="facts">
+    <li class="c">Approval gate</li>
+    <li class="c">Keyword blocking</li>
+    <li class="c">Nuke bot database</li>
+    <li class="x">Approval gate</li>
+    <li class="x">Free forever</li>
+    <li class="x">Open source</li>
+  </ul>
+  <p class="url">botapprove.mikuuu.xyz</p>
+  <script>
+    var kind = location.hash.slice(1);
+    if (kind === 'wide' || kind === 'x') document.body.classList.add(kind);
+  </script>
+</body>
+</html>

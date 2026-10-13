@@ -1,0 +1,5 @@
+No bot gets in without a human saying yes.
+
+Every bot that joins your server is kicked on sight and held until an approver says yes, whoever invited it, the owner included. Approvers see who added it, how old its account is and what permissions it was given.
+
+Free forever, open source, and it never reads your messages.

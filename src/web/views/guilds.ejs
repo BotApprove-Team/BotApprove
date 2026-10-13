@@ -1,11 +1,15 @@
 <%- include('partials/head') %>
+<%
+  const badge = (tone, icon, text) =>
+    `<span class="badge ${tone}"><svg aria-hidden="true"><use href="#${icon}"></use></svg>${text}</span>`;
+%>
 
-<div class="page-head">
+<header class="page-head">
   <h1>Servers</h1>
-  <div class="meta">
-    <%= guilds.length %> visible to you<% if (asRp) { %>, showing where RaidProtector is<% } %>
-  </div>
-</div>
+  <p class="lede">
+    <%= guilds.length %> visible to you<% if (asRp) { %>, showing where RaidProtector is<% } %>.
+  </p>
+</header>
 
 <% if (asRp && rpProblem) { %>
   <div class="notice warn">
@@ -20,72 +24,74 @@
 <% } %>
 
 <% if (guilds.length) { %>
-  <div class="servers">
+  <ul class="server-list">
     <% guilds.forEach((g) => { %>
-      <div class="server">
-        <div class="icon">
+      <li>
+        <span class="server-icon" aria-hidden="true">
           <% if (g.icon) { %>
-            <img src="https://cdn.discordapp.com/icons/<%= g.id %>/<%= g.icon %>.png?size=64" alt="">
+            <img src="https://cdn.discordapp.com/icons/<%= g.id %>/<%= g.icon %>.png?size=64" alt="" width="40" height="40">
           <% } else { %><%= g.name.slice(0, 1).toUpperCase() %><% } %>
+        </span>
+        <div class="server-name">
+          <p><%= g.name %></p>
+          <code><%= g.id %></code>
         </div>
-        <div>
-          <div class="name"><%= g.name %></div>
-          <div class="id"><%= g.id %></div>
-        </div>
-        <div class="right">
+        <div class="server-state">
           <% if (asRp) { %>
             <% if (g.rpPresent === false) { %>
-              <span class="st off">not installed</span>
+              <%- badge('neutral', 'i-off', 'Not installed') %>
               <% if (g.manageable && rpInviteUrl) { %>
-                <a class="btn sm" href="<%= rpInviteUrl %>&guild_id=<%= g.id %>">Add</a>
+                <a class="btn" href="<%= rpInviteUrl %>&guild_id=<%= g.id %>">Add RaidProtector</a>
               <% } %>
             <% } else if (g.rpPresent) { %>
-              <span class="st ok">protected</span>
-              <a class="btn sm" href="/g/<%= g.id %>/raidprotector">Open</a>
+              <%- badge('ok', 'i-ok', 'Protected') %>
+              <a class="btn" href="/g/<%= g.id %>/raidprotector">Open</a>
             <% } else { %>
-              <span class="st off">unknown</span>
-              <% if (g.botPresent) { %>
-                <a class="btn sm" href="/g/<%= g.id %>/raidprotector">Open</a>
-              <% } %>
+              <%- badge('neutral', 'i-info', 'Unknown') %>
+              <% if (g.botPresent) { %><a class="btn" href="/g/<%= g.id %>/raidprotector">Open</a><% } %>
             <% } %>
           <% } else if (!g.botPresent) { %>
-            <span class="st off">not installed</span>
+            <%- badge('neutral', 'i-off', 'Not installed') %>
             <% if (g.manageable) { %>
-              <a class="btn sm" href="<%= inviteUrl %>&guild_id=<%= g.id %>">Add</a>
+              <a class="btn" href="<%= inviteUrl %>&guild_id=<%= g.id %>">Add BotApprove</a>
             <% } %>
           <% } else { %>
-            <span class="st ok"><%= g.manageable ? 'manageable' : 'approver' %></span>
-            <a class="btn sm" href="/g/<%= g.id %>">Open</a>
+            <%- badge('ok', 'i-ok', g.manageable ? 'You manage it' : 'You approve here') %>
+            <a class="btn" href="/g/<%= g.id %>">Open</a>
           <% } %>
         </div>
-      </div>
+      </li>
     <% }) %>
-  </div>
+  </ul>
 <% } else { %>
-  <p class="empty">No servers found. Add BotApprove to a server you manage first.</p>
+  <p class="empty">No servers found. Add BotApprove to a server you manage first, then sign in again.</p>
 <% } %>
 
-<section class="block" style="margin-top:32px">
-  <div class="block-head"><h2>Adding it to a server</h2></div>
-  <% if (asRp) { %>
-    <p class="lede">
-      RaidProtector needs <code>Moderate Members</code> to time people out, and
-      <code>Ban Members</code> only if you turn bans on. Its role must sit above the people it
-      may act on. It is a separate install from BotApprove and starts in report mode, acting on
-      nobody until you say otherwise.
-    </p>
-    <% if (rpInviteUrl) { %>
-      <a class="btn primary" href="<%= rpInviteUrl %>">Invite RaidProtector</a>
+<section class="band split" aria-labelledby="add-title">
+  <div class="split-lead">
+    <h2 id="add-title">Adding it to a server</h2>
+  </div>
+  <div>
+    <% if (asRp) { %>
+      <p class="lede">
+        RaidProtector needs <code>Moderate Members</code> to time people out, and
+        <code>Ban Members</code> only if you turn bans on. Its role must sit above the people it
+        may act on. It is a separate install from BotApprove and starts in report mode, acting on
+        nobody until you say otherwise.
+      </p>
+      <div class="cta">
+        <% if (rpInviteUrl) { %><a class="btn btn-primary" href="<%= rpInviteUrl %>">Invite RaidProtector</a><% } %>
+        <a class="btn" href="/raidprotector">What it does</a>
+      </div>
+    <% } else { %>
+      <p class="lede">
+        BotApprove needs <code>Kick Members</code>, <code>Ban Members</code>,
+        <code>View Audit Log</code> and <code>Change Nickname</code>. Its role must sit above where
+        new bots land, and it needs <code>View Channel</code> in whichever channel you point it at.
+      </p>
+      <div class="cta"><a class="btn btn-primary" href="<%= inviteUrl %>">Invite BotApprove</a></div>
     <% } %>
-    <a class="btn" href="/raidprotector">What it does</a>
-  <% } else { %>
-    <p class="lede">
-      BotApprove needs <code>Kick Members</code>, <code>Ban Members</code>,
-      <code>View Audit Log</code> and <code>Change Nickname</code>. Its role must sit above where
-      new bots land, and it needs <code>View Channel</code> in whichever channel you point it at.
-    </p>
-    <a class="btn primary" href="<%= inviteUrl %>">Invite BotApprove</a>
-  <% } %>
+  </div>
 </section>
 
 <%- include('partials/foot') %>

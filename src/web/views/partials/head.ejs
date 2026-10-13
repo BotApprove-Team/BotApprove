@@ -1,6 +1,7 @@
 <% const prod = (typeof product !== 'undefined' && product) ? product : 'botapprove'; %>
+<% const rpPage = prod === 'raidprotector'; %>
 <!doctype html>
-<html lang="en"<% if (prod === 'raidprotector') { %> data-product="raidprotector"<% } %><%
+<html lang="en"<% if (rpPage) { %> data-product="raidprotector"<% } %><%
   if (typeof claudeVisitor !== 'undefined' && claudeVisitor) { %> data-visitor="claude"<% } %>>
 <head>
   <meta charset="utf-8">
@@ -37,78 +38,55 @@
   <!-- X reads this one, not og:image:alt. Without it a shared link is an
        undescribed image to anyone using a screen reader. -->
   <meta name="twitter:image:alt"
-        content="Dark banner reading botapprove, no bot gets in without a human saying yes, with
-                 labels for approval gate, keyword blocking and nuke bot database.">
+        content="Dark banner with the BotApprove shield and the line: no bot gets in without a human saying yes.">
 
   <!-- Discord tints the left edge of the embed with this. -->
-  <meta name="theme-color" content="#5e9bff">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet"
-        href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..700&display=swap">
+  <meta name="theme-color" content="<%= rpPage ? '#c9a0f5' : '#5e9bff' %>">
+  <link rel="preload" href="/static/fonts/IBMPlexSans-Regular-Latin1.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="/static/fonts/IBMPlexSans-SemiBold-Latin1.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="icon" type="image/svg+xml" href="/static/icon.svg?v=<%= cssVersion %>">
   <script src="/static/theme.js?v=<%= cssVersion %>"></script>
   <link rel="stylesheet" href="/static/style.css?v=<%= cssVersion %>">
+  <script src="/static/site.js?v=<%= cssVersion %>" defer></script>
 </head>
 <body>
-<header class="top">
-  <div class="wrap">
-    <a class="brand" href="<%= prod === 'raidprotector' ? '/raidprotector' : '/' %>">
-      <svg class="mark" viewBox="0 0 32 32" width="18" height="18" aria-hidden="true">
-        <g class="mark-one">
-          <path d="M16 5.5l8.5 3.2v7.1c0 5.3-3.6 9.1-8.5 10.7-4.9-1.6-8.5-5.4-8.5-10.7V8.7L16 5.5z"
-                fill="currentColor"/>
-          <path d="M11.8 16.1l3 3 5.4-5.7" fill="none" stroke="var(--bg)" stroke-width="2.6"
-                stroke-linecap="round" stroke-linejoin="round"/>
-        </g>
-        <g class="mark-wall">
-          <path d="M9.4 9.2l4.8 2.1v4.65c0 3.45-2.02 6-4.8 7.05c-2.78-1.05-4.8-3.6-4.8-7.05V11.3L9.4 9.2z"
-                fill="currentColor" opacity=".45"/>
-          <path d="M22.6 9.2l4.8 2.1v4.65c0 3.45-2.02 6-4.8 7.05c-2.78-1.05-4.8-3.6-4.8-7.05V11.3L22.6 9.2z"
-                fill="currentColor" opacity=".45"/>
-          <path d="M16 7.4l5.8 2.52v5.58c0 4.14-2.44 7.2-5.8 8.46c-3.36-1.26-5.8-4.32-5.8-8.46V9.92L16 7.4z"
-                fill="currentColor"/>
-        </g>
-      </svg>
-      <span><% if (prod === 'raidprotector') { %>raid<b>protector</b><% } else { %>bot<b>approve</b><% } %></span>
-    </a>
+<%- include('sprite') %>
+
+<a class="skip" href="#main">Skip to content</a>
+
 <% const goTo = (typeof switchTo !== 'undefined' && switchTo)
      ? switchTo : { botapprove: '/', raidprotector: '/raidprotector' }; %>
-    <div class="prodpick" role="group" aria-label="Choose a product">
-      <a href="<%= goTo.botapprove %>"<% if (prod !== 'raidprotector') { %> aria-current="page"<% } %>>BotApprove</a>
-      <a href="<%= goTo.raidprotector %>"<% if (prod === 'raidprotector') { %> aria-current="page"<% } %>>RaidProtector</a>
-    </div>
-    <nav>
+<% const here = typeof path !== 'undefined' ? path : ''; %>
+<header class="site-head">
+  <div class="wrap head-row">
+    <a class="brand" href="<%= rpPage ? '/raidprotector' : '/' %>">
+      <svg aria-hidden="true"><use href="#<%= rpPage ? 'm-rp' : 'm-ba' %>"></use></svg>
+      <span><% if (rpPage) { %>raid<b>protector</b><% } else { %>bot<b>approve</b><% } %></span>
+    </a>
+    <nav class="prod-switch" aria-label="Choose a product">
+      <a href="<%= goTo.botapprove %>"<% if (!rpPage) { %> aria-current="page"<% } %>>BotApprove</a>
+      <a href="<%= goTo.raidprotector %>"<% if (rpPage) { %> aria-current="page"<% } %>>RaidProtector</a>
+    </nav>
+    <nav class="site-nav" id="site-nav" aria-label="Site">
       <% if (user) { %>
-        <a href="/guilds">Servers</a>
-        <a href="/blog">Blog</a>
-        <a href="/pricing">Pricing</a>
-        <% if (isOwner) { %><a href="/admin">Admin</a><% } %>
+        <a href="/guilds"<% if (here === '/guilds' || here.startsWith('/g/')) { %> aria-current="page"<% } %>>Servers</a>
+        <a href="/blog"<% if (here.startsWith('/blog')) { %> aria-current="page"<% } %>>Blog</a>
+        <a href="/pricing"<% if (here === '/pricing') { %> aria-current="page"<% } %>>Pricing</a>
+        <% if (isOwner) { %><a href="/admin"<% if (here.startsWith('/admin')) { %> aria-current="page"<% } %>>Admin</a><% } %>
         <span class="who"><%= user.globalName || user.username %></span>
-        <form method="post" action="/logout" class="inline">
+        <form method="post" action="/logout">
           <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-          <button class="sm" type="submit">Sign out</button>
+          <button class="btn" type="submit">Sign out</button>
         </form>
       <% } else { %>
-        <a href="/blog">Blog</a>
-        <a href="/pricing">Pricing</a>
-        <a class="btn sm" href="/login">Sign in with Discord</a>
+        <a href="/blog"<% if (here.startsWith('/blog')) { %> aria-current="page"<% } %>>Blog</a>
+        <a href="/pricing"<% if (here === '/pricing') { %> aria-current="page"<% } %>>Pricing</a>
+        <a class="btn signin" href="/login">Sign in with Discord</a>
       <% } %>
-      <button id="theme-toggle" type="button" aria-label="Switch theme">
-        <svg class="icon-sun" viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"
-             fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round">
-          <circle cx="12" cy="12" r="4.2"/>
-          <path d="M12 2.4v2.3M12 19.3v2.3M4.2 4.2l1.7 1.7M18.1 18.1l1.7 1.7M2.4 12h2.3M19.3 12h2.3M4.2 19.8l1.7-1.7M18.1 5.9l1.7-1.7"/>
-        </svg>
-        <svg class="icon-moon" viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"
-             fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"
-             stroke-linejoin="round">
-          <path d="M20.5 14.3A8.5 8.5 0 1 1 9.7 3.5a6.9 6.9 0 0 0 10.8 10.8z"/>
-        </svg>
-      </button>
     </nav>
+    <div class="head-tools" id="head-tools"></div>
   </div>
 </header>
 <%- include('legal-notice') %>
-<main>
+<main id="main">
   <div class="wrap">

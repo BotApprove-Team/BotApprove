@@ -1,221 +1,233 @@
 <%- include('partials/head') %>
 
-<div class="hero">
-  <h1>No bot gets in without a human saying yes.</h1>
-  <p>
-    BotApprove removes every bot that joins your server and holds it for review. It does not
-    matter who invited it. The owner gets no exception, because a compromised owner account is
-    exactly how servers get wiped.
-  </p>
-  <% if (typeof serverCount !== 'undefined' && serverCount) { %>
-    <p class="stat">
-      <span class="live" aria-hidden="true"></span>
-      Screening bots in <strong><%= serverCount.toLocaleString('en-US') %></strong>
-      server<%= serverCount === 1 ? '' : 's' %>
+<section class="hero" aria-labelledby="hero-title">
+  <div class="hero-copy">
+    <h1 id="hero-title">No bot gets in without a human saying yes.</h1>
+    <p class="hero-lede">
+      BotApprove removes every bot that joins your server and holds it for review. It does not
+      matter who invited it. The owner gets no exception, because a compromised owner account is
+      exactly how servers get wiped.
     </p>
-  <% } %>
-  <div class="cta">
-    <a class="btn primary" href="<%= inviteUrl %>">Add to Discord</a>
-    <a class="btn" href="/login">Sign in to the dashboard</a>
+    <% if (typeof serverCount !== 'undefined' && serverCount) { %>
+      <p class="hero-count">
+        Screening bots in <strong><%= serverCount.toLocaleString('en-US') %></strong>
+        server<%= serverCount === 1 ? '' : 's' %>.
+      </p>
+    <% } %>
+    <div class="cta">
+      <a class="btn btn-primary" href="<%= inviteUrl %>">Add to Discord</a>
+      <a class="btn" href="/login">Sign in to the dashboard</a>
+    </div>
+    <p class="hint">
+      Free to add and open source, with no trial countdown. Signing in asks for your identity and
+      your server list, nothing else.
+    </p>
   </div>
-  <p class="hint">
-    Free to add, open source, with no trial countdown. Signing in asks for your identity and server list,
-    nothing else.
-  </p>
-</div>
 
-<section class="block">
-  <div class="block-head"><h2>What happens when a bot joins</h2></div>
-  <ol class="steps">
-    <li>
-      <div>
-        <strong>It is kicked first</strong>
-        <span>Removal happens before any audit log lookup or image download, so nothing sits
-          inside your server while BotApprove thinks about it.</span>
+  <figure class="exhibit">
+    <article class="approval" data-demo data-state="awaiting" aria-label="Example approval card">
+      <div class="ap-top">
+        <span class="badge warn" data-status>
+          <svg aria-hidden="true"><use href="#i-wait"></use></svg>
+          <span>Kicked · awaiting decision</span>
+        </span>
+        <span class="example-tag">Example</span>
       </div>
-    </li>
-    <li>
-      <div>
-        <strong>Approvers get the facts</strong>
-        <span>Account age, who invited it from the audit log, the permissions its role actually
-          held after joining, and whether its avatar looks reused.</span>
+      <div class="ap-head">
+        <span class="ap-avatar" aria-hidden="true">E</span>
+        <div>
+          <p class="ap-title">Bot kicked, approval required</p>
+          <p class="ap-desc">
+            <strong>Example Bot#0000</strong> tried to join and was removed pending review.
+            Nothing is trusted by default here, including bots invited by the owner.
+          </p>
+        </div>
       </div>
-    </li>
-    <li>
-      <div>
-        <strong>Nothing returns without a decision</strong>
-        <span>Approving adds it to the whitelist. It is never re-invited automatically. Someone
-          has to do that by hand.</span>
+      <dl class="ap-fields">
+        <div><dt>Bot</dt><dd>Example Bot#0000<br><code>123456789012345678</code></dd></div>
+        <div><dt>Account created</dt><dd>2 days ago</dd></div>
+        <div><dt>Discord verified</dt><dd>Not verified</dd></div>
+        <div><dt>Added by</dt><dd><span class="placeholder">[the member who invited it]</span></dd></div>
+        <div><dt>Removed from server</dt><dd>Yes</dd></div>
+        <div class="wide">
+          <dt>Permissions it was granted (post-join)</dt>
+          <dd>
+            Roles: <code>Example Bot</code>
+            <span class="perm-flag">
+              <svg aria-hidden="true"><use href="#i-danger"></use></svg>
+              Administrator, full control of the server
+            </span>
+          </dd>
+        </div>
+      </dl>
+      <p class="ap-foot">Approval #0 · Your server</p>
+      <div class="stamp stamp-face" hidden aria-hidden="true"></div>
+    </article>
+
+    <div class="ap-controls">
+      <p class="ap-outcome" role="status"></p>
+    </div>
+
+    <div class="outcomes-static">
+      <div class="os-item">
+        <p class="os-btn">Approve &amp; whitelist</p>
+        <span class="stamp-face stamp-mini">Whitelisted</span>
+        <p>Whitelisted. It doesn't come back by itself; someone re-invites it by hand.</p>
       </div>
-    </li>
-  </ol>
+      <div class="os-item">
+        <p class="os-btn">Deny</p>
+        <span class="stamp-face stamp-mini">Denied</span>
+        <p>Denied. It is not whitelisted, and BotApprove DMs whoever added it.</p>
+      </div>
+      <div class="os-item">
+        <p class="os-btn">Deny + confirm nuke bot</p>
+        <span class="stamp-face stamp-mini crit">
+          <svg aria-hidden="true"><use href="#i-crit"></use></svg>
+          Kicked on sight
+        </span>
+        <p>Kicked on sight from now on. Where auto-ban is on, BotApprove bans whoever invited it.</p>
+      </div>
+    </div>
+
+    <figcaption>
+      An example card for a made-up bot. BotApprove posts the real one in your approval channel
+      after the kick, never before, so nothing sits in your server while it gathers these details.
+    </figcaption>
+  </figure>
 </section>
 
-<section class="block">
-  <div class="block-head"><h2>How it fails</h2></div>
-  <p class="lede">
-    Every failure mode resolves the same way: toward not trusting the bot. The marker shows
-    whether the outcome is safe on its own or needs a human.
-  </p>
-  <dl class="modes">
-    <div class="mode safe">
-      <span class="dot"></span>
-      <div>
-        <dt>Something errors</dt>
-        <dd>The bot is kicked. A failed check is never mistaken for a passed one.</dd>
-      </div>
-    </div>
-    <div class="mode safe">
-      <span class="dot"></span>
-      <div>
-        <dt>Name matches your blocklist</dt>
-        <dd>Stopped before the whitelist is read, so a stolen approval cannot be reused.</dd>
-      </div>
-    </div>
-    <div class="mode safe">
-      <span class="dot"></span>
-      <div>
-        <dt>Bot carries a verified badge</dt>
-        <dd>Shown to the approver, never trusted. Verified apps get compromised too.</dd>
-      </div>
-    </div>
-    <div class="mode safe">
-      <span class="dot"></span>
-      <div>
-        <dt>Subscription lapses</dt>
-        <dd>The gate keeps running. Screening is free forever and the bot never leaves.</dd>
-      </div>
-    </div>
-    <div class="mode alert">
-      <span class="dot"></span>
-      <div>
-        <dt>Someone weakens BotApprove</dt>
-        <dd>Losing a permission it had, or being moved down the role list, is reported as a
-          probable attack rather than a settings change.</dd>
-      </div>
-    </div>
-    <div class="mode crit">
-      <span class="dot"></span>
-      <div>
-        <dt>A kick fails</dt>
-        <dd>Treated as critical and escalated. It means an unapproved bot is in your server
-          right now.</dd>
-      </div>
-    </div>
-  </dl>
+<section class="band" aria-labelledby="fails-title">
+  <div class="band-head">
+    <h2 id="fails-title">How it fails</h2>
+    <p class="lede">
+      Every failure ends with BotApprove not trusting the bot. The label on each row says whether
+      that outcome is safe on its own or needs a person to look.
+    </p>
+  </div>
+  <ul class="ledger">
+    <li>
+      <span class="badge ok"><svg aria-hidden="true"><use href="#i-ok"></use></svg>Safe on its own</span>
+      <p class="when">Something errors</p>
+      <p class="what">BotApprove kicks the bot. A failed check is never mistaken for a passed one.</p>
+    </li>
+    <li>
+      <span class="badge ok"><svg aria-hidden="true"><use href="#i-ok"></use></svg>Safe on its own</span>
+      <p class="when">Name matches your blocklist</p>
+      <p class="what">BotApprove stops it before reading the whitelist, so a stolen approval cannot be reused.</p>
+    </li>
+    <li>
+      <span class="badge ok"><svg aria-hidden="true"><use href="#i-ok"></use></svg>Safe on its own</span>
+      <p class="when">Bot carries a verified badge</p>
+      <p class="what">The approver sees the badge. BotApprove never trusts it, because verified apps get compromised too.</p>
+    </li>
+    <li>
+      <span class="badge ok"><svg aria-hidden="true"><use href="#i-ok"></use></svg>Safe on its own</span>
+      <p class="when">Subscription lapses</p>
+      <p class="what">The gate keeps running. Screening is free forever and the bot never leaves.</p>
+    </li>
+    <li>
+      <span class="badge warn"><svg aria-hidden="true"><use href="#i-warn"></use></svg>Needs a human</span>
+      <p class="when">Someone weakens BotApprove</p>
+      <p class="what">BotApprove reports a lost permission, or being moved down the role list, as a probable attack rather than a settings change.</p>
+    </li>
+    <li>
+      <span class="badge crit"><svg aria-hidden="true"><use href="#i-crit"></use></svg>Critical</span>
+      <p class="when">A kick fails</p>
+      <p class="what">BotApprove escalates it as critical. It means an unapproved bot is in your server right now.</p>
+    </li>
+  </ul>
 </section>
 
-<section class="block">
-  <div class="block-head"><h2>Open source</h2></div>
-  <p class="lede">
-    BotApprove asks for permission to kick and ban people in your server. You should not have to
-    take anyone's word for what it does with that. Everything above is on GitHub under AGPL-3.0:
-    the join pipeline, the permission checks, the database schema, and the tests holding them in
-    place.
-  </p>
-  <dl class="modes">
-    <div class="mode safe">
-      <span class="dot"></span>
-      <div>
-        <dt>Read the part that decides</dt>
-        <dd>
-          <code>src/services/botJoinPipeline.js</code> is the whole gate, in the order it runs.
-          Every claim on this page is a few hundred lines you can check.
-        </dd>
-      </div>
-    </div>
-    <div class="mode safe">
-      <span class="dot"></span>
-      <div>
-        <dt>Run it yourself</dt>
-        <dd>
-          Node and a SQLite file, no external services. If you would rather not trust a hosted
-          bot with your server, host your own.
-        </dd>
-      </div>
-    </div>
-    <div class="mode safe">
-      <span class="dot"></span>
-      <div>
-        <dt>Changes have to be published</dt>
-        <dd>
-          AGPL means anyone running a modified BotApprove as a service has to publish what they
-          changed. A quietly weakened fork cannot stay quiet.
-        </dd>
-      </div>
-    </div>
-    <div class="mode safe">
-      <span class="dot"></span>
-      <div>
-        <dt>Report a flaw privately</dt>
-        <dd>
-          Security reports go to the operator directly, not into a public issue where they would
-          be a working exploit against every server until a fix ships.
-        </dd>
-      </div>
-    </div>
-  </dl>
-  <% if (repoUrl) { %>
-    <div class="actions">
-      <a class="btn with-icon" href="<%= repoUrl %>" rel="noopener noreferrer" target="_blank">
-        <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true" fill="currentColor">
-          <path d="M6.766 11.328c-2.063-.25-3.516-1.734-3.516-3.656 0-.781.281-1.625.75-2.188-.203-.515-.172-1.609.063-2.062.625-.078 1.468.25 1.968.703.594-.187 1.219-.281 1.985-.281.765 0 1.39.094 1.953.265.484-.437 1.344-.765 1.969-.687.218.422.25 1.515.046 2.047.5.593.766 1.39.766 2.203 0 1.922-1.453 3.375-3.547 3.64.531.344.89 1.094.89 1.954v1.625c0 .468.391.734.86.547C13.781 14.359 16 11.53 16 8.03 16 3.61 12.406 0 7.984 0 3.563 0 0 3.61 0 8.031a7.88 7.88 0 0 0 5.172 7.422c.422.156.828-.125.828-.547v-1.25c-.219.094-.5.156-.75.156-1.031 0-1.64-.562-2.078-1.609-.172-.422-.36-.672-.719-.719-.187-.015-.25-.093-.25-.187 0-.188.313-.328.625-.328.453 0 .844.281 1.25.86.313.452.64.655 1.031.655s.641-.14 1-.5c.266-.265.47-.5.657-.656"/>
-        </svg>
-        Read the source
+<section class="band split" aria-labelledby="src-title">
+  <div class="split-lead">
+    <h2 id="src-title">Open source, so you can check</h2>
+    <p class="lede">
+      BotApprove asks for permission to kick and ban people in your server. You should not have to
+      take anyone's word for what it does with that. All of it is on GitHub under AGPL-3.0.
+    </p>
+    <% if (repoUrl) { %>
+      <a class="btn" href="<%= repoUrl %>" rel="noopener noreferrer" target="_blank">
+        <svg aria-hidden="true"><use href="#i-github"></use></svg>
+        Read the source on GitHub
       </a>
+    <% } %>
+  </div>
+  <dl class="points">
+    <div>
+      <dt>Read the part that decides</dt>
+      <dd>
+        <code>src/services/botJoinPipeline.js</code> is the whole gate, in the order it runs.
+        Every claim on this page is a few hundred lines you can check.
+      </dd>
     </div>
-  <% } %>
+    <div>
+      <dt>Run it yourself</dt>
+      <dd>
+        Node and a SQLite file, no external services. If you would rather not trust a hosted bot
+        with your server, host your own.
+      </dd>
+    </div>
+    <div>
+      <dt>Changes have to be published</dt>
+      <dd>
+        AGPL means anyone running a modified BotApprove as a service has to publish what they
+        changed. A quietly weakened fork cannot stay quiet.
+      </dd>
+    </div>
+    <div>
+      <dt>Report a flaw privately</dt>
+      <dd>
+        Security reports go to the operator directly, not into a public issue where they would be
+        a working exploit against every server until a fix ships.
+      </dd>
+    </div>
+  </dl>
 </section>
 
 <%- include('partials/suite') %>
 
-<section class="block">
-  <div class="block-head"><h2>Add it</h2></div>
-  <p class="lede">
-    BotApprove asks for the permissions it actually uses and nothing more. It never requests the
-    Message Content intent, so it cannot read your messages.
-  </p>
-  <dl class="modes">
-    <div class="mode safe">
-      <span class="dot"></span>
-      <div>
-        <dt>Kick Members, Ban Members</dt>
-        <dd>Removing an unapproved bot, and banning one on the shared threat list.</dd>
-      </div>
-    </div>
-    <div class="mode safe">
-      <span class="dot"></span>
-      <div>
-        <dt>View Audit Log</dt>
-        <dd>Reading who invited a bot. This is the only way to know after the fact.</dd>
-      </div>
-    </div>
-    <div class="mode safe">
-      <span class="dot"></span>
-      <div>
-        <dt>View Messages, Send Messages, Embed Links, Attach Files</dt>
-        <dd>Posting the approval card in your chosen channel, with the bot's avatar attached.</dd>
-      </div>
-    </div>
-    <div class="mode safe">
-      <span class="dot"></span>
-      <div>
-        <dt>Read Message History, Change Nickname</dt>
-        <dd>Editing its own approval message after a restart, and wearing the name you pick.</dd>
-      </div>
-    </div>
-  </dl>
-  <div class="actions">
-    <a class="btn primary" href="<%= inviteUrl %>">Add to Discord</a>
+<section class="band" aria-labelledby="perm-title">
+  <div class="band-head">
+    <h2 id="perm-title">What it asks for</h2>
+    <p class="lede">
+      BotApprove asks for the permissions it uses and nothing more. It never requests the Message
+      Content intent, so it cannot read your messages.
+    </p>
+  </div>
+  <div class="table-scroll">
+    <table class="manifest">
+      <thead>
+        <tr><th scope="col">Permission</th><th scope="col">What BotApprove uses it for</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <th scope="row">Kick Members, Ban Members</th>
+          <td>Removing an unapproved bot, and banning one on the shared threat list.</td>
+        </tr>
+        <tr>
+          <th scope="row">View Audit Log</th>
+          <td>Reading who invited a bot. This is the only way to know after the fact.</td>
+        </tr>
+        <tr>
+          <th scope="row">View Messages, Send Messages, Embed Links, Attach Files</th>
+          <td>Posting the approval card in your chosen channel, with the bot's avatar attached.</td>
+        </tr>
+        <tr>
+          <th scope="row">Read Message History, Change Nickname</th>
+          <td>Editing its own approval message after a restart, and wearing the name you pick.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="cta">
+    <a class="btn btn-primary" href="<%= inviteUrl %>">Add to Discord</a>
     <% if (supportUrl) { %>
-      <a class="btn" href="<%= supportUrl %>" rel="noopener noreferrer" target="_blank">Support server</a>
+      <a class="btn" href="<%= supportUrl %>" rel="noopener noreferrer" target="_blank">Ask in the support server</a>
     <% } %>
   </div>
   <p class="hint">
     After adding it, drag the BotApprove role above where new bots land, then run
-    <code>/config notify-channel</code> to pick where approvals appear.<% if (supportUrl) { %>
-    Stuck on any of that, or want a bot added to the shared threat list? Ask in the support
-    server.<% } %>
+    <code>/config notify-channel</code> to pick where approvals appear.
   </p>
 </section>
 

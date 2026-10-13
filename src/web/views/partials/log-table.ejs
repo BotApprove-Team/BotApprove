@@ -1,0 +1,18 @@
+<div class="table-scroll">
+  <table>
+    <thead>
+      <tr><th scope="col">Time</th><th scope="col">Severity</th><th scope="col">Action</th><th scope="col">Bot</th><th scope="col">Detail</th></tr>
+    </thead>
+    <tbody>
+      <% rows.forEach((l) => { %>
+        <tr>
+          <td class="mono nowrap"><%= ts(l.created_at) %></td>
+          <td><%- sev(l.severity) %></td>
+          <td><code><%= l.action %></code></td>
+          <td><% if (l.bot_id) { %><code><%= l.bot_id %></code><% } %></td>
+          <td><%= l.detail ? String(l.detail).slice(0, 140) : '' %></td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table>
+</div>

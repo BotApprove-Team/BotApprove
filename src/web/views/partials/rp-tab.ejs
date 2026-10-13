@@ -14,26 +14,24 @@
   <% if (entitlement.licensed) { %>
     <div class="notice ok">
       <strong>Your licence covers RaidProtector. It is not in this server yet.</strong>
-      <p>The Protection Suite licence on this server includes RaidProtector while its beta runs,
-        at no extra cost and with no second checkout. It is a separate bot with its own invite,
+      <p>The Protection Suite licence on this server includes RaidProtector while its beta runs, at
+        no extra cost and with no second checkout. It is a separate bot with its own invite,
         because it needs permissions BotApprove deliberately does not ask for.</p>
       <p>It starts in <strong>report mode</strong>: it watches and tells you what it would have
         done, and touches nobody until you say otherwise.</p>
       <div class="actions">
-        <% if (rpInviteUrl) { %>
-          <a class="btn primary" href="<%= rpInviteUrl %>&guild_id=<%= guild.id %>">Add RaidProtector</a>
-        <% } %>
+        <% if (rpInviteUrl) { %><a class="btn btn-primary" href="<%= rpInviteUrl %>&guild_id=<%= guild.id %>">Add RaidProtector</a><% } %>
         <a class="btn" href="/raidprotector">What it does</a>
       </div>
     </div>
   <% } else { %>
     <div class="notice">
-      <strong>RaidProtector is in closed beta</strong>
-      <p>While the beta runs it is open to servers with a Protection Suite licence, which is the
-        same licence that unlocks premium here and covers both bots at once. Adding it without
-        one works, but it will sit quietly and say so rather than watching for raids.</p>
+      <strong>RaidProtector is in beta, for Protection Suite servers</strong>
+      <p>While the beta runs it is open to servers with a Protection Suite licence, the same licence
+        that unlocks premium here and covers both bots at once. Adding it without one works, but it
+        will sit quietly and say so rather than watching for raids.</p>
       <div class="actions">
-        <a class="btn primary" href="/g/<%= guild.id %>/licence">See what premium adds</a>
+        <a class="btn btn-primary" href="/g/<%= guild.id %>/licence">See what premium adds</a>
         <a class="btn" href="/raidprotector">What it does</a>
       </div>
     </div>
@@ -41,10 +39,13 @@
 <% } else { %>
 
   <% if (rp.settings.mode === 'report') { %>
-    <div class="notice">
-      <strong>Report mode. Nobody is being acted on.</strong>
-      <p>Raids are detected and reported to you, and nothing is done to any member. This is the
-        default, and it stays until you change it below.</p>
+    <div class="notice has-icon">
+      <svg aria-hidden="true"><use href="#i-info"></use></svg>
+      <div>
+        <p class="notice-title">Report mode. Nobody is being acted on.</p>
+        <p>Raids are detected and reported to you, and nothing is done to any member. This is the
+          default, and it stays until you change it below.</p>
+      </div>
     </div>
   <% } %>
   <% if (!rp.membersKnown) { %>
@@ -61,259 +62,218 @@
     </div>
   <% } %>
 
-  <section class="block">
-    <div class="block-head"><h2>What it is doing</h2></div>
-    <dl class="modes">
-      <div class="mode <%= rp.settings.mode === 'act' ? 'alert' : 'safe' %>">
-        <span class="dot"></span>
-        <div>
-          <dt>Mode: <%= rp.settings.mode %></dt>
-          <dd><%= rp.settings.mode === 'act'
-            ? `Detected raiders are timed out for ${rp.settings.timeout_minutes} minutes.`
-            : 'Detection runs and reports. Nothing is done to anyone.' %></dd>
-        </div>
-      </div>
-      <div class="mode <%= rp.settings.ban_mode === 'off' ? 'safe' : 'crit' %>">
-        <span class="dot"></span>
-        <div>
-          <dt>Bans: <%= rp.settings.ban_mode %></dt>
-          <dd><%= rp.settings.ban_mode === 'off'
-            ? 'Timeouts only. A timeout expires by itself, which is why it is the default.'
-            : `Queued for ${rp.settings.ban_delay_s}s behind ${rp.settings.ban_min_signals} signals, and cancellable in that window.` %></dd>
-        </div>
-      </div>
-      <div class="mode <%= rp.baseline.trusted ? 'safe' : 'alert' %>">
-        <span class="dot"></span>
-        <div>
-          <dt>Learned baseline</dt>
-          <dd><% if (rp.baseline.trusted) { %>
+  <section class="dash-section" aria-labelledby="doing-title">
+    <div class="section-head"><h2 id="doing-title">What it is doing</h2></div>
+    <ul class="ledger">
+      <li>
+        <%- rp.settings.mode === 'act' ? badge('warn', 'i-warn', 'Act') : badge('neutral', 'i-info', 'Report') %>
+        <p class="when">Mode</p>
+        <p class="what"><%= rp.settings.mode === 'act'
+          ? `Detected raiders are timed out for ${rp.settings.timeout_minutes} minutes.`
+          : 'Detection runs and reports. Nothing is done to anyone.' %></p>
+      </li>
+      <li>
+        <%- rp.settings.ban_mode === 'off' ? badge('ok', 'i-ok', 'Off') : badge('crit', 'i-crit', 'On') %>
+        <p class="when">Bans</p>
+        <p class="what"><%= rp.settings.ban_mode === 'off'
+          ? 'Timeouts only. A timeout expires by itself, which is why it is the default.'
+          : `Queued for ${rp.settings.ban_delay_s}s behind ${rp.settings.ban_min_signals} signals, and cancellable in that window.` %></p>
+      </li>
+      <li>
+        <%- rp.baseline.trusted ? badge('ok', 'i-ok', 'Trusted') : badge('warn', 'i-wait', 'Learning') %>
+        <p class="when">Learned baseline</p>
+        <p class="what">
+          <% if (rp.baseline.trusted) { %>
             <%= rp.baseline.joins_per_hour.toFixed(1) %> joins an hour and
-            <%= rp.baseline.messages_per_minute.toFixed(1) %> messages a minute is normal here,
-            over <%= rp.baseline.samples %> samples. Thresholds follow that, not a fixed number.
+            <%= rp.baseline.messages_per_minute.toFixed(1) %> messages a minute is normal here, over
+            <%= rp.baseline.samples %> samples. Thresholds follow that, not a fixed number.
           <% } else { %>
-            Not trusted yet, <%= rp.baseline.samples %> of 12 samples. Fixed floors are in use
-            until it has watched this server long enough.
-          <% } %></dd>
-        </div>
-      </div>
-      <div class="mode safe">
-        <span class="dot"></span>
-        <div>
-          <dt>Tenure shield</dt>
-          <dd>Anyone here longer than <%= rp.settings.tenure_days %> days is reported, never
-            auto-punished. Account age can be faked. Time in your server cannot.</dd>
-        </div>
-      </div>
-    </dl>
+            Not trusted yet, <%= rp.baseline.samples %> of 12 samples. Fixed floors are in use until
+            it has watched this server long enough.
+          <% } %>
+        </p>
+      </li>
+      <li>
+        <%- badge('ok', 'i-ok', 'On') %>
+        <p class="when">Tenure shield</p>
+        <p class="what">Anyone here longer than <%= rp.settings.tenure_days %> days is reported, never
+          auto-punished. Account age can be faked. Time in your server cannot.</p>
+      </li>
+    </ul>
   </section>
 
-  <section class="block">
-    <div class="block-head">
-      <h2>Incidents</h2>
+  <section class="dash-section" aria-labelledby="rpinc-title">
+    <div class="section-head">
+      <h2 id="rpinc-title">Incidents</h2>
       <% if (rp.incidents.length) { %><span class="count"><%= rp.incidents.length %></span><% } %>
     </div>
     <% if (!rp.incidents.length) { %>
-      <p class="lede">Nothing yet. This fills in the first time a raid is detected.</p>
+      <p class="empty">Nothing yet. This fills in the first time a raid is detected.</p>
     <% } else { %>
-      <table class="rows">
-        <thead>
-          <tr><th>#</th><th>Started</th><th>Triggers</th><th>Acted on</th><th>State</th><th></th></tr>
-        </thead>
-        <tbody>
-          <% rp.incidents.forEach((i) => { %>
-            <tr>
-              <td><strong>#<%= i.id %></strong></td>
-              <td class="dim"><%= ts(i.startedAt) %></td>
-              <td><%= (i.triggers || []).join(', ') || 'none recorded' %></td>
-              <td>
-                <%= i.applied %> of <%= i.total %><% if (i.reversed) { %><span class="dim">, <%= i.reversed %> put back</span><% } %>
-              </td>
-              <td>
-                <% if (i.reversedAt) { %><span class="pill ok">undone</span>
-                <% } else if (i.pendingBans) { %><span class="pill crit"><%= i.pendingBans %> ban(s) queued</span>
-                <% } else { %><span class="pill"><%= i.status %></span><% } %>
-              </td>
-              <td class="right">
-                <% if (canConfigure && i.pendingBans) { %>
-                  <form method="post" action="/g/<%= guild.id %>/raidprotector/cancel-bans" class="inline">
-                    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-                    <input type="hidden" name="incident_id" value="<%= i.id %>">
-                    <button class="sm" type="submit">Cancel bans</button>
-                  </form>
-                <% } %>
-                <% if (canConfigure && !i.reversedAt && i.applied > i.reversed) { %>
-                  <form method="post" action="/g/<%= guild.id %>/raidprotector/undo" class="inline">
-                    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-                    <input type="hidden" name="incident_id" value="<%= i.id %>">
-                    <button class="sm" type="submit">Undo</button>
-                  </form>
-                <% } %>
-              </td>
-            </tr>
-          <% }) %>
-        </tbody>
-      </table>
+      <div class="table-scroll">
+        <table>
+          <thead><tr><th scope="col">#</th><th scope="col">Started</th><th scope="col">Triggers</th><th scope="col">Acted on</th><th scope="col">State</th><th scope="col"><span class="sr-only">Actions</span></th></tr></thead>
+          <tbody>
+            <% rp.incidents.forEach((i) => { %>
+              <tr>
+                <td><strong>#<%= i.id %></strong></td>
+                <td class="mono nowrap"><%= ts(i.startedAt) %></td>
+                <td><%= (i.triggers || []).join(', ') || 'none recorded' %></td>
+                <td><%= i.applied %> of <%= i.total %><% if (i.reversed) { %><span class="sub">, <%= i.reversed %> put back</span><% } %></td>
+                <td>
+                  <% if (i.reversedAt) { %><%- badge('ok', 'i-ok', 'undone') %>
+                  <% } else if (i.pendingBans) { %><%- badge('crit', 'i-crit', `${i.pendingBans} ban${i.pendingBans === 1 ? '' : 's'} queued`) %>
+                  <% } else { %><%- badge('neutral', 'i-info', i.status) %><% } %>
+                </td>
+                <td class="right">
+                  <% if (canConfigure && i.pendingBans) { %>
+                    <form method="post" action="<%= g %>/raidprotector/cancel-bans" class="inline">
+                      <%- csrf %><input type="hidden" name="incident_id" value="<%= i.id %>">
+                      <button class="btn sm danger" type="submit">Cancel bans</button>
+                    </form>
+                  <% } %>
+                  <% if (canConfigure && !i.reversedAt && i.applied > i.reversed) { %>
+                    <form method="post" action="<%= g %>/raidprotector/undo" class="inline">
+                      <%- csrf %><input type="hidden" name="incident_id" value="<%= i.id %>">
+                      <button class="btn sm" type="submit">Undo</button>
+                    </form>
+                  <% } %>
+                </td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
       <p class="hint">Undo puts every member in an incident back the way they were, from the state
         recorded before each action ran. A kick cannot be undone, and is named if there was one.</p>
     <% } %>
   </section>
 
-  <section class="block">
-    <div class="block-head"><h2>Settings</h2></div>
-    <form method="post" action="/g/<%= guild.id %>/raidprotector">
-      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+  <section class="dash-section" aria-labelledby="rpset-title">
+    <div class="section-head"><h2 id="rpset-title">Settings</h2></div>
+    <form class="form" method="post" action="<%= g %>/raidprotector">
+      <%- csrf %>
+      <fieldset>
+        <legend>Response</legend>
+        <div class="field">
+          <label for="rpmode">Mode</label>
+          <select id="rpmode" name="mode" <%= ro %>>
+            <option value="report" <%= rp.settings.mode === 'report' ? 'selected' : '' %>>Report, act on nobody (default)</option>
+            <option value="act" <%= rp.settings.mode === 'act' ? 'selected' : '' %>>Act, time out detected raiders</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="rpban">Bans</label>
+          <select id="rpban" name="ban_mode" <%= ro %>>
+            <option value="off" <%= rp.settings.ban_mode === 'off' ? 'selected' : '' %>>Off, timeouts only (default)</option>
+            <option value="auto" <%= rp.settings.ban_mode === 'auto' ? 'selected' : '' %>>Queue bans for the clearest cases</option>
+          </select>
+          <p class="hint">A ban needs more signals than a timeout, waits behind a delay, and can be
+            stopped from the incident list before it lands. A timeout stops a raid just as dead and
+            expires on its own, which is why off is the default.</p>
+        </div>
+        <div class="field">
+          <label for="rpai">Second opinion on bans</label>
+          <select id="rpai" name="ai_review" <%= ro %>>
+            <option value="off" <%= rp.settings.ai_review === 'off' ? 'selected' : '' %>>Off (default)</option>
+            <option value="shadow" <%= rp.settings.ai_review === 'shadow' ? 'selected' : '' %>>Ask, record the answer, change nothing</option>
+          </select>
+          <p class="hint">
+            <strong>This sends recent messages from the affected channel to a third party.</strong>
+            It runs only where a ban was queued, never on ordinary detection, and what comes back
+            decides nothing: the rules settle the response either way. It exists to build a record
+            of whether the model is any good at this before anyone considers giving it a say.
+            <a href="/raidprotector/privacy#second-opinion">What it sends</a>.
+            <% if (rp.aiUsage) { %>Used <strong><%= rp.aiUsage.calls %></strong> of <%= rp.settings.ai_monthly_cap %> this month.<% } %>
+          </p>
+        </div>
+        <div class="field narrow">
+          <label for="rpaicap">Second opinions a month, at most</label>
+          <input type="number" id="rpaicap" name="ai_monthly_cap" min="0" max="500" value="<%= rp.settings.ai_monthly_cap %>" <%= ro %>>
+        </div>
+        <div class="field">
+          <label for="rplog">Where incident reports go</label>
+          <select id="rplog" name="log_channel_id" <%= ro %>>
+            <option value="">First channel it can post in</option>
+            <% rp.channels.forEach((c) => { %>
+              <option value="<%= c.id %>" <%= rp.settings.log_channel_id === c.id ? 'selected' : '' %>>#<%= c.name %></option>
+            <% }) %>
+          </select>
+        </div>
+      </fieldset>
 
-      <div class="field">
-        <label for="rpmode">Mode</label>
-        <select id="rpmode" name="mode" <%= ro %>>
-          <option value="report" <%= rp.settings.mode === 'report' ? 'selected' : '' %>>
-            Report, act on nobody (default)
-          </option>
-          <option value="act" <%= rp.settings.mode === 'act' ? 'selected' : '' %>>
-            Act, time out detected raiders
-          </option>
-        </select>
-      </div>
+      <fieldset>
+        <legend>Ping spam from a single account</legend>
+        <div class="field">
+          <label for="rpping">Ping guard</label>
+          <select id="rpping" name="ping_guard" <%= ro %>>
+            <option value="off" <%= rp.settings.ping_guard === 'off' ? 'selected' : '' %>>Off (default)</option>
+            <option value="new_members" <%= rp.settings.ping_guard === 'new_members' ? 'selected' : '' %>>On, but not for established members</option>
+            <option value="everyone" <%= rp.settings.ping_guard === 'everyone' ? 'selected' : '' %>>On for everyone except the owner</option>
+          </select>
+          <p class="hint">The only rule here that acts on one signal. Everything else needs two,
+            because one piece of evidence that a raid is happening is not enough to act on a
+            person. Mass pinging is not evidence of an offence, it is the offence, which is why it
+            stands alone and why it is off until you turn it on.</p>
+        </div>
+        <div class="field-grid">
+          <div class="field">
+            <label for="rppingn">Mentions that count as a blast</label>
+            <input type="number" id="rppingn" name="ping_mentions" min="3" max="50" value="<%= rp.settings.ping_mentions %>" <%= ro %>>
+          </div>
+          <div class="field">
+            <label for="rppingl">Blasts before it acts</label>
+            <input type="number" id="rppingl" name="ping_limit" min="2" max="50" value="<%= rp.settings.ping_limit %>" <%= ro %>>
+          </div>
+          <div class="field">
+            <label for="rppingw">Within, seconds</label>
+            <input type="number" id="rppingw" name="ping_window_s" min="5" max="300" value="<%= rp.settings.ping_window_s %>" <%= ro %>>
+          </div>
+        </div>
+      </fieldset>
 
-      <div class="field">
-        <label for="rpban">Bans</label>
-        <select id="rpban" name="ban_mode" <%= ro %>>
-          <option value="off" <%= rp.settings.ban_mode === 'off' ? 'selected' : '' %>>
-            Off, timeouts only (default)
-          </option>
-          <option value="auto" <%= rp.settings.ban_mode === 'auto' ? 'selected' : '' %>>
-            Queue bans for the clearest cases
-          </option>
-        </select>
-        <p class="hint">A ban needs more signals than a timeout, waits behind a delay, and can be
-          stopped from the incident list before it lands. A timeout stops a raid just as dead and
-          expires on its own, which is why off is the default.</p>
-      </div>
-
-      <div class="field">
-        <label for="rpai">Second opinion on bans</label>
-        <select id="rpai" name="ai_review" <%= ro %>>
-          <option value="off" <%= rp.settings.ai_review === 'off' ? 'selected' : '' %>>
-            Off (default)
-          </option>
-          <option value="shadow" <%= rp.settings.ai_review === 'shadow' ? 'selected' : '' %>>
-            Ask, record the answer, change nothing
-          </option>
-        </select>
-        <p class="hint">
-          <strong>This sends recent messages from the affected channel to a third party.</strong>
-          It runs only where a ban was queued, never on ordinary detection, and what comes back
-          decides nothing: the response is settled by the rules either way. It exists to build a
-          record of whether the model is any good at this before anyone considers giving it a
-          say. <a href="/raidprotector/privacy#second-opinion">What it sends</a>.
-          <% if (rp.aiUsage) { %>
-            Used <strong><%= rp.aiUsage.calls %></strong> of
-            <%= rp.settings.ai_monthly_cap %> this month.
-          <% } %>
-        </p>
-      </div>
-
-      <div class="field">
-        <label for="rpaicap">Second opinions a month, at most</label>
-        <input type="number" id="rpaicap" name="ai_monthly_cap" min="0" max="500"
-               value="<%= rp.settings.ai_monthly_cap %>" <%= ro %>>
-      </div>
-
-      <div class="field">
-        <label for="rpping">Ping spam from a single account</label>
-        <select id="rpping" name="ping_guard" <%= ro %>>
-          <option value="off" <%= rp.settings.ping_guard === 'off' ? 'selected' : '' %>>
-            Off (default)
-          </option>
-          <option value="new_members" <%= rp.settings.ping_guard === 'new_members' ? 'selected' : '' %>>
-            On, but not for established members
-          </option>
-          <option value="everyone" <%= rp.settings.ping_guard === 'everyone' ? 'selected' : '' %>>
-            On for everyone except the owner
-          </option>
-        </select>
-        <p class="hint">The only rule here that acts on one signal. Everything else needs two,
-          because one piece of evidence that a raid is happening is not enough to act on a
-          person. Mass pinging is not evidence of an offence, it is the offence, which is why
-          it stands alone and why it is off until you turn it on.</p>
-      </div>
-
-      <div class="cols two">
-        <div class="field">
-          <label for="rppingn">Mentions that count as a blast</label>
-          <input type="number" id="rppingn" name="ping_mentions" min="3" max="50"
-                 value="<%= rp.settings.ping_mentions %>" <%= ro %>>
+      <fieldset>
+        <legend>Thresholds</legend>
+        <div class="field-grid">
+          <div class="field">
+            <label for="rptimeout">Timeout length, minutes</label>
+            <input type="number" id="rptimeout" name="timeout_minutes" min="1" max="10080" value="<%= rp.settings.timeout_minutes %>" <%= ro %>>
+          </div>
+          <div class="field">
+            <label for="rptenure">Tenure shield, days</label>
+            <input type="number" id="rptenure" name="tenure_days" min="1" max="365" value="<%= rp.settings.tenure_days %>" <%= ro %>>
+          </div>
+          <div class="field">
+            <label for="rpburst">Join burst floor</label>
+            <input type="number" id="rpburst" name="join_burst" min="3" max="200" value="<%= rp.settings.join_burst %>" <%= ro %>>
+          </div>
+          <div class="field">
+            <label for="rpwindow">Join window, seconds</label>
+            <input type="number" id="rpwindow" name="join_window_s" min="5" max="600" value="<%= rp.settings.join_window_s %>" <%= ro %>>
+          </div>
+          <div class="field">
+            <label for="rpdupmin">Accounts repeating the same text</label>
+            <input type="number" id="rpdupmin" name="duplicate_min" min="2" max="100" value="<%= rp.settings.duplicate_min %>" <%= ro %>>
+          </div>
+          <div class="field">
+            <label for="rpdupwin">Within, seconds</label>
+            <input type="number" id="rpdupwin" name="duplicate_window_s" min="5" max="600" value="<%= rp.settings.duplicate_window_s %>" <%= ro %>>
+          </div>
+          <div class="field">
+            <label for="rpbandelay">Ban delay, seconds</label>
+            <input type="number" id="rpbandelay" name="ban_delay_s" min="0" max="3600" value="<%= rp.settings.ban_delay_s %>" <%= ro %>>
+          </div>
+          <div class="field">
+            <label for="rpbansig">Signals needed for a ban</label>
+            <input type="number" id="rpbansig" name="ban_min_signals" min="2" max="6" value="<%= rp.settings.ban_min_signals %>" <%= ro %>>
+          </div>
         </div>
-        <div class="field">
-          <label for="rppingl">Blasts before it acts</label>
-          <input type="number" id="rppingl" name="ping_limit" min="2" max="50"
-                 value="<%= rp.settings.ping_limit %>" <%= ro %>>
-        </div>
-        <div class="field">
-          <label for="rppingw">Within, seconds</label>
-          <input type="number" id="rppingw" name="ping_window_s" min="5" max="300"
-                 value="<%= rp.settings.ping_window_s %>" <%= ro %>>
-        </div>
-      </div>
-
-      <div class="field">
-        <label for="rplog">Where incident reports go</label>
-        <select id="rplog" name="log_channel_id" <%= ro %>>
-          <option value="">first channel it can post in</option>
-          <% rp.channels.forEach((c) => { %>
-            <option value="<%= c.id %>" <%= rp.settings.log_channel_id === c.id ? 'selected' : '' %>>#<%= c.name %></option>
-          <% }) %>
-        </select>
-      </div>
-
-      <div class="cols two">
-        <div class="field">
-          <label for="rptimeout">Timeout length, minutes</label>
-          <input type="number" id="rptimeout" name="timeout_minutes" min="1" max="10080"
-                 value="<%= rp.settings.timeout_minutes %>" <%= ro %>>
-        </div>
-        <div class="field">
-          <label for="rptenure">Tenure shield, days</label>
-          <input type="number" id="rptenure" name="tenure_days" min="1" max="365"
-                 value="<%= rp.settings.tenure_days %>" <%= ro %>>
-        </div>
-        <div class="field">
-          <label for="rpburst">Join burst floor</label>
-          <input type="number" id="rpburst" name="join_burst" min="3" max="200"
-                 value="<%= rp.settings.join_burst %>" <%= ro %>>
-        </div>
-        <div class="field">
-          <label for="rpwindow">Join window, seconds</label>
-          <input type="number" id="rpwindow" name="join_window_s" min="5" max="600"
-                 value="<%= rp.settings.join_window_s %>" <%= ro %>>
-        </div>
-        <div class="field">
-          <label for="rpdupmin">Accounts repeating the same text</label>
-          <input type="number" id="rpdupmin" name="duplicate_min" min="2" max="100"
-                 value="<%= rp.settings.duplicate_min %>" <%= ro %>>
-        </div>
-        <div class="field">
-          <label for="rpdupwin">Within, seconds</label>
-          <input type="number" id="rpdupwin" name="duplicate_window_s" min="5" max="600"
-                 value="<%= rp.settings.duplicate_window_s %>" <%= ro %>>
-        </div>
-        <div class="field">
-          <label for="rpbandelay">Ban delay, seconds</label>
-          <input type="number" id="rpbandelay" name="ban_delay_s" min="0" max="3600"
-                 value="<%= rp.settings.ban_delay_s %>" <%= ro %>>
-        </div>
-        <div class="field">
-          <label for="rpbansig">Signals needed for a ban</label>
-          <input type="number" id="rpbansig" name="ban_min_signals" min="2" max="6"
-                 value="<%= rp.settings.ban_min_signals %>" <%= ro %>>
-        </div>
-      </div>
-
-      <p class="hint">The join floor is a minimum, not the threshold. Once the baseline is trusted
-        the real threshold follows what is normal in this server, whichever is higher.</p>
+        <p class="hint">The join floor is a minimum, not the threshold. Once the baseline is trusted
+          the real threshold follows what is normal in this server, whichever is higher.</p>
+      </fieldset>
 
       <% if (canConfigure) { %>
-        <div class="actions"><button class="btn primary" type="submit">Save</button></div>
+        <div class="form-actions"><button class="btn btn-primary" type="submit">Save</button></div>
       <% } %>
     </form>
   </section>

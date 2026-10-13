@@ -1,147 +1,200 @@
 <%- include('partials/head') %>
 
-<div class="hero">
-  <h1>Stops raids with something you can take back.</h1>
-  <p>
-    A raid bot wrongly banned the person who built this, because it could not tell a crowd
-    arriving from a crowd attacking. Everything here is built to avoid making that mistake
-    again.
-  </p>
-  <p class="stat beta">
-    <span class="live" aria-hidden="true"></span>
-    Closed beta, open to <strong>Protection Suite</strong> servers
-  </p>
-  <div class="cta">
-    <a class="btn primary" href="/pricing">Join the beta</a>
-    <a class="btn" href="/raidprotector/privacy">What it stores</a>
+<section class="hero" aria-labelledby="hero-title">
+  <div class="hero-copy">
+    <h1 id="hero-title">Stops raids with something you can take back.</h1>
+    <p class="hero-lede">
+      When two separate signals agree, raiders are timed out, and one button reverses the whole
+      incident if it got anyone wrong.
+    </p>
+    <p class="hero-count">In beta, for <strong>Protection Suite</strong> servers.</p>
+    <div class="cta">
+      <a class="btn btn-primary" href="/pricing">See Protection Suite pricing</a>
+      <a class="btn" href="/raidprotector/privacy">What it stores</a>
+    </div>
+    <p class="hint">
+      Report mode is the default. A new install watches and acts on nobody until you say otherwise.
+    </p>
   </div>
-  <p class="hint">
-    Report mode is the default. A new install watches and acts on nobody until you say otherwise.
-  </p>
-</div>
 
-<section class="block">
-  <div class="block-head"><h2>What happens during a raid</h2></div>
-  <ol class="steps">
-    <li>
-      <div>
-        <strong>Signals fire, measured against your server</strong>
-        <span>A join burst above what is normal here. Ten joins a minute is an emergency in one
-          server and a Tuesday in another, so the threshold is learned rather than set.</span>
+  <figure class="exhibit">
+    <article class="approval incident" data-incident data-mode="report" aria-label="Example incident report">
+      <div class="ap-top">
+        <span class="badge warn" data-status>
+          <svg aria-hidden="true"><use href="#i-warn"></use></svg>
+          <span>Possible raid · report only</span>
+        </span>
+        <span class="example-tag">Example</span>
       </div>
-    </li>
-    <li>
-      <div>
-        <strong>Two independent signals before anyone is touched</strong>
-        <span>Joining during a burst is one. Posting the same text as fifteen others is another.
-          One alone is not enough, because being present is not taking part.</span>
-      </div>
-    </li>
-    <li>
-      <div>
-        <strong>Timeouts, not bans</strong>
-        <span>A timeout stops a raid just as dead and expires by itself. Bans are off by default,
-          and when they are on they wait behind a delay anyone can cancel.</span>
-      </div>
-    </li>
-    <li>
-      <div>
-        <strong>One button undoes all of it</strong>
-        <span>Every action is recorded with what was there beforehand, so the whole incident
-          reverses in one press. If part of it cannot be undone, it names that part.</span>
-      </div>
-    </li>
-  </ol>
+      <p class="ap-title" data-title>Possible raid, incident #0</p>
+      <dl class="ap-fields">
+        <div class="wide">
+          <dt>What fired</dt>
+          <dd>
+            <ul class="inc-list">
+              <li><strong>18</strong> joined in 40s, over a threshold of 6 learned from this server</li>
+              <li><strong>14</strong> different accounts posted the same thing, allowing for small edits</li>
+            </ul>
+          </dd>
+        </div>
+        <div class="wide">
+          <dt>Who</dt>
+          <dd>
+            <ul class="inc-list">
+              <li><strong>21</strong> accounts looked at</li>
+              <li><strong>14</strong> met the two-signal bar</li>
+              <li><strong>4</strong> tripped only one signal and were left alone</li>
+              <li><strong>3</strong> exempt (owner, established, or out of reach)</li>
+            </ul>
+          </dd>
+        </div>
+        <div class="wide" data-show="report">
+          <dt>Not done</dt>
+          <dd>
+            Report mode. Nothing was done to anyone. This is what would have happened.
+            <strong>14</strong> would have been timed out.
+          </dd>
+        </div>
+        <div class="wide" data-show="act">
+          <dt>Done</dt>
+          <dd>
+            <strong>14</strong> timed out. Timeouts expire on their own, and the button below lifts
+            every one of them at once.
+          </dd>
+        </div>
+      </dl>
+      <p class="ap-foot">Your server</p>
+      <div class="stamp stamp-face" hidden aria-hidden="true"></div>
+    </article>
+
+    <div class="ap-controls">
+      <p class="ap-outcome" role="status"></p>
+    </div>
+
+    <p class="act-note">
+      In act mode the same report says <strong>14 timed out</strong> and ends with an
+      <strong>Undo this incident</strong> button that lifts every one of those timeouts at once.
+    </p>
+
+    <figcaption>
+      An example report for a made-up raid. RaidProtector posts the real one in your log channel
+      when it detects a raid.
+    </figcaption>
+  </figure>
 </section>
 
-<section class="block">
-  <div class="block-head"><h2>How it fails</h2></div>
-  <p class="lede">
-    The failure it is built to avoid is banning a real member. Every path resolves toward doing
-    less.
-  </p>
-  <dl class="modes">
-    <div class="mode safe">
-      <span class="dot"></span>
-      <div>
-        <dt>It is not sure</dt>
-        <dd>It does nothing irreversible. Unclear is a real answer, and the timeout that already
-          stopped the raid expires on its own.</dd>
-      </div>
+<section class="band" aria-labelledby="read-title">
+  <div class="band-head">
+    <h2 id="read-title">Reading a report</h2>
+    <p class="lede">Each part of the report above answers one question.</p>
+  </div>
+  <dl class="annot">
+    <div>
+      <dt>What fired</dt>
+      <dd>
+        <strong>Signals are measured against your server</strong>
+        <span>Ten joins a minute is an emergency in one server and a Tuesday in another, so the
+        threshold is learned rather than set.</span>
+      </dd>
     </div>
-    <div class="mode safe">
-      <span class="dot"></span>
-      <div>
-        <dt>A long-standing member is caught up in it</dt>
-        <dd>Anyone who has been here for weeks is reported to you, never auto-punished. Raiders
-          can fake an account's age. They cannot fake a month in your server.</dd>
-      </div>
+    <div>
+      <dt>Who</dt>
+      <dd>
+        <strong>Two independent signals before anyone is touched</strong>
+        <span>A crowd arriving is not a crowd attacking. Joining during a burst is one signal.
+        Posting the same text as fifteen others is another. One alone is not enough, because being
+        present is not taking part.</span>
+      </dd>
     </div>
-    <div class="mode safe">
-      <span class="dot"></span>
-      <div>
-        <dt>Your server gets popular overnight</dt>
-        <dd>Two hundred people arriving from a video look identical to a raid in the numbers. It
-          reads what they wrote, so a rush of "hi" does not come out the same as two hundred
-          identical slurs.</dd>
-      </div>
+    <div>
+      <dt>Done</dt>
+      <dd>
+        <strong>Timeouts, not bans</strong>
+        <span>A timeout stops a raid just as dead and expires by itself. Bans are off by default,
+        and when they are on they wait behind a delay anyone can cancel.</span>
+      </dd>
     </div>
-    <div class="mode alert">
-      <span class="dot"></span>
-      <div>
-        <dt>It fires repeatedly in a short time</dt>
-        <dd>A circuit breaker stands it down. Several separate incidents in ten minutes means the
-          configuration is wrong, not that the server is under sustained attack.</dd>
-      </div>
-    </div>
-    <div class="mode alert">
-      <span class="dot"></span>
-      <div>
-        <dt>It has just been added</dt>
-        <dd>It will not act until it can see your member list, because until then a long-standing
-          member looks like a stranger.</dd>
-      </div>
-    </div>
-    <div class="mode crit">
-      <span class="dot"></span>
-      <div>
-        <dt>Its own code has been changed</dt>
-        <dd>It checks itself against a record of what was deployed. If anything differs it stops
-          acting on people everywhere at once and keeps reporting, rather than enforcing rules
-          nobody wrote.</dd>
-      </div>
+    <div>
+      <dt>Undo this incident</dt>
+      <dd>
+        <strong>One button undoes all of it</strong>
+        <span>RaidProtector records what was there before every action, so the whole incident
+        reverses in one press. If part of it cannot be undone, the report names that part.</span>
+      </dd>
     </div>
   </dl>
 </section>
 
-<section class="block">
-  <div class="block-head"><h2>What it cannot do</h2></div>
-  <dl class="modes">
-    <div class="mode alert">
-      <span class="dot"></span>
-      <div>
-        <dt>Work without reading messages</dt>
-        <dd>Telling a video shout-out apart from a raid cannot be done by counting, so unlike
-          BotApprove this one does hold the Message Content intent. Text is reduced to a
-          fingerprint in memory and never written to disk. The
-          <a href="/raidprotector/privacy">privacy policy</a> says exactly what is kept.</dd>
-      </div>
+<section class="band" aria-labelledby="fails-title">
+  <div class="band-head">
+    <h2 id="fails-title">How it fails</h2>
+    <p class="lede">
+      The failure it is built to avoid is banning a real member. Every path resolves toward doing
+      less.
+    </p>
+  </div>
+  <ul class="ledger">
+    <li>
+      <span class="badge ok"><svg aria-hidden="true"><use href="#i-ok"></use></svg>Safe on its own</span>
+      <p class="when">It is not sure</p>
+      <p class="what">It does nothing irreversible. Unclear is a real answer, and the timeout that already stopped the raid expires on its own.</p>
+    </li>
+    <li>
+      <span class="badge ok"><svg aria-hidden="true"><use href="#i-ok"></use></svg>Safe on its own</span>
+      <p class="when">A long-standing member is caught up in it</p>
+      <p class="what">RaidProtector reports anyone who has been here for weeks to you and never punishes them automatically. Raiders can fake an account's age. They cannot fake a month in your server.</p>
+    </li>
+    <li>
+      <span class="badge ok"><svg aria-hidden="true"><use href="#i-ok"></use></svg>Safe on its own</span>
+      <p class="when">Your server gets popular overnight</p>
+      <p class="what">Two hundred people arriving from a video look identical to a raid in the numbers. It reads what they wrote, so a rush of "hi" does not come out the same as two hundred identical slurs.</p>
+    </li>
+    <li>
+      <span class="badge warn"><svg aria-hidden="true"><use href="#i-warn"></use></svg>Stands down</span>
+      <p class="when">It fires repeatedly in a short time</p>
+      <p class="what">A circuit breaker stands it down. Several separate incidents in ten minutes means the configuration is wrong, not that the server is under sustained attack.</p>
+    </li>
+    <li>
+      <span class="badge warn"><svg aria-hidden="true"><use href="#i-warn"></use></svg>Stands down</span>
+      <p class="when">It has just been added</p>
+      <p class="what">It will not act until it can see your member list, because until then a long-standing member looks like a stranger.</p>
+    </li>
+    <li>
+      <span class="badge crit"><svg aria-hidden="true"><use href="#i-crit"></use></svg>Critical</span>
+      <p class="when">Its own code has been changed</p>
+      <p class="what">It checks itself against a record of what was deployed. If anything differs it stops acting on people everywhere at once and keeps reporting, rather than enforcing rules nobody wrote.</p>
+    </li>
+  </ul>
+</section>
+
+<section class="band split" aria-labelledby="limits-title">
+  <div class="split-lead">
+    <h2 id="limits-title">What it cannot do</h2>
+    <p class="lede">Stated plainly, so you can decide before adding it.</p>
+  </div>
+  <dl class="points">
+    <div>
+      <dt>Work without reading messages</dt>
+      <dd>
+        Telling a video shout-out apart from a raid cannot be done by counting, so unlike
+        BotApprove this one does hold the Message Content intent. Text is reduced to a fingerprint
+        in memory and never written to disk. The <a href="/raidprotector/privacy">privacy policy</a>
+        says exactly what is kept.
+      </dd>
     </div>
-    <div class="mode alert">
-      <span class="dot"></span>
-      <div>
-        <dt>Catch a patient attacker</dt>
-        <dd>Detection is thresholds and fingerprints. Someone who stays under yours and varies
-          their wording will not trip it.</dd>
-      </div>
+    <div>
+      <dt>Catch a patient attacker</dt>
+      <dd>
+        Detection is thresholds and fingerprints. Someone who stays under yours and varies their
+        wording will not trip it.
+      </dd>
     </div>
-    <div class="mode crit">
-      <span class="dot"></span>
-      <div>
-        <dt>Act on the server owner</dt>
-        <dd>Never, under any evidence. A bot that can depose an owner is a worse weapon than the
-          one it defends against.</dd>
-      </div>
+    <div>
+      <dt>Act on the server owner</dt>
+      <dd>
+        Never, under any evidence. A bot that can depose an owner is a worse weapon than the one
+        it defends against.
+      </dd>
     </div>
   </dl>
 </section>

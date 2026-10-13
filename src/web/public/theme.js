@@ -1,109 +1,14 @@
+// Loaded in <head> before the stylesheet, so a saved theme is in place before
+// the first paint and the page never flashes the other one. Everything that
+// can wait for the document lives in site.js.
 (function () {
   'use strict';
-
-  var KEY = 'botapprove.theme';
-  var root = document.documentElement;
-
-  function stored() {
-    try {
-      var v = localStorage.getItem(KEY);
-      return v === 'light' || v === 'dark' ? v : null;
-    } catch (e) {
-      return null;
+  try {
+    var saved = localStorage.getItem('botapprove.theme');
+    if (saved === 'light' || saved === 'dark') {
+      document.documentElement.setAttribute('data-theme', saved);
     }
+  } catch (e) {
+    // Storage can be blocked. The page then follows the system setting.
   }
-
-  function systemTheme() {
-    return window.matchMedia
-      && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-  }
-
-  function current() {
-    return root.getAttribute('data-theme') || systemTheme();
-  }
-
-  var saved = stored();
-  if (saved) root.setAttribute('data-theme', saved);
-
-  // Repaint the whole page on one frame. Without suppressing transitions the
-  // elements named in the stylesheet's transition list fade to the new palette
-  // while everything else has already snapped to it, and the mismatch is
-  // visible for the length of the transition.
-  function apply(next) {
-    root.classList.add('theme-switching');
-    root.setAttribute('data-theme', next);
-    void root.offsetHeight;
-    root.classList.remove('theme-switching');
-  }
-
-  function paintButton(btn) {
-    var next = current() === 'dark' ? 'light' : 'dark';
-    btn.setAttribute('aria-label', 'Switch to ' + next + ' theme');
-    btn.setAttribute('title', 'Switch to ' + next + ' theme');
-  }
-
-  // The "we changed the documents" bar. It lives here rather than in a <script>
-  // tag on the page because the CSP is script-src 'self' with no unsafe-inline,
-  // so an inline block is silently blocked and the bar never appears.
-  function legalNotice() {
-    var el = document.getElementById('legal-notice');
-    if (!el) return;
-    var KEY = 'botapprove.legal-seen';
-    var version = el.getAttribute('data-version');
-    try {
-      if (localStorage.getItem(KEY) === version) return;
-    } catch (e) { /* private mode, show it */ }
-    el.hidden = false;
-    var close = document.getElementById('legal-notice-close');
-    if (!close) return;
-    close.addEventListener('click', function () {
-      el.hidden = true;
-      try { localStorage.setItem(KEY, version); } catch (e) { /* nothing to do */ }
-    });
-  }
-
-  document.addEventListener('DOMContentLoaded', function () {
-    legalNotice();
-    var btn = document.getElementById('theme-toggle');
-    if (!btn) return;
-
-    paintButton(btn);
-
-    btn.addEventListener('click', function () {
-      var next = current() === 'dark' ? 'light' : 'dark';
-      apply(next);
-      try {
-        localStorage.setItem(KEY, next);
-      } catch (e) {
-      }
-      paintButton(btn);
-    });
-
-    var warners = document.querySelectorAll('select[data-warn-on]');
-    for (var i = 0; i < warners.length; i += 1) {
-      (function (sel) {
-        var risky = sel.getAttribute('data-warn-on');
-        var last = sel.value;
-        sel.addEventListener('change', function () {
-          if (sel.value !== risky) { last = sel.value; return; }
-          var ok = window.confirm(
-            'Leaving this off means BotApprove will not tell you when someone posts with an app '
-            + 'that never joined your server. That is the route people use to spam without '
-            + 'inviting a bot. Recommended: keep it on at least Tell me. '
-            + 'Turn it off anyway?',
-          );
-          if (!ok) sel.value = last; else last = sel.value;
-        });
-      }(warners[i]));
-    }
-
-    if (window.matchMedia) {
-      var mq = window.matchMedia('(prefers-color-scheme: dark)');
-      var onChange = function () {
-        if (!stored()) paintButton(btn);
-      };
-      if (mq.addEventListener) mq.addEventListener('change', onChange);
-      else if (mq.addListener) mq.addListener(onChange);
-    }
-  });
 }());

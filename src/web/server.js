@@ -36,7 +36,7 @@ function assetVersion() {
   try {
     const dir = path.join(config.root, 'src/web/public');
     const hash = crypto.createHash('sha256');
-    for (const name of ['style.css', 'theme.js', 'icon.svg']) {
+    for (const name of ['style.css', 'theme.js', 'site.js', 'icon.svg']) {
       hash.update(fs.readFileSync(path.join(dir, name)));
     }
     return hash.digest('hex').slice(0, 10);
@@ -66,8 +66,8 @@ export function createApp() {
       'Content-Security-Policy',
       "default-src 'self'; " +
       "img-src 'self' https://cdn.discordapp.com https://avatars.githubusercontent.com data:; " +
-      "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
-      "font-src https://fonts.gstatic.com; " +
+      "style-src 'self' 'unsafe-inline'; " +
+      "font-src 'self'; " +
       "script-src 'self'; form-action 'self'; " +
       "frame-ancestors 'none'; base-uri 'none'",
     );

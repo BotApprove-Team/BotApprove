@@ -1,231 +1,228 @@
 <%- include('partials/head') %>
+<%
+  const yes = '<svg aria-hidden="true"><use href="#i-ok"></use></svg><span class="sr-only">Included</span>';
+  const no = '<span class="no">No</span>';
+%>
 
-<div class="page-head">
-  <h1>Pricing</h1>
-  <div class="meta">
-    Screening is free forever. Protection Suite is <%= price.symbol %><%= price.amount %> a month
-    per server<% if (plans.includes('yearly')) { %>, <%= price.symbol %><%= prices.yearly %> a year<% } %><%
-      if (plans.includes('lifetime')) { %>, or <%= price.symbol %><%= prices.lifetime %> once<% } %><%
-      if (trial.offered) { %>, with the first <%= trial.days %> days free<% } %>.
-    One licence covers both BotApprove and RaidProtector in that server.
-  </div>
-</div>
-
-<% if (!plans.length) { %>
-  <div class="notice warn">
-    <strong>Card payment is not open yet</strong>
-    <p>
-      Checkout is switched off while the payment account is being set up, so nothing on this page
-      can be bought right now. <strong>Everything free stays free and is working normally</strong>:
-      the approval gate, keyword blocking, the audit trail and tamper detection do not depend on
-      any of this.
+<div class="doc">
+  <header class="page-head">
+    <h1>Pricing</h1>
+    <p class="lede">
+      Screening is free forever. Protection Suite is <%= price.symbol %><%= price.amount %> a month
+      per server<% if (plans.includes('yearly')) { %>, <%= price.symbol %><%= prices.yearly %> a year<% } %><%
+        if (plans.includes('lifetime')) { %>, or <%= price.symbol %><%= prices.lifetime %> once<% } %><%
+        if (trial.offered) { %>, with the first <%= trial.days %> days free on monthly and yearly<% } %>.
+      One licence covers both BotApprove and RaidProtector in that server.
     </p>
-    <p>
-      When card payment opens, every server owner running BotApprove is told directly, once. You
-      do not need to check back or sign up for anything. Holding a licence key already? It works
-      now and will keep working.
-    </p>
-  </div>
-<% } %>
+  </header>
 
-<section class="block">
-  <div class="plans">
-    <div class="plan">
-      <div class="plan-head">
-        <h3>Free</h3>
-        <div class="price"><span class="amount"><%= price.symbol %>0</span></div>
-      </div>
-      <p class="plan-note">
-        No card, no trial, no expiry. This is the whole approval gate, and it is
-        <a href="<%= repoUrl %>" rel="noopener noreferrer" target="_blank">open source</a>.
+  <% if (!plans.length) { %>
+    <div class="notice warn">
+      <strong>Card payment is not open yet</strong>
+      <p>
+        Checkout is switched off while the payment account is being set up, so nothing on this page
+        can be bought right now. Everything free stays free and is working normally: the approval
+        gate, keyword blocking, the audit trail and tamper detection do not depend on any of this.
       </p>
-      <ul class="plan-list">
-        <% freeFeatures.forEach((f) => { %><li><%= f.name %></li><% }) %>
-      </ul>
+      <p>
+        When card payment opens, every server owner running BotApprove is told directly, once.
+        Holding a licence key already? It works now and will keep working.
+      </p>
     </div>
+  <% } %>
 
-    <div class="plan featured">
-      <div class="plan-head">
-        <h3>Protection Suite</h3>
-        <% if (!plans.includes('yearly') && !plans.includes('lifetime')) { %>
-          <div class="price">
-            <span class="amount"><%= price.symbol %><%= price.amount %></span>
-            <span class="per">per month, per server</span>
-          </div>
-        <% } %>
-      </div>
+  <div class="plans">
+    <section class="plan" aria-labelledby="plan-free">
+      <p class="form-label">Plan</p>
+      <h2 id="plan-free">Free</h2>
+      <p><span class="plan-free-price"><%= price.symbol %>0</span></p>
+      <p>
+        No card, no trial, no expiry. This is the whole approval gate<% if (repoUrl) { %>, and it is
+        <a href="<%= repoUrl %>" rel="noopener noreferrer" target="_blank">open source</a><% } %>.
+      </p>
+    </section>
 
-      <% if (plans.includes('yearly') || plans.includes('lifetime') || lifetime.soldOut) { %>
-        <ul class="price-options">
-          <li>
+    <section class="plan suite" aria-labelledby="plan-suite">
+      <p class="form-label">Licence, one server</p>
+      <h2 id="plan-suite">Protection Suite</h2>
+      <ul class="covers" aria-label="Covers">
+        <li><span class="prod-mark ba"><svg aria-hidden="true"><use href="#m-ba"></use></svg></span>BotApprove</li>
+        <li><span class="prod-mark rp"><svg aria-hidden="true"><use href="#m-rp"></use></svg></span>RaidProtector <span class="badge">Beta</span></li>
+      </ul>
+      <ul class="options">
+        <li>
+          <div>
             <span class="amount"><%= price.symbol %><%= price.amount %></span>
             <span class="per">a month, per server</span>
-          </li>
-          <% if (plans.includes('yearly')) { %>
-            <li>
+          </div>
+          <% if (plans.includes('monthly')) { %>
+            <a class="btn btn-primary" href="/subscribe?plan=monthly">Get monthly, <%= price.symbol %><%= price.amount %></a>
+          <% } %>
+        </li>
+        <% if (plans.includes('yearly')) { %>
+          <li>
+            <div>
               <span class="amount"><%= price.symbol %><%= prices.yearly %></span>
               <span class="per">a year, two months free</span>
-            </li>
-          <% } %>
-          <% if (plans.includes('lifetime')) { %>
-            <li>
+            </div>
+            <a class="btn" href="/subscribe?plan=yearly">Get yearly, <%= price.symbol %><%= prices.yearly %></a>
+          </li>
+        <% } %>
+        <% if (plans.includes('lifetime')) { %>
+          <li>
+            <div>
               <span class="amount"><%= price.symbol %><%= prices.lifetime %></span>
               <span class="per">
                 once, for as long as BotApprove operates<%
-                  if (lifetime.capped) { %>, <%= lifetime.remaining %> of
-                  <%= lifetime.cap %> left<% } %>
+                  if (lifetime.capped) { %>. <%= lifetime.remaining %> of <%= lifetime.cap %> left<% } %>.
               </span>
-            </li>
-          <% } else if (lifetime.soldOut) { %>
-            <li>
+            </div>
+            <a class="btn" href="/subscribe?plan=lifetime">Get lifetime, <%= price.symbol %><%= prices.lifetime %></a>
+          </li>
+        <% } else if (lifetime.soldOut) { %>
+          <li>
+            <div>
               <span class="amount faint"><%= price.symbol %><%= prices.lifetime %></span>
               <span class="per">
                 once, <strong>sold out</strong>. Email
                 <a href="mailto:<%= contactEmail %>"><%= contactEmail %></a> if you need one.
               </span>
-            </li>
-          <% } %>
-        </ul>
-      <% } %>
-
-      <% if (trial.offered) { %>
-        <p class="plan-note">
-          <strong><%= trial.days %> days free</strong> on the monthly and yearly plans, then
-          billing starts. Cancel during the trial and you are not charged. One trial per server.
-        </p>
-      <% } %>
-      <p class="plan-note">Everything in Free, plus:</p>
-      <ul class="plan-list">
-        <% premiumFeatures.forEach((f) => { %><li><%= f.name %></li><% }) %>
-        <li>RaidProtector, while the beta runs</li>
+            </div>
+          </li>
+        <% } %>
       </ul>
-
-      <% if (plans.length) { %>
-        <div class="buy">
-          <% if (plans.includes('monthly')) { %>
-            <a class="btn primary" href="/subscribe?plan=monthly">
-              Get monthly, <%= price.symbol %><%= price.amount %>
-            </a>
-          <% } %>
-          <% if (plans.includes('yearly')) { %>
-            <a class="btn" href="/subscribe?plan=yearly">
-              Get yearly, <%= price.symbol %><%= prices.yearly %>
-            </a>
-          <% } %>
-          <% if (plans.includes('lifetime')) { %>
-            <a class="btn" href="/subscribe?plan=lifetime">
-              Get lifetime, <%= price.symbol %><%= prices.lifetime %>
-            </a>
-          <% } %>
-        </div>
-        <p class="hint">
-          You pick which server it applies to next. Premium is per server, so one purchase covers
-          one server.
+      <% if (trial.offered) { %>
+        <p>
+          <strong><%= trial.days %> days free</strong> on the monthly and yearly plans, then billing
+          starts. Cancel during the trial and you are not charged. One trial per server.
         </p>
       <% } %>
-    </div>
+      <% if (plans.length) { %><p>You pick which server it applies to next.</p><% } %>
+    </section>
   </div>
+
   <p class="hint">
     Priced per server, not per member, so a large community costs the same as a small one.
     Holding a licence key instead? Redeem it on your server's Licence tab and pay nothing.
   </p>
-</section>
 
-<section class="block">
-  <div class="block-head"><h2>What premium actually adds</h2></div>
-  <dl class="modes">
-    <% premiumFeatures.forEach((f) => { %>
-      <div class="mode safe">
-        <span class="dot"></span>
-        <div>
-          <dt><%= f.name %></dt>
-          <dd><%= f.blurb %></dd>
-        </div>
-      </div>
-    <% }) %>
-  </dl>
-</section>
-
-<%- include('partials/suite') %>
-
-<section class="block">
-  <div class="block-head"><h2>Questions worth answering upfront</h2></div>
-  <div class="cols two">
-    <div>
-      <h3 class="q">What happens if I stop paying?</h3>
-      <p class="a">
-        The premium rows switch off and you get a message naming exactly which ones. The approval
-        gate, your keyword blocklist, the audit trail and tamper detection keep running. BotApprove
-        does not leave your server and does not stop screening bots over money.
-      </p>
-
-      <h3 class="q">Do I lose my settings?</h3>
-      <p class="a">
-        No. Your whitelist, keywords, approver roles and configuration are kept. Paying again
-        restores everything with nothing to reconfigure.
-      </p>
-
-      <h3 class="q">Is there a refund?</h3>
-      <p class="a">
-        No. Payments are non-refundable, including partial months after a cancellation. Cancelling
-        stops future charges rather than refunding past ones. If you are a consumer somewhere with
-        a statutory right to cancel a digital purchase, that right still applies. See the
-        <a href="/terms">Terms</a>.
+  <section class="band" aria-labelledby="compare-title">
+    <div class="band-head">
+      <h2 id="compare-title">What each plan includes</h2>
+      <p class="lede">
+        Nothing that protects a server is ever behind the paywall. Premium is extras, and the
+        dashboard says which is which.
       </p>
     </div>
-    <div>
-      <h3 class="q">How do I cancel?</h3>
-      <p class="a">
-        From your server's dashboard, under Licence, choose Manage billing. If you cannot reach
-        the dashboard<% if (portalUrl) { %>, use the
-        <a href="<%= portalUrl %>" rel="noopener noreferrer" target="_blank">billing portal</a>
-        and enter the email you paid with<% } else { %>, contact the operator<% } %>.
-        Cancelling stops future charges and premium stays active until the period you already
-        paid for ends.
-      </p>
-
-      <h3 class="q">How do I activate it?</h3>
-      <p class="a">
-        Redeem a licence key with <code>/license redeem</code> in your server, or paste it into
-        the licence field on your server's dashboard page.
-      </p>
-
-      <h3 class="q">Is there a separate RaidProtector subscription?</h3>
-      <p class="a">
-        No, and there will not be. One purchase, one checkout, both bots. Two billing systems is
-        two ways for money to go wrong.
-      </p>
-
-      <h3 class="q">Does buying it twice cover two servers?</h3>
-      <p class="a">
-        Yes. A licence covers one server, and both bots in it.
-      </p>
-
-      <h3 class="q">Does the free tier expire?</h3>
-      <p class="a">
-        No. There is no trial countdown on the core gate and no feature that quietly stops working.
-        Free means free.
-      </p>
-
-      <h3 class="q">Why is the nuke bot database paid?</h3>
-      <p class="a">
-        Because it is the part that takes real maintenance: every submission is reviewed by hand
-        before a bot is listed. The invite-and-approve gate is sound protection on its own, so it
-        stays free.
-      </p>
+    <div class="table-scroll">
+      <table class="compare">
+        <thead>
+          <tr>
+            <th scope="col">Feature</th>
+            <th scope="col" class="col-mark">Free</th>
+            <th scope="col" class="col-mark">Suite</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr class="group"><th scope="colgroup" colspan="3">BotApprove</th></tr>
+          <% freeFeatures.forEach((f) => { %>
+            <tr>
+              <th scope="row"><%= f.name %><span class="blurb"><%= f.blurb %></span></th>
+              <td class="col-mark"><%- yes %></td>
+              <td class="col-mark"><%- yes %></td>
+            </tr>
+          <% }) %>
+          <% premiumFeatures.forEach((f) => { %>
+            <tr>
+              <th scope="row"><%= f.name %><span class="blurb"><%= f.blurb %></span></th>
+              <td class="col-mark"><%- no %></td>
+              <td class="col-mark"><%- yes %></td>
+            </tr>
+          <% }) %>
+          <tr class="group"><th scope="colgroup" colspan="3">RaidProtector</th></tr>
+          <tr>
+            <th scope="row">RaidProtector, while the beta runs<span class="blurb">Raid detection, a response you can undo, and a record of every incident.</span></th>
+            <td class="col-mark"><%- no %></td>
+            <td class="col-mark"><%- yes %></td>
+          </tr>
+        </tbody>
+      </table>
     </div>
-  </div>
-</section>
+  </section>
 
-<section class="block">
-  <div class="block-head"><h2>Ready</h2></div>
-  <p class="lede">
-    Add BotApprove first and use it free. Upgrade later if you want the threat list and automation.
-  </p>
-  <div class="cta">
-    <a class="btn primary" href="<%= inviteUrl %>">Add to Discord</a>
-    <a class="btn" href="/login">Sign in to the dashboard</a>
-  </div>
-</section>
+  <section class="band faq" aria-labelledby="faq-title">
+    <div class="band-head"><h2 id="faq-title">Questions worth answering upfront</h2></div>
+
+    <h3>What happens if I stop paying?</h3>
+    <p>
+      The premium rows switch off and you get a message naming exactly which ones. The approval
+      gate, your keyword blocklist, the audit trail and tamper detection keep running. BotApprove
+      does not leave your server and does not stop screening bots over money.
+    </p>
+
+    <h3>Do I lose my settings?</h3>
+    <p>
+      No. Your whitelist, keywords, approver roles and configuration are kept. Paying again
+      restores everything with nothing to reconfigure.
+    </p>
+
+    <h3>How do I cancel?</h3>
+    <p>
+      From your server's dashboard, under Licence, choose Manage billing. If you cannot reach the
+      dashboard<% if (portalUrl) { %>, use the
+      <a href="<%= portalUrl %>" rel="noopener noreferrer" target="_blank">billing portal</a>
+      and enter the email you paid with<% } else { %>, contact the operator<% } %>. Cancelling stops
+      future charges and premium stays active until the period you already paid for ends.
+    </p>
+
+    <h3>Is there a refund?</h3>
+    <p>
+      No. Payments are non-refundable, including partial months after a cancellation. Cancelling
+      stops future charges rather than refunding past ones. If you are a consumer somewhere with a
+      statutory right to cancel a digital purchase, that right still applies. See the
+      <a href="/terms">Terms</a>.
+    </p>
+
+    <h3>How do I activate it?</h3>
+    <p>
+      Redeem a licence key with <code>/license redeem</code> in your server, or paste it into the
+      licence field on your server's dashboard page.
+    </p>
+
+    <h3>Is there a separate RaidProtector subscription?</h3>
+    <p>
+      No, and there will not be. One purchase, one checkout, both bots. Two billing systems is two
+      ways for money to go wrong.
+    </p>
+
+    <h3>Does buying it twice cover two servers?</h3>
+    <p>Yes. A licence covers one server, and both bots in it.</p>
+
+    <h3>Does the free tier expire?</h3>
+    <p>
+      No. There is no trial countdown on the core gate and no feature that quietly stops working.
+      Free means free.
+    </p>
+
+    <h3>Why is the nuke bot database paid?</h3>
+    <p>
+      Because it is the part that takes real maintenance: every submission is reviewed by hand
+      before a bot is listed. The invite-and-approve gate is sound protection on its own, so it
+      stays free.
+    </p>
+  </section>
+
+  <section class="band" aria-labelledby="start-title">
+    <h2 id="start-title">Start with the free gate</h2>
+    <p class="lede">
+      Add BotApprove first and use it free. Upgrade later if you want the threat list and
+      automation.
+    </p>
+    <div class="cta">
+      <a class="btn" href="<%= inviteUrl %>">Add to Discord</a>
+      <a class="btn" href="/login">Sign in to the dashboard</a>
+    </div>
+  </section>
+</div>
 
 <%- include('partials/foot') %>
