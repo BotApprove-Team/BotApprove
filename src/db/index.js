@@ -12,6 +12,9 @@ export const db = new Database(config.db.path);
 db.pragma('journal_mode = WAL');
 db.pragma('foreign_keys = ON');
 db.pragma('synchronous = FULL');
+// Deleted rows are overwritten with zeros rather than left in free pages, so an
+// erase is an erase in the file as well as in the query results.
+db.pragma('secure_delete = ON');
 
 const MIGRATIONS = [
   {

@@ -86,8 +86,8 @@
   <p>
     Nobody. Data is not sold, rented, or given to advertisers or analytics services. There are no
     third-party trackers on this site. The only outbound requests the dashboard makes are to
-    Discord's CDN for server icons, GitHub for the maintainer's avatar, and Google Fonts for the
-    typeface.
+    Discord's CDN for server icons and GitHub for the maintainer's avatar. The typeface is served
+    from this site.
   </p>
   <p>
     One deliberate exception: if the operator approves a threat list submission, the bot ID and the
@@ -103,24 +103,69 @@
 
   <h2>How long it is kept</h2>
   <ul>
-    <li><strong>Settings, whitelist and keywords:</strong> until you change them, or you ask for
-      the server's data to be deleted. They are kept when the bot is removed, so re-adding it
+    <li><strong>Settings, whitelist and keywords:</strong> until you change them, or the owner
+      runs <code>/uninstall</code>. They are kept when the bot is removed, so re-adding it
       restores your configuration.</li>
-    <li><strong>Security log and incidents:</strong> kept as the audit trail. Deleted on request.</li>
+    <li><strong>Security log and incidents:</strong> kept as the audit trail, until
+      <code>/uninstall</code>.</li>
     <li><strong>Re-invite tokens:</strong> minutes. Deleted the moment they are used or expire.</li>
     <li><strong>Sessions:</strong> up to 7 days, or until you sign out.</li>
+    <li><strong>Backups:</strong> one copy of the database a night, each kept for 14 days. Anything
+      erased is gone from the backups once the last copy made before the erase is deleted, 14 days
+      later at most.</li>
   </ul>
+  <p>
+    Deleted rows are overwritten in the database file, not just unlinked, so they cannot be
+    recovered from it afterwards.
+  </p>
 
   <h2>Your rights</h2>
   <p>
-    You can ask what is held about you, ask for it to be corrected, or ask for it to be deleted.
-    Depending on where you live you may also have the right to object to processing, or to
-    complain to a data protection authority. Requests go through the contact link below.
+    You can see what is held about you, have it corrected, or have it erased. Depending on where
+    you live you may also have the right to object to processing, or to complain to a data
+    protection authority.
+  </p>
+
+  <h3>Erasing it yourself</h3>
+  <p>
+    You do not have to ask anyone. <code>/erase me</code> is for your own data, and
+    <code>/uninstall</code> is for a whole server.
+  </p>
+  <ul>
+    <li><strong><code>/erase me</code></strong> works in any server, in a DM with the bot, and for
+      people who installed it to their own account, so it does not depend on sharing a server with
+      it. It shows how many records name you and where, then asks before changing anything.
+      Records that exist only because of you, such as your vote on an approval and your dashboard
+      sessions, are deleted. Records a server still relies on, such as who approved a bot, keep the
+      event and replace your ID and username with "erased".</li>
+    <li><strong><code>/uninstall</code></strong> is for the server owner, and only members with
+      Administrator see it. It deletes every record about the server: settings, whitelist,
+      keywords, the security log, incidents and any licence. BotApprove then leaves, because
+      staying would start a new record straight away. Nothing in the server itself is touched. It
+      waits while the server is in lockdown, has an open nuke bot incident, or has roles from a
+      tamper response still to give back, because those records are what is needed to undo them.
+      A server with an active paid subscription has to cancel it first, so nobody is billed for a
+      licence that no longer exists.</li>
+  </ul>
+  <p>
+    Both count again afterwards and show you how many records are left, which should be none. For
+    a person, that count reads every column of every table in the database, not a list of the
+    places the ID is expected to be.
   </p>
   <p>
-    A server owner can have their whole server's record erased. Where deleting a specific entry
-    would break the audit trail another server depends on, that will be explained rather than
-    silently refused.
+    One thing is kept, and <code>/erase me</code> tells you when it applies: if you own a server
+    BotApprove is still in, your ID stays on that server, because that is how its alerts reach
+    you. Discord supplies it again every time the bot starts, so erasing it would not last.
+    <code>/uninstall</code> removes it, and so does removing the bot and running
+    <code>/erase me</code> again.
+  </p>
+  <p>
+    Threat list entries the operator has approved stay on the shared list after a server is
+    erased, because other servers rely on them. They hold the bot's ID and the reason, never the
+    server or person who submitted it.
+  </p>
+  <p>
+    For anything the command does not cover, such as a correction, use the contact link below.
   </p>
 
   <h3>Automated decisions</h3>

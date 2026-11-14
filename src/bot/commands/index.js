@@ -44,6 +44,7 @@ import {
   record,
 } from '../../services/securityService.js';
 import { resolveApproval, BUTTON_PREFIX } from '../../services/approvalService.js';
+import { handleErase, handleEraseButton, handleUninstall, ERASE_BUTTON } from './erase.js';
 import {
   BUTTON as GIVEAWAY_BUTTON, enter as enterGiveaway, prizeLabel,
 } from '../../services/giveawayService.js';
@@ -290,6 +291,33 @@ export const commandDefinitions = [
       InteractionContextType.BotDM,
       InteractionContextType.PrivateChannel,
     ),
+
+  // Works wherever someone can reach the bot, because a person's right to have
+  // their data erased does not depend on sharing a server with it.
+  new SlashCommandBuilder()
+    .setName('erase')
+    .setDescription('Delete what BotApprove holds about you')
+    .addSubcommand((s) => s.setName('me')
+      .setDescription('Erase every record that names you'))
+    .setIntegrationTypes(
+      ApplicationIntegrationType.GuildInstall,
+      ApplicationIntegrationType.UserInstall,
+    )
+    .setContexts(
+      InteractionContextType.Guild,
+      InteractionContextType.BotDM,
+      InteractionContextType.PrivateChannel,
+    ),
+
+  // Kept apart from /erase and hidden from anyone without Administrator, because
+  // "/erase server" in a member's command list reads like something that wipes
+  // the server. It only removes BotApprove and what it stored.
+  new SlashCommandBuilder()
+    .setName('uninstall')
+    .setDescription('Server owner only: delete what BotApprove stored about this server, then remove it')
+    .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
+    .setIntegrationTypes(ApplicationIntegrationType.GuildInstall)
+    .setContexts(InteractionContextType.Guild),
 ].map((c) => c.toJSON());
 
 export function isApprover(member) {
@@ -486,6 +514,8 @@ async function handleButton(interaction) {
   const parts = interaction.customId.split(':');
   const [prefix] = parts;
 
+  if (prefix === ERASE_BUTTON) return handleEraseButton(interaction, parts);
+
   if (prefix === GIVEAWAY_BUTTON && parts[1] === 'enter') {
     return handleGiveawayButton(interaction, Number(parts[2]));
   }
@@ -680,6 +710,8 @@ async function handleCommand(interaction) {
   // Answered before every guard below, because the people who most need it are
   // exactly the ones those guards turn away.
   if (interaction.commandName === 'info') return handleInfo(interaction);
+  if (interaction.commandName === 'erase') return handleErase(interaction);
+  if (interaction.commandName === 'uninstall') return handleUninstall(interaction);
 
   if (!interaction.inGuild()) return fail(interaction, 'Use this in a server.');
   const guildId = interaction.guildId;
