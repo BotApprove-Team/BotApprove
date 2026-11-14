@@ -116,6 +116,25 @@ const voice = makeChannel('c-v', 'Voice', 0, FULL, ChannelType.GuildVoice);
 const g5 = makeGuild({ id: 'g5', channels: [voice, makeChannel('c-t', 'text', 8)] });
 check('a voice channel is not chosen', (await resolveDeliveryChannel(g5, [])).channel.id, 'c-t');
 
+const pot = makeChannel('c-pot', '🍯︱honeypot', 0);
+const gPot = makeGuild({ id: 'g-pot', channels: [pot, makeChannel('c-dnt', 'do-not-type', 1), makeChannel('c-gen', 'general', 2)] });
+check('a honeypot at the top is stepped over', (await resolveDeliveryChannel(gPot, [])).channel.id, 'c-gen');
+const gPotOnly = makeGuild({ id: 'g-pot-only', channels: [pot] });
+check('even if it is the only channel left', (await resolveDeliveryChannel(gPotOnly, [])).channel, null);
+const gPotChosen = makeGuild({ id: 'g-pot-chosen', channels: [pot, makeChannel('c-gen2', 'general', 2)] });
+check('but used when someone chose it on purpose', (await resolveDeliveryChannel(gPotChosen, ['c-pot'])).channel.id, 'c-pot');
+const { looksLikeTrap } = await import('../src/services/channelCheck.js');
+check('a topic that warns of a ban counts too', looksLikeTrap({ name: 'x', topic: 'Do not type here, instant ban' }), true);
+check('ordinary channels do not', ['general', 'mod-log', 'announcements', 'potluck', 'honey-and-bees']
+  .filter((name) => looksLikeTrap({ name })), []);
+// Both of the first two were found live, spelled with Armenian and Cyrillic letters.
+const disguised = ['hoոeуpօt', 'hօneурot', '𝓱𝓸𝓷𝓮𝔂𝓹𝓸𝓽', 'ʜᴏɴᴇʏᴘᴏᴛ', 'h0neyp0t', 'hönéypöt',
+  'Ｈｏｎｅｙ　Ｐｏｔ', '🚫・ｄｏｎ’ｔ－ｔｙｐｅ', 'h o n e y p o t'];
+check('lookalike letters do not hide one', disguised.filter((name) => !looksLikeTrap({ name })), []);
+check('fancy lettering on an ordinary channel is still ordinary',
+  ['𝓦𝓮𝓵𝓬𝓸𝓶𝓮', '𝑮𝒆𝒏𝒆𝒓𝒂𝒍', '﹒legitness﹒⾕﹒', '‧˚꒰🐾chat୭-˚-ᵎᵎ', 'bot-commands', '👋┃welcome', '🛬-𝖫𝖾𝗇𝗍𝗈𝗄𝖾𝗇𝗍𝗍ä-🛫']
+    .filter((name) => looksLikeTrap({ name })), []);
+
 console.log('\n- the whole point: a card is delivered with nothing configured -');
 const g6 = makeGuild({ id: 'g6', channels: [makeChannel('c-only', 'general', 0)] });
 const p6 = Number(pendingApprovals.create({

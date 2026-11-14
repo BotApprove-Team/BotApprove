@@ -1,5 +1,6 @@
 import { EmbedBuilder, PermissionsBitField } from 'discord.js';
 import { guildConfig } from '../db/queries.js';
+import { looksLikeTrap } from './channelCheck.js';
 import { record } from './securityService.js';
 import { config } from '../config.js';
 import { createLogger } from '../logger.js';
@@ -185,7 +186,7 @@ function buildEmbed(guild, standing) {
 /** Somewhere the owner will actually see it. */
 async function deliver(guild, embed) {
   const me = guild.members.me;
-  const postable = (c) => c?.isTextBased?.()
+  const postable = (c) => c?.isTextBased?.() && !looksLikeTrap(c)
     && c.permissionsFor(me)?.has(PermissionsBitField.Flags.SendMessages)
     && c.permissionsFor(me)?.has(PermissionsBitField.Flags.ViewChannel);
 
