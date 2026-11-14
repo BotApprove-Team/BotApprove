@@ -27,7 +27,8 @@ const log = createLogger('bot');
 const SWEEP_INTERVAL_MS = 5 * 60_000;
 
 // Licences live in this bot's database, so this is the side that knows which
-// servers may use RaidProtector while its beta runs.
+// servers hold one. RaidProtector uses that for its paid features, and for
+// everything when its beta gate is on.
 const syncBetaAccess = (client) =>
   syncRaidProtectorAccess(client, (guildId) => resolveEntitlement(guildId).licensed);
 

@@ -11,31 +11,17 @@
       right now. Nothing here has been changed.</p>
   </div>
 <% } else if (!rp || !rp.present) { %>
-  <% if (entitlement.licensed) { %>
-    <div class="notice ok">
-      <strong>Your licence covers RaidProtector. It is not in this server yet.</strong>
-      <p>The Protection Suite licence on this server includes RaidProtector while its beta runs, at
-        no extra cost and with no second checkout. It is a separate bot with its own invite,
-        because it needs permissions BotApprove deliberately does not ask for.</p>
-      <p>It starts in <strong>report mode</strong>: it watches and tells you what it would have
-        done, and touches nobody until you say otherwise.</p>
-      <div class="actions">
-        <% if (rpInviteUrl) { %><a class="btn btn-primary" href="<%= rpInviteUrl %>&guild_id=<%= guild.id %>">Add RaidProtector</a><% } %>
-        <a class="btn" href="/raidprotector">What it does</a>
-      </div>
+  <div class="notice">
+    <strong>RaidProtector is free while it is in beta. It is not in this server yet.</strong>
+    <p>It is a separate bot with its own invite, because it needs permissions BotApprove
+      deliberately does not ask for. Any server can add it, licence or not.</p>
+    <p>It starts in <strong>report mode</strong>: it watches and tells you what it would have
+      done, and touches nobody until you say otherwise.</p>
+    <div class="actions">
+      <% if (rpInviteUrl) { %><a class="btn btn-primary" href="<%= rpInviteUrl %>&guild_id=<%= guild.id %>">Add RaidProtector</a><% } %>
+      <a class="btn" href="/raidprotector">What it does</a>
     </div>
-  <% } else { %>
-    <div class="notice">
-      <strong>RaidProtector is in beta, for Protection Suite servers</strong>
-      <p>While the beta runs it is open to servers with a Protection Suite licence, the same licence
-        that unlocks premium here and covers both bots at once. Adding it without one works, but it
-        will sit quietly and say so rather than watching for raids.</p>
-      <div class="actions">
-        <a class="btn btn-primary" href="/g/<%= guild.id %>/licence">See what premium adds</a>
-        <a class="btn" href="/raidprotector">What it does</a>
-      </div>
-    </div>
-  <% } %>
+  </div>
 <% } else { %>
 
   <% if (rp.settings.mode === 'report') { %>
@@ -172,13 +158,19 @@
             stopped from the incident list before it lands. A timeout stops a raid just as dead and
             expires on its own, which is why off is the default.</p>
         </div>
+        <% const aiLocked = rp.licensed === false; %>
         <div class="field">
-          <label for="rpai">Second opinion on bans</label>
-          <select id="rpai" name="ai_review" <%= ro %>>
+          <label for="rpai">Second opinion on bans<% if (aiLocked) { %> <span class="badge">Protection Suite</span><% } %></label>
+          <select id="rpai" name="ai_review" <%= ro %><%= aiLocked ? ' disabled' : '' %>>
             <option value="off" <%= rp.settings.ai_review === 'off' ? 'selected' : '' %>>Off (default)</option>
             <option value="shadow" <%= rp.settings.ai_review === 'shadow' ? 'selected' : '' %>>Ask, record the answer, change nothing</option>
           </select>
           <p class="hint">
+            <% if (aiLocked) { %>
+              The one part of RaidProtector that needs a licence, because every call runs a paid
+              model. Everything else on this page is free while the beta runs.
+              <a href="/g/<%= guild.id %>/licence">Licence</a>.
+            <% } %>
             <strong>This sends recent messages from the affected channel to a third party.</strong>
             It runs only where a ban was queued, never on ordinary detection, and what comes back
             decides nothing: the rules settle the response either way. It exists to build a record
@@ -189,7 +181,7 @@
         </div>
         <div class="field narrow">
           <label for="rpaicap">Second opinions a month, at most</label>
-          <input type="number" id="rpaicap" name="ai_monthly_cap" min="0" max="500" value="<%= rp.settings.ai_monthly_cap %>" <%= ro %>>
+          <input type="number" id="rpaicap" name="ai_monthly_cap" min="0" max="500" value="<%= rp.settings.ai_monthly_cap %>" <%= ro %><%= aiLocked ? ' disabled' : '' %>>
         </div>
         <div class="field">
           <label for="rplog">Where incident reports go</label>
@@ -231,6 +223,35 @@
           </div>
         </div>
       </fieldset>
+
+      <% if (rp.settings.spam_guard !== undefined) { %>
+      <fieldset>
+        <legend>Spam from a single account</legend>
+        <div class="field">
+          <label for="rpspam">Spam guard</label>
+          <select id="rpspam" name="spam_guard" <%= ro %>>
+            <option value="off" <%= rp.settings.spam_guard === 'off' ? 'selected' : '' %>>Off (default)</option>
+            <option value="new_members" <%= rp.settings.spam_guard === 'new_members' ? 'selected' : '' %>>On, but not for established members</option>
+            <option value="everyone" <%= rp.settings.spam_guard === 'everyone' ? 'selected' : '' %>>On for everyone except the owner</option>
+          </select>
+          <p class="hint">Acts on one account that posts the same message again and again, keeps
+            posting invite links, or keeps typing @everyone or @here, even when it does not ping.
+            Like the ping guard it acts on one signal, so it is off until you turn it on, and it
+            can time someone out but never ban them. It only sees messages that were posted:
+            anything AutoMod blocks never reaches RaidProtector.</p>
+        </div>
+        <div class="field-grid">
+          <div class="field">
+            <label for="rpspaml">Messages before it acts</label>
+            <input type="number" id="rpspaml" name="spam_limit" min="2" max="20" value="<%= rp.settings.spam_limit %>" <%= ro %>>
+          </div>
+          <div class="field">
+            <label for="rpspamw">Within, seconds</label>
+            <input type="number" id="rpspamw" name="spam_window_s" min="10" max="600" value="<%= rp.settings.spam_window_s %>" <%= ro %>>
+          </div>
+        </div>
+      </fieldset>
+      <% } %>
 
       <fieldset>
         <legend>Thresholds</legend>

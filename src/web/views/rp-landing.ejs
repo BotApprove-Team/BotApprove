@@ -7,9 +7,11 @@
       When two separate signals agree, raiders are timed out, and one button reverses the whole
       incident if it got anyone wrong.
     </p>
-    <p class="hero-count">In beta, for <strong>Protection Suite</strong> servers.</p>
+    <p class="hero-count">Free for every server while it is in beta.</p>
     <div class="cta">
-      <a class="btn btn-primary" href="/pricing">See Protection Suite pricing</a>
+      <% if (rpInviteUrl) { %>
+        <a class="btn btn-primary" href="<%= rpInviteUrl %>">Add to Discord</a>
+      <% } %>
       <a class="btn" href="/raidprotector/privacy">What it stores</a>
     </div>
     <p class="hint">

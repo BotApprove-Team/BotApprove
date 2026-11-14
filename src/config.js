@@ -136,7 +136,9 @@ export const config = {
     // Per document. Changing one policy should not restate the other three as
     // freshly reviewed when nobody touched them.
     updatedByDoc: {
-      'rp-privacy': '17 September 2026',
+      privacy: '14 November 2026',
+      'rp-privacy': '14 November 2026',
+      'rp-terms': '13 November 2026',
     },
     // Set while a change is recent enough to be worth telling people about.
     // The date doubles as the version a reader dismissed, so the next change
