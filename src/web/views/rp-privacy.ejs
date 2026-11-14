@@ -33,7 +33,10 @@
   </div>
   <p>
     What survives a message is a one-way hash of its content, the channel and author IDs, a
-    timestamp, and how many accounts or roles it mentioned. That is enough to tell that fifteen
+    timestamp, how many accounts or roles it mentioned, and two yes or no answers: whether it
+    contained a Discord invite link, and whether it typed @everyone or @here. Those two are what
+    the optional spam guard counts, and they are kept and discarded exactly like the hash. That
+    is enough to tell that fifteen
     accounts posted the same thing in nine channels inside four seconds, which is what raid
     detection needs. It is not enough to reconstruct what was said, and neither the operator nor
     your moderators can read your messages through this bot.
@@ -98,6 +101,26 @@
     <li>Payment card details. Payment is handled by a payment provider, not by this service.</li>
   </ul>
 
+  <h3>Verification</h3>
+  <p>
+    If a server switches on <code>/verify</code>, new members press a button to get a role. Nothing
+    about who verified, when, or how is written down. The role is the only record, Discord holds
+    it, and it goes when the person leaves the server.
+  </p>
+  <ul>
+    <li>Whether someone gets one press or the web step is decided at the moment they press, from
+      what Discord already shows: account age, whether it has an avatar, Discord's own spam flag,
+      and whether a raid is open in that server. None of it is saved.</li>
+    <li>The web step is a page at <code>/verify</code> on this site. Your browser works out a
+      number by trial. The page sets no cookie and creates no session. The code that says which
+      server and which account the check is for sits after the # in the link, which browsers do
+      not send to a server, so it is never in a request log. It reaches the server only inside
+      the two requests the page makes, and is not kept after them.</li>
+    <li>No IP address, browser fingerprint, email address or linked account is collected. Many
+      verification bots collect these to catch alternate accounts. This one does not, by design.</li>
+    <li>It never asks anyone to log in, scan a QR code, download anything or paste anything.</li>
+  </ul>
+
   <h2>Why it is stored</h2>
   <p>
     To detect raids, to give server owners an audit trail of what was done to their members and
@@ -151,12 +174,21 @@
   <ul>
     <li><strong>Message fingerprints and join counts:</strong> minutes. They exist only for the
       length of the detection window and are then dropped.</li>
-    <li><strong>Settings:</strong> until you change them, or you ask for the server's data to be
-      deleted. Kept if the bot is removed, so re-adding it restores your configuration.</li>
+    <li><strong>Settings:</strong> until you change them, or the owner runs
+      <code>/uninstall</code>. Kept if the bot is removed, so re-adding it restores your
+      configuration.</li>
     <li><strong>Incident records and the audit trail:</strong> kept, because that is what a server
-      owner relies on after an attack. Deleted on request.</li>
+      owner relies on after an attack, until <code>/uninstall</code>.</li>
     <li><strong>Sessions:</strong> up to 7 days, or until you sign out.</li>
+    <li><strong>Backups:</strong> one copy of the database a night, each kept for 14 days. Anything
+      erased is gone from the backups once the last copy made before the erase is deleted, 14 days
+      later at most. Message fingerprints are never in a backup, because they are never written to
+      disk.</li>
   </ul>
+  <p>
+    Deleted rows are overwritten in the database file, not just unlinked, so they cannot be
+    recovered from it afterwards.
+  </p>
 
   <h2>Automated decisions</h2>
   <p>
@@ -183,14 +215,47 @@
 
   <h2>Your rights</h2>
   <p>
-    You can ask what is held about you, ask for it to be corrected, or ask for it to be deleted.
-    Depending on where you live you may also have the right to object to processing, or to
-    complain to a data protection authority. Requests go through the contact link below.
+    You can see what is held about you, have it corrected, or have it erased. Depending on where
+    you live you may also have the right to object to processing, or to complain to a data
+    protection authority.
+  </p>
+
+  <h3>Erasing it yourself</h3>
+  <p>
+    You do not have to ask anyone. <code>/erase me</code> is for your own data, and
+    <code>/uninstall</code> is for a whole server. Both work whether or not the server is in the
+    beta, because erasing your data is never something a server has to pay for.
+  </p>
+  <ul>
+    <li><strong><code>/erase me</code></strong> works in any server RaidProtector is in, and in a DM
+      with the bot. It shows how many records name you and where, then asks before changing
+      anything. Your ID is replaced with "erased" wherever it appears. The incident stays in the
+      server's history without you in it, and anything RaidProtector holds about you in memory is
+      dropped at the same moment. One consequence: an action taken on you during an incident can
+      no longer be reversed from the bot, because it no longer knows who it was taken on. A
+      moderator can still lift it by hand.</li>
+    <li><strong><code>/uninstall</code></strong> is for the server owner, and only members with
+      Administrator see it. It deletes every record about the server, settings, incidents and the
+      learned baseline included, and clears what the bot holds in memory for it. RaidProtector then
+      leaves, because staying would start a new record straight away. Nothing in the server itself
+      is touched. It waits while an incident is open or bans are queued, because those records are
+      what is needed to undo them. If the server still has a Protection Suite
+      licence, its ID comes back on the next licence sync, because the licence lives in BotApprove;
+      <code>/uninstall</code> there removes it.</li>
+  </ul>
+  <p>
+    Both count again afterwards and show you how many records are left, which should be none. For
+    a person, that count reads every column of every table in the database, not a list of the
+    places the ID is expected to be.
   </p>
   <p>
-    A server owner can have their whole server's record erased. Where deleting a specific entry
-    would break an audit trail that a server owner depends on, that will be explained rather than
-    silently refused.
+    One wait, and the command explains it when it applies: if a ban on you is queued from an
+    incident that is still in progress, <code>/erase me</code> holds until the ban lands or a
+    moderator cancels it. Erasing first would aim the ban at nobody, and the command is not a way
+    out of one. It is usually a few minutes.
+  </p>
+  <p>
+    For anything the command does not cover, such as a correction, use the contact link below.
   </p>
 
   <h2>Children</h2>

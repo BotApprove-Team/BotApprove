@@ -19,11 +19,11 @@ export function configured() {
   return Boolean(config.raidProtector.url && config.raidProtector.token);
 }
 
-async function call(method, path, body) {
+async function call(method, path, body, timeoutMs = TIMEOUT_MS) {
   if (!configured()) return { ok: false, reason: 'not_configured' };
 
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
     const res = await fetch(config.raidProtector.url + path, {
       method,
@@ -53,6 +53,9 @@ async function call(method, path, body) {
 export const health = () => call('GET', '/v1/health');
 export const guildIds = () => call('GET', '/v1/guilds');
 export const pushAccess = (allowed) => call('PUT', '/v1/access', { allowed, source: 'botapprove' });
+// Longer than the rest: this one waits on Discord to hand out a role, and the
+// person is watching a page, not loading a dashboard.
+export const completeVerification = (token) => call('POST', '/v1/verify', { token }, 8000);
 
 /**
  * Tell RaidProtector which servers may use it during the beta.

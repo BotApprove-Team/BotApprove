@@ -67,6 +67,7 @@
       <a href="<%= goTo.botapprove %>"<% if (!rpPage) { %> aria-current="page"<% } %>>BotApprove</a>
       <a href="<%= goTo.raidprotector %>"<% if (rpPage) { %> aria-current="page"<% } %>>RaidProtector</a>
     </nav>
+    <% if (!(typeof bareHead !== 'undefined' && bareHead)) { %>
     <nav class="site-nav" id="site-nav" aria-label="Site">
       <% if (user) { %>
         <a href="/guilds"<% if (here === '/guilds' || here.startsWith('/g/')) { %> aria-current="page"<% } %>>Servers</a>
@@ -84,6 +85,7 @@
         <a class="btn signin" href="/login">Sign in with Discord</a>
       <% } %>
     </nav>
+    <% } %>
     <div class="head-tools" id="head-tools"></div>
   </div>
 </header>

@@ -1185,13 +1185,41 @@ label.check { font-weight: 400; }
   to { opacity: 1; transform: none; }
 }
 
+/* the checkpoint, /verify */
+
+.checkpoint {
+  display: grid;
+  gap: 12px;
+  max-width: 62ch;
+  padding: 20px;
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  background: var(--raised);
+}
+.cp-state { margin: 0; }
+.cp-meter { height: 6px; border-radius: 2px; background: var(--surface); overflow: hidden; }
+.cp-fill { width: 0; height: 100%; background: var(--ink); }
+.cp-detail { margin: 0; min-height: 1.5em; color: var(--muted); font-variant-numeric: tabular-nums; }
+.cp-result { display: grid; gap: 14px; justify-items: start; padding-top: 4px; }
+.cp-result p { margin: 0; max-width: 60ch; }
+.cp-facts { max-width: 62ch; margin-top: 32px; }
+.cp-facts h2 { margin: 0 0 10px; font-size: 18px; }
+.cp-facts ul { display: grid; gap: 8px; margin: 0; padding-left: 1.2em; color: var(--text-2); }
+
+@keyframes cp-stamp {
+  from { opacity: 0; transform: rotate(-3deg) scale(1.16); }
+  to { opacity: 1; transform: rotate(-3deg) scale(1); }
+}
+.cp-result .stamp-face.is-landing { animation: cp-stamp 200ms cubic-bezier(.2, .7, .3, 1) both; }
+
 @media (prefers-reduced-motion: reduce) {
   ::view-transition-group(*),
   ::view-transition-old(*),
   ::view-transition-new(*) { animation-duration: 1ms !important; }
   .prod-switch a[aria-current="page"]::before,
   .brand svg,
-  .stamp.is-landing { animation: none; }
+  .stamp.is-landing,
+  .cp-result .stamp-face.is-landing { animation: none; }
   .switch-track, .switch-track::after { transition: none; }
   :where(button):active, .btn:active { transform: none; }
 }

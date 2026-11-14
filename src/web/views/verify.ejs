@@ -1,0 +1,39 @@
+<%- include('partials/head') %>
+
+<div class="page-head">
+  <h1>Checkpoint</h1>
+  <p class="lede">One short check, then you are let into the server. Keep this page open. It
+    finishes on its own and needs nothing from you.</p>
+</div>
+
+<section class="checkpoint" aria-label="Verification">
+  <p class="cp-state" role="status" aria-live="polite">
+    <span class="st warn" id="cp-label">Starting</span>
+  </p>
+  <div class="cp-meter" aria-hidden="true"><div class="cp-fill" id="cp-fill"></div></div>
+  <p class="cp-detail mono" id="cp-detail"></p>
+  <div class="cp-result" id="cp-result" hidden>
+    <span class="stamp-face stamp-mini" id="cp-stamp" hidden>Verified</span>
+    <p id="cp-message"></p>
+  </div>
+  <noscript>
+    <p>This check needs JavaScript, because the check is your browser doing a small piece of
+      work. Turn it on for this page, or ask a moderator of the server to let you in.</p>
+  </noscript>
+</section>
+
+<section class="cp-facts">
+  <h2>What this is</h2>
+  <ul>
+    <li>Your browser finds a number by trial, up to a few hundred thousand guesses. That is quick
+      for one person and adds up across the hundreds of fake accounts a raid uses.</li>
+    <li>This page sets no cookies and keeps nothing about you. The code in your link sits after the
+      # in the address, which browsers never send to a server.</li>
+    <li>It never asks you to log in, scan a QR code, download anything or paste anything. If a page
+      calling itself this one does, close it. It is a scam.</li>
+  </ul>
+</section>
+
+<script src="/static/verify.js?v=<%= cssVersion %>" defer></script>
+
+<%- include('partials/foot') %>

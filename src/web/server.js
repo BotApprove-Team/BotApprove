@@ -12,6 +12,7 @@ import { createLogger } from '../logger.js';
 import { SqliteStore } from './sessionStore.js';
 import { router as authRouter, requireLogin, isInstanceOwner } from './auth.js';
 import { router as dashboardRouter } from './routes/dashboard.js';
+import { verifyRouter } from './routes/verify.js';
 import { FEATURES } from '../services/featureService.js';
 import { getClient } from '../bot/clientRef.js';
 import { blog } from '../db/queries.js';
@@ -36,7 +37,7 @@ function assetVersion() {
   try {
     const dir = path.join(config.root, 'src/web/public');
     const hash = crypto.createHash('sha256');
-    for (const name of ['style.css', 'theme.js', 'site.js', 'icon.svg']) {
+    for (const name of ['style.css', 'theme.js', 'site.js', 'verify.js', 'icon.svg']) {
       hash.update(fs.readFileSync(path.join(dir, name)));
     }
     return hash.digest('hex').slice(0, 10);
@@ -141,6 +142,9 @@ export function createApp() {
   app.use('/static', express.static(path.join(config.root, 'src/web/public'), {
     maxAge: '30d',
   }));
+
+  // Before sessions, so the checkpoint never hands a visitor a cookie.
+  app.use(verifyRouter({ cssVersion }));
 
   const secure = config.web.baseUrl.startsWith('https://');
   app.use(session({
@@ -287,8 +291,9 @@ export function createApp() {
     cardTitle: 'RaidProtector, stops raids with something you can take back',
     cardDescription: 'Raid detection that needs two independent signals before it touches '
       + 'anyone, times people out instead of banning them, and reverses a whole incident in '
-      + 'one press.',
+      + 'one press. Free while it is in beta.',
     ...plans(),
+    rpInviteUrl: config.raidProtector.inviteUrl,
   }));
 
   app.get('/healthz', (_req, res) => res.json({ ok: true, uptime: process.uptime() }));
@@ -345,7 +350,7 @@ export function createApp() {
     res.render('rp-terms', {
       title: 'RaidProtector Terms of Service',
       cardTitle: 'RaidProtector Terms of Service',
-      cardDescription: 'The rules for using RaidProtector, currently in closed beta.',
+      cardDescription: 'The rules for using RaidProtector, free for every server while it is in beta.',
       ...legalFor('rp-terms'),
     }));
   app.get('/raidprotector/privacy', (_req, res) =>
