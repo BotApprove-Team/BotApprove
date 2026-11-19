@@ -1,0 +1,59 @@
+<%- include('partials/head') %>
+<%
+  const ts = (ms) => ms ? new Date(ms).toISOString().replace('T', ' ').slice(0, 16) + 'Z' : '';
+  const ro = canConfigure ? '' : 'disabled';
+  const badge = (tone, icon, text) =>
+    `<span class="badge ${tone}"><svg aria-hidden="true"><use href="#${icon}"></use></svg>${text}</span>`;
+  const csrf = `<input type="hidden" name="_csrf" value="${csrfToken}">`;
+  const g = `/g/${guild.id}`;
+%>
+
+<div class="dash">
+<aside class="side" aria-label="Server">
+  <div class="side-server">
+    <span class="server-icon" aria-hidden="true">
+      <% if (guild.icon) { %>
+        <img src="https://cdn.discordapp.com/icons/<%= guild.id %>/<%= guild.icon %>.png?size=64" alt="" width="40" height="40">
+      <% } else { %><%= guild.name.slice(0, 1).toUpperCase() %><% } %>
+    </span>
+    <div>
+      <p class="side-name"><%= guild.name %></p>
+      <% if (guild.memberCount) { %>
+        <p class="side-meta"><%= guild.memberCount.toLocaleString('en-US') %> members</p>
+      <% } %>
+      <a class="side-back" href="/guilds?product=raidprotector">All servers</a>
+    </div>
+  </div>
+
+  <nav class="tabnav" id="tabnav" aria-label="Server sections">
+    <a href="<%= g %>/raidprotector" aria-current="page" data-label="RaidProtector">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M7 7 3 8.6v3.9c0 2.9 1.7 5 4 5.9 2.3-.9 4-3 4-5.9V8.6L7 7Zm10 0-4 1.6v3.9c0 2.9 1.7 5 4 5.9 2.3-.9 4-3 4-5.9V8.6L17 7Zm-5-4L7.2 4.9v4.7c0 3.5 2 6.1 4.8 7.2 2.8-1.1 4.8-3.7 4.8-7.2V4.9L12 3Z"/></svg>
+      <span>RaidProtector</span>
+    </a>
+  </nav>
+
+  <div class="side-plan">
+    <p class="form-label">BotApprove</p>
+    <p class="side-plan-tier">Not in this server</p>
+    <% if (inviteUrl) { %><a href="<%= inviteUrl %>&guild_id=<%= guild.id %>">Add it to approve bots too</a><% } %>
+  </div>
+</aside>
+
+<div class="dash-main">
+  <header class="dash-head">
+    <h1>RaidProtector</h1>
+    <code><%= guild.id %></code>
+  </header>
+
+<% if (flash) { %>
+  <div class="notice <%= flash.type === 'error' ? 'danger' : 'ok' %>"><%= flash.message %></div>
+<% } %>
+<% if (viaOperator) { %>
+  <div class="notice warn">You are here as the instance operator, not as a manager of this server.</div>
+<% } %>
+
+  <%- include('partials/rp-tab', { ts, ro, badge, csrf, g }) %>
+</div>
+</div>
+
+<%- include('partials/foot') %>

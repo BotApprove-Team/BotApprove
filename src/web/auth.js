@@ -5,6 +5,7 @@ import { config } from '../config.js';
 import { createLogger } from '../logger.js';
 import { getClient } from '../bot/clientRef.js';
 import { approverRoles } from '../db/queries.js';
+import * as raidprotector from '../services/raidprotector.js';
 
 const log = createLogger('web-auth');
 
@@ -160,10 +161,39 @@ export async function resolveGuildAccess(userId, guildId, { elevated = false } =
   return { allowed: false, reason: 'not_an_approver' };
 }
 
-export function requireGuildAccess(level = 'approve') {
+/**
+ * For RaidProtector's pages. A server can have RaidProtector without BotApprove,
+ * and then BotApprove cannot look the person up, so RaidProtector is asked
+ * instead, live, rather than trusting the server list from the login. Only Manage
+ * Server counts there: approver roles are a BotApprove setting.
+ */
+export async function resolveRpAccess(userId, guildId, { elevated = false } = {}) {
+  if (getClient()?.guilds.cache.has(guildId)) return resolveGuildAccess(userId, guildId, { elevated });
+  if (!/^\d{5,25}$/.test(String(guildId))) return { allowed: false, reason: 'rp_not_in_guild' };
+
+  const asked = await raidprotector.memberAccess(guildId, userId);
+  if (!asked.ok) return { allowed: false, reason: 'rp_unreachable' };
+  if (!asked.body?.present) return { allowed: false, reason: 'rp_not_in_guild' };
+
+  const operator = isInstanceOwner(userId) && elevated;
+  if (!asked.body.canConfigure && !operator) {
+    return { allowed: false, reason: asked.body.member ? 'not_a_manager' : 'not_a_member' };
+  }
+  return {
+    allowed: true,
+    rpOnly: true,
+    guild: asked.body.guild,
+    canApprove: false,
+    canConfigure: true,
+    configureViaOperator: !asked.body.canConfigure,
+    via: asked.body.canConfigure ? 'rp_guild_permissions' : 'instance_owner',
+  };
+}
+
+export function requireGuildAccess(level = 'approve', { rp = false } = {}) {
   return async (req, res, next) => {
     const { isAdminUnlocked } = await import('./adminAuth.js');
-    const access = await resolveGuildAccess(req.session.user.id, req.params.guildId, {
+    const access = await (rp ? resolveRpAccess : resolveGuildAccess)(req.session.user.id, req.params.guildId, {
       elevated: isAdminUnlocked(req),
     });
     if (!access.allowed) {
@@ -171,7 +201,11 @@ export function requireGuildAccess(level = 'approve') {
         title: 'No access',
         message: {
           bot_not_in_guild: 'BotApprove is not in that server.',
+          rp_not_in_guild: 'Neither BotApprove nor RaidProtector is in that server.',
+          rp_unreachable: 'RaidProtector is not answering, so it cannot say who manages that server. '
+            + 'Try again in a moment.',
           not_a_member: 'You are not a member of that server.',
+          not_a_manager: 'You need Manage Server in that server.',
           not_an_approver: 'You need Manage Server or an approver role in that server.'
             + (isInstanceOwner(req.session.user.id)
               ? ' As the instance operator you can unlock cross-server access at /admin/unlock.'

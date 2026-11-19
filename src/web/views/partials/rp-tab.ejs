@@ -169,7 +169,7 @@
             <% if (aiLocked) { %>
               The one part of RaidProtector that needs a licence, because every call runs a paid
               model. Everything else on this page is free while the beta runs.
-              <a href="/g/<%= guild.id %>/licence">Licence</a>.
+              <a href="<%= typeof licenceUrl !== 'undefined' ? licenceUrl : `/g/${guild.id}/licence` %>">Licence</a>.
             <% } %>
             <strong>This sends recent messages from the affected channel to a third party.</strong>
             It runs only where a ban was queued, never on ordinary detection, and what comes back

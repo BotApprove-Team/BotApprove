@@ -77,11 +77,14 @@ export async function syncAccess(client, isLicensed) {
   return result;
 }
 export const guildState = (guildId) => call('GET', `/v1/guild/${guildId}`);
+export const memberAccess = (guildId, userId) => call('GET', `/v1/guild/${guildId}/member/${userId}`);
 export const updateSettings = (guildId, patch) => call('PATCH', `/v1/guild/${guildId}`, patch);
-export const undoIncident = (incidentId, actorId) =>
-  call('POST', `/v1/incident/${incidentId}/undo`, { actorId });
-export const cancelBans = (incidentId, actorId) =>
-  call('POST', `/v1/incident/${incidentId}/cancel-bans`, { actorId });
+// The server goes with the incident so RaidProtector can refuse one that is
+// not from the server the person was checked against.
+export const undoIncident = (guildId, incidentId, actorId) =>
+  call('POST', `/v1/incident/${incidentId}/undo`, { guildId, actorId });
+export const cancelBans = (guildId, incidentId, actorId) =>
+  call('POST', `/v1/incident/${incidentId}/cancel-bans`, { guildId, actorId });
 
 export const WHY = {
   not_configured: 'This BotApprove instance has not been pointed at a RaidProtector yet.',
