@@ -103,9 +103,10 @@
 
   <h3>Verification</h3>
   <p>
-    If a server switches on <code>/verify</code>, new members press a button to get a role. Nothing
-    about who verified, when, or how is written down. The role is the only record, Discord holds
-    it, and it goes when the person leaves the server.
+    If a server switches on <code>/verify</code>, new members press a button to get a role, or to
+    lose an "unverified" role the server gives everyone who joins. Nothing about who verified,
+    when, or how is written down. The roles are the only record, Discord holds them, and they go
+    when the person leaves the server.
   </p>
   <ul>
     <li>Whether someone gets one press or the web step is decided at the moment they press, from
@@ -166,8 +167,9 @@
   <h2>Where it lives</h2>
   <p>
     In a SQLite database on a private server, reachable only over an encrypted connection, running
-    under an account with access to nothing else on the machine. Sessions are stored server-side
-    so signing out actually invalidates them.
+    under an account with access to nothing else on the machine. The database and every backup of
+    it are encrypted at rest with ChaCha20-Poly1305. Sessions are stored server-side so signing out
+    actually invalidates them.
   </p>
 
   <h2>How long it is kept</h2>
