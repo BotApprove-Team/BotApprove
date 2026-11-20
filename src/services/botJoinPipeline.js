@@ -4,7 +4,9 @@ import {
   consumeReinviteToken,
   kickBot,
   record,
+  addToWhitelist,
 } from './securityService.js';
+import { config } from '../config.js';
 import {
   snapshotMember,
   findInviter,
@@ -24,6 +26,15 @@ import { baseline as baselinePermissions } from './driftWatch.js';
 import { createLogger } from '../logger.js';
 
 const log = createLogger('pipeline');
+
+// RaidProtector is our own product, and its name matches the default "raid"
+// keyword, so without this every server adding it had it kicked and had to
+// approve and re-invite it. The one exception to the gate, and it is by the
+// exact bot ID: a lookalike called RaidProtector has another ID and still meets
+// the keyword check like anything else.
+export function isOwnProduct(member) {
+  return !!member?.user?.bot && !!config.raidProtector.botId && member.id === config.raidProtector.botId;
+}
 
 export async function onBotJoin(member) {
   const guild = member.guild;
@@ -62,6 +73,25 @@ export async function onBotJoin(member) {
       });
 
       return { action: 'nuke_bot_blocked', kicked: kick.ok };
+    }
+
+    // After the nuke checks, so a server that confirmed it as a nuke bot is
+    // still obeyed. Put on the whitelist so the permission drift watch keeps an
+    // eye on it like any approved bot, and said in the log channel.
+    if (isOwnProduct(member)) {
+      await addToWhitelist(guildId, botId, member.client.user.id, { own_product: true }, { mirror: false });
+      await record({
+        guildId,
+        botId,
+        action: 'join_allowed',
+        severity: 'info',
+        title: 'RaidProtector let in',
+        description: 'RaidProtector is made by the same team as BotApprove, so it is let in by its '
+          + 'bot ID rather than held for approval. A bot that only uses its name is still held.',
+        detail: { bot_tag: member.user.tag, own_product: true },
+      });
+      await applyPostAllow(member);
+      return { action: 'allowed_own_product' };
     }
 
     let keywordMatched = matchKeyword(guildId, username);

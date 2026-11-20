@@ -126,6 +126,9 @@ export const config = {
     url: process.env.RAIDPROTECTOR_URL || '',
     token: process.env.RAIDPROTECTOR_TOKEN || '',
     inviteUrl: process.env.RAIDPROTECTOR_INVITE_URL || '',
+    // Its bot account. Our own product, so the join gate lets this exact ID in.
+    // Matched by ID only, never by name, which anyone can copy.
+    botId: process.env.RAIDPROTECTOR_BOT_ID || '1548844974693552179',
   },
 
   legal: {
@@ -137,8 +140,8 @@ export const config = {
     // freshly reviewed when nobody touched them.
     updatedByDoc: {
       privacy: '14 November 2026',
-      'rp-privacy': '14 November 2026',
-      'rp-terms': '13 November 2026',
+      'rp-privacy': '20 November 2026',
+      'rp-terms': '20 November 2026',
     },
     // Set while a change is recent enough to be worth telling people about.
     // The date doubles as the version a reader dismissed, so the next change

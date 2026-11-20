@@ -170,7 +170,7 @@ export async function isWhitelisted(guildId, botId) {
   return whitelist.has(guildId, botId);
 }
 
-export async function addToWhitelist(guildId, botId, approvedBy, detail = {}) {
+export async function addToWhitelist(guildId, botId, approvedBy, detail = {}, { mirror = true } = {}) {
   whitelist.add(guildId, botId, approvedBy);
   await record({
     guildId,
@@ -180,6 +180,7 @@ export async function addToWhitelist(guildId, botId, approvedBy, detail = {}) {
     severity: 'medium',
     title: 'Bot whitelisted',
     detail,
+    mirror,
   });
 }
 
