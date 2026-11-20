@@ -12,7 +12,7 @@
   </div>
 <% } else if (!rp || !rp.present) { %>
   <div class="notice">
-    <strong>RaidProtector is free while it is in beta. It is not in this server yet.</strong>
+    <strong>RaidProtector is free. It is not in this server yet.</strong>
     <p>It is a separate bot with its own invite, because it needs permissions BotApprove
       deliberately does not ask for. Any server can add it, licence or not.</p>
     <p>It starts in <strong>report mode</strong>: it watches and tells you what it would have
@@ -168,7 +168,7 @@
           <p class="hint">
             <% if (aiLocked) { %>
               The one part of RaidProtector that needs a licence, because every call runs a paid
-              model. Everything else on this page is free while the beta runs.
+              model. Everything else on this page is free.
               <a href="<%= typeof licenceUrl !== 'undefined' ? licenceUrl : `/g/${guild.id}/licence` %>">Licence</a>.
             <% } %>
             <strong>This sends recent messages from the affected channel to a third party.</strong>

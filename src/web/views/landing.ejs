@@ -16,7 +16,11 @@
     <% } %>
     <div class="cta">
       <a class="btn btn-primary" href="<%= inviteUrl %>">Add to Discord</a>
-      <a class="btn" href="/login">Sign in to the dashboard</a>
+      <% if (user) { %>
+        <a class="btn" href="/guilds">Your servers</a>
+      <% } else { %>
+        <a class="btn" href="/login">Sign in to the dashboard</a>
+      <% } %>
     </div>
     <p class="hint">
       Free to add and open source, with no trial countdown. Signing in asks for your identity and

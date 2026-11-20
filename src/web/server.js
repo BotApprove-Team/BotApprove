@@ -15,6 +15,7 @@ import { router as dashboardRouter } from './routes/dashboard.js';
 import { verifyRouter } from './routes/verify.js';
 import { FEATURES } from '../services/featureService.js';
 import { getClient } from '../bot/clientRef.js';
+import * as raidprotector from '../services/raidprotector.js';
 import { blog } from '../db/queries.js';
 import { render as renderPost } from '../services/blogService.js';
 import {
@@ -273,8 +274,24 @@ export function createApp() {
     return size >= min && size > 0 ? size : null;
   };
 
+  // RaidProtector is another process, so its count is asked for at most every
+  // five minutes rather than on every visit, and the last good answer stands in
+  // while it is restarting. Same floor as BotApprove's own count.
+  let rpCount = { value: null, at: 0 };
+  const rpServerCount = async () => {
+    const { show, min } = config.web.serverCount;
+    if (!show || !raidprotector.configured()) return null;
+    if (Date.now() - rpCount.at > 5 * 60_000) {
+      const health = await raidprotector.health();
+      rpCount = { value: health.ok ? (health.body?.guilds ?? null) : rpCount.value, at: Date.now() };
+    }
+    return rpCount.value >= min ? rpCount.value : null;
+  };
+
+  // Shown to everyone, signed in or not, like RaidProtector's page. Sending a
+  // signed-in person to the dashboard instead left them no way to reach it.
+  // Signing in still lands on the dashboard, through the login's own return.
   app.get('/', (req, res) => {
-    if (req.session?.user) return res.redirect('/guilds');
     return res.render('landing', {
       title: 'BotApprove',
       cardTitle: 'BotApprove, no bot gets in without a human saying yes',
@@ -285,15 +302,16 @@ export function createApp() {
 
   // A page of its own rather than a tab the homepage toggles with script: it is
   // a separate product with its own terms, and it needs a link people can send.
-  app.get('/raidprotector', (_req, res) => res.render('rp-landing', {
+  app.get('/raidprotector', async (_req, res) => res.render('rp-landing', {
     title: 'RaidProtector',
     product: 'raidprotector',
     cardTitle: 'RaidProtector, stops raids with something you can take back',
     cardDescription: 'Raid detection that needs two independent signals before it touches '
       + 'anyone, times people out instead of banning them, and reverses a whole incident in '
-      + 'one press. Free while it is in beta.',
+      + 'one press. Free for every server.',
     ...plans(),
     rpInviteUrl: config.raidProtector.inviteUrl,
+    serverCount: await rpServerCount(),
   }));
 
   app.get('/healthz', (_req, res) => res.json({ ok: true, uptime: process.uptime() }));
@@ -350,7 +368,7 @@ export function createApp() {
     res.render('rp-terms', {
       title: 'RaidProtector Terms of Service',
       cardTitle: 'RaidProtector Terms of Service',
-      cardDescription: 'The rules for using RaidProtector, free for every server while it is in beta.',
+      cardDescription: 'The rules for using RaidProtector, free for every server.',
       ...legalFor('rp-terms'),
     }));
   app.get('/raidprotector/privacy', (_req, res) =>

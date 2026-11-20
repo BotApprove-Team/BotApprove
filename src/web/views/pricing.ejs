@@ -12,8 +12,8 @@
       per server<% if (plans.includes('yearly')) { %>, <%= price.symbol %><%= prices.yearly %> a year<% } %><%
         if (plans.includes('lifetime')) { %>, or <%= price.symbol %><%= prices.lifetime %> once<% } %><%
         if (trial.offered) { %>, with the first <%= trial.days %> days free on monthly and yearly<% } %>.
-      One licence covers both BotApprove and RaidProtector in that server. RaidProtector itself is
-      free for every server while it is in beta.
+      One licence covers both BotApprove and RaidProtector in that server. Raid protection itself is
+      free for every server.
     </p>
   </header>
 
@@ -40,7 +40,7 @@
       <p>
         No card, no trial, no expiry. This is the whole approval gate<% if (repoUrl) { %>, and it is
         <a href="<%= repoUrl %>" rel="noopener noreferrer" target="_blank">open source</a><% } %>.
-        RaidProtector is included while it is in beta.
+        RaidProtector's raid protection is included.
       </p>
     </section>
 
@@ -49,7 +49,7 @@
       <h2 id="plan-suite">Protection Suite</h2>
       <ul class="covers" aria-label="Covers">
         <li><span class="prod-mark ba"><svg aria-hidden="true"><use href="#m-ba"></use></svg></span>BotApprove</li>
-        <li><span class="prod-mark rp"><svg aria-hidden="true"><use href="#m-rp"></use></svg></span>RaidProtector <span class="badge">Beta</span></li>
+        <li><span class="prod-mark rp"><svg aria-hidden="true"><use href="#m-rp"></use></svg></span>RaidProtector</li>
       </ul>
       <ul class="options">
         <li>
@@ -141,7 +141,7 @@
               <td class="col-mark"><%- yes %></td>
             </tr>
           <% }) %>
-          <tr class="group"><th scope="colgroup" colspan="3">RaidProtector, while the beta runs</th></tr>
+          <tr class="group"><th scope="colgroup" colspan="3">RaidProtector</th></tr>
           <tr>
             <th scope="row">Raid protection<span class="blurb">Raid detection, a response you can undo, a record of every incident, and verification for new members.</span></th>
             <td class="col-mark"><%- yes %></td>
@@ -198,9 +198,9 @@
 
     <h3>Is RaidProtector really free?</h3>
     <p>
-      Yes, for every server while it is in beta. Detection, the response, undo, the incident record
-      and verification need no licence. The AI second opinion on bans does, because each one is a
-      paid call. If the beta ends and that changes, servers using it will be told before anything
+      Yes, for every server. Detection, the response, undo, the incident record and verification
+      need no licence. The AI second opinion on bans does, because each one is a paid call. If
+      anything that is free now ever needs a licence, servers using it will be told before it
       does.
     </p>
 

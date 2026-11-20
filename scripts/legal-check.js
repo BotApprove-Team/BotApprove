@@ -99,8 +99,10 @@ check('direct messages are ruled out',
 console.log('\n- a bot that acts on people has to say so -');
 check('automated decisions are their own section',
   /Automated decisions/.test(html['rp-privacy']), true);
-check('the beta default is stated in the terms',
-  /report what it would have done/.test(html['rp-terms']), true);
+check('the report mode default is stated in the terms',
+  /reports? what it would have done/.test(html['rp-terms']), true);
+check('and that acting is never switched on for a server without it',
+  /will not be applied to your server without you\s+switching it on/.test(html['rp-terms']), true);
 check('the owner is told the actions are theirs',
   /responsible for what it does in your server/i.test(html['rp-terms']), true);
 check('and that the operator cannot undo them',

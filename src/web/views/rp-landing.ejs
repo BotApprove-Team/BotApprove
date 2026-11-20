@@ -7,7 +7,14 @@
       When two separate signals agree, raiders are timed out, and one button reverses the whole
       incident if it got anyone wrong.
     </p>
-    <p class="hero-count">Free for every server while it is in beta.</p>
+    <% if (typeof serverCount !== 'undefined' && serverCount) { %>
+      <p class="hero-count">
+        Watching for raids in <strong><%= serverCount.toLocaleString('en-US') %></strong>
+        server<%= serverCount === 1 ? '' : 's' %>, free for every one of them.
+      </p>
+    <% } else { %>
+      <p class="hero-count">Free for every server.</p>
+    <% } %>
     <div class="cta">
       <% if (rpInviteUrl) { %>
         <a class="btn btn-primary" href="<%= rpInviteUrl %>">Add to Discord</a>
